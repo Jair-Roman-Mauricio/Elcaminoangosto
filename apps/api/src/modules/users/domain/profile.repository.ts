@@ -12,6 +12,22 @@ export interface ProfileEntity {
   levelRank: number
 }
 
+/** Un estudiante bajo la mentoría de un maestro (HU-1.3). */
+export interface MenteeEntity {
+  studentId: string
+  displayName: string
+  avatarUrl: string | null
+  levelName: string | null
+  levelRank: number
+}
+
+export interface LevelEntity {
+  id: string
+  name: string
+  rank: number
+  description: string | null
+}
+
 /**
  * Puerto. La implementación (adaptador Drizzle) vive en `infrastructure/`.
  * El dominio depende de esta interfaz, nunca al revés.
@@ -24,4 +40,13 @@ export abstract class ProfileRepository {
   ): Promise<ProfileEntity>
   abstract updateRole(id: string, role: Role): Promise<ProfileEntity>
   abstract updateLevel(id: string, levelId: string): Promise<ProfileEntity>
+
+  /** Estudiantes activos asignados a este mentor (HU-1.3). */
+  abstract findMentees(mentorId: string): Promise<MenteeEntity[]>
+
+  /** Catálogo de niveles, ordenado por rank. */
+  abstract findLevels(): Promise<LevelEntity[]>
+
+  /** Todos los perfiles, para el panel de gestión de roles del ADMIN (HU-1.2). */
+  abstract findAll(): Promise<ProfileEntity[]>
 }

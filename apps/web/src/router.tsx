@@ -10,6 +10,10 @@ import { RequireRole } from './auth/require-role'
 import { EntrarPage } from './pages/entrar'
 import { KitUiPage } from './pages/kit-ui'
 import { Pendiente } from './pages/pendiente'
+import { CatalogoPage } from './modules/discipleship/catalogo-page'
+import { CursoPage } from './modules/discipleship/curso-page'
+import { EstudiantesPage } from './modules/discipleship/estudiantes-page'
+import { UsuariosPage } from './modules/admin/usuarios-page'
 
 // La landing arrastra GSAP + Lenis (ADR-003). Se carga aparte para no
 // penalizar el bundle de la app autenticada.
@@ -48,14 +52,8 @@ export const router = createBrowserRouter([
       </RequireRole>
     ),
     children: [
-      {
-        path: '/discipulado',
-        element: <Pendiente titulo="Catálogo de cursos" historia="HU-4.1 · Sprint S1" />,
-      },
-      {
-        path: '/discipulado/:slug',
-        element: <Pendiente titulo="Curso" historia="HU-4.2 · Sprint S1" />,
-      },
+      { path: '/discipulado', element: <CatalogoPage /> },
+      { path: '/discipulado/:slug', element: <CursoPage /> },
       {
         path: '/tarjetas',
         element: <Pendiente titulo="Tarjetas de Fe" historia="HU-3.1 · Sprint S3" />,
@@ -81,10 +79,7 @@ export const router = createBrowserRouter([
         path: '/maestro/cursos',
         element: <Pendiente titulo="Mis cursos" historia="HU-4.3 · Sprint S2" />,
       },
-      {
-        path: '/maestro/estudiantes',
-        element: <Pendiente titulo="Mis estudiantes" historia="HU-4.5 · Sprint S2" />,
-      },
+      { path: '/maestro/estudiantes', element: <EstudiantesPage /> },
     ],
   },
 
@@ -105,10 +100,7 @@ export const router = createBrowserRouter([
         path: '/admin/moderacion',
         element: <Pendiente titulo="Moderación" historia="HU-7.2 · Sprint S6" />,
       },
-      {
-        path: '/admin/usuarios',
-        element: <Pendiente titulo="Usuarios y roles" historia="HU-1.2 · Sprint S1" />,
-      },
+      { path: '/admin/usuarios', element: <UsuariosPage /> },
     ],
   },
 

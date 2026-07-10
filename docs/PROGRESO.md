@@ -36,6 +36,19 @@ Leyenda: ✅ hecha · 🟡 parcial · ⬜ pendiente
 | ✅ | **HU-0.5** CodeGraph indexado | `codegraph status` → 710 símbolos. Uso documentado en `AGENTS.md` §5. |
 | ⬜ | **HU-1.1** Perfil de usuario | `GET/PATCH /users/me` implementados. Falta la subida de avatar al bucket y la pantalla. |
 
+### Sprint S1 — Identidad & Discipulado I ✅
+
+Hito demostrable cumplido: **un estudiante ve el catálogo de su nivel, se inscribe y completa una lección con el progreso guardado.**
+
+- **HU-4.1** Catálogo por nivel e inscripción. El catálogo devuelve todos los cursos publicados; los de nivel superior llegan marcados `unlocked:false` con su motivo. La inscripción valida nivel (403 legible) y es idempotente.
+- **HU-4.2** Consumo de lecciones y progreso. `POST /lessons/:id/complete` es idempotente y transaccional; recalcula `progress_pct` desde el recuento real. El medio privado de una lección solo se autoriza al inscrito (base de HU-8.3).
+- **HU-1.3** Niveles y mentoría. `GET /users/my-students` (MAESTRO) lista a sus estudiantes con su nivel.
+- **HU-1.2** Gestión de roles. `GET /users` + `PATCH /users/:id/role` (ADMIN) con pantalla en `/admin/usuarios`.
+
+**Backend:** módulo `discipleship` completo (4 capas), `course` registrado en el `PolicyRegistry`, **13 tests de dominio** con repos en memoria. Verificado contra el API real: catálogo, inscripción idempotente, progreso 33→67→100%, persistencia, 403 por nivel con un curso de nivel 3 real.
+
+**Frontend:** catálogo (`CatalogoPage`), course shell con sidebar de lecciones y barra de progreso (`CursoPage`), panel de roles (`UsuariosPage`), mis estudiantes (`EstudiantesPage`). Verificado en Chromium con `apps/web/e2e/s1-milestone.mjs` — el flujo completo del hito, incluida la **persistencia del progreso tras recargar**.
+
 ### HU-9.1 — Migración de la landing (adelantada de S6)
 
 La landing original se portó a React **sin tocar el diseño**: mismos videos, mismos versículos, mismos scrims, mismo scrub. Único añadido: la entrada a la plataforma (`Crear cuenta` en el nav y `Crear mi cuenta` en el cierre, ambos a `/entrar?registro=1`).
@@ -90,7 +103,7 @@ Ninguna historia empezada. El esqueleto de módulos y las rutas placeholder ya s
 
 | Sprint | Historias | Estado |
 |---|---|---|
-| **S1** Identidad & Discipulado I | HU-1.2 🟡 *(endpoint hecho, sin UI)*, HU-1.3, HU-4.1, HU-4.2 | ⬜ |
+| **S1** Identidad & Discipulado I | HU-1.2 ✅, HU-1.3 ✅, HU-4.1 ✅, HU-4.2 ✅ | ✅ |
 | **S2** Discipulado II & Aprobación | HU-4.3, 4.4, 4.5, 5.1, 5.2, 5.3 | ⬜ |
 | **S3** Medios & Feed | HU-8.1, 8.2, 8.3, 3.1, 3.3 | ⬜ |
 | **S4** Feed social & Chat | HU-3.2, 3.4, 6.1, 6.2 | ⬜ |
