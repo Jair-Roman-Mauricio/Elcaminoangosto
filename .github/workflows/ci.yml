@@ -21,6 +21,44 @@ env:
   VITE_SUPABASE_ANON_KEY: ci-placeholder
 
 jobs:
+  commits:
+    name: Conventional Commits
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Sin acciones de terceros: el formato es simple y la cadena de
+      # suministro de CI no merece una dependencia más.
+      - name: Validar el asunto de cada commit del PR
+        run: |
+          TIPOS='feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert'
+          # El resumen arranca en minúscula (o dígito/backtick) y no acaba en punto.
+          PATRON="^(${TIPOS})(\([a-z0-9,._-]+\))?!?: [a-z0-9\`áéíóúñü].{0,70}[^.]$"
+          fallos=0
+
+          while read -r sha; do
+            [ -z "$sha" ] && continue
+            asunto=$(git log -1 --format=%s "$sha")
+            # Los merges no llevan Conventional Commit.
+            [ "$(git rev-list --parents -n1 "$sha" | wc -w)" -gt 2 ] && continue
+
+            if ! printf '%s' "$asunto" | grep -qE "$PATRON"; then
+              echo "✗ ${sha:0:8}  $asunto"
+              fallos=$((fallos + 1))
+            fi
+          done < <(git rev-list "origin/${{ github.base_ref }}..HEAD")
+
+          if [ "$fallos" -gt 0 ]; then
+            echo
+            echo "$fallos commit(s) no siguen Conventional Commits."
+            echo "Formato: <tipo>(<ámbito>): <resumen en imperativo>  — ver CONTRIBUTING.md"
+            exit 1
+          fi
+          echo "✓ Todos los commits siguen Conventional Commits."
+
   calidad:
     name: Lint · Typecheck · Test · Build
     runs-on: ubuntu-latest
