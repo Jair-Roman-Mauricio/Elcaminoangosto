@@ -36,6 +36,22 @@ Leyenda: ✅ hecha · 🟡 parcial · ⬜ pendiente
 | ✅ | **HU-0.5** CodeGraph indexado | `codegraph status` → 710 símbolos. Uso documentado en `AGENTS.md` §5. |
 | ⬜ | **HU-1.1** Perfil de usuario | `GET/PATCH /users/me` implementados. Falta la subida de avatar al bucket y la pantalla. |
 
+### HU-9.1 — Migración de la landing (adelantada de S6)
+
+La landing original se portó a React **sin tocar el diseño**: mismos videos, mismos versículos, mismos scrims, mismo scrub. Único añadido: la entrada a la plataforma (`Crear cuenta` en el nav y `Crear mi cuenta` en el cierre, ambos a `/entrar?registro=1`).
+
+Verificado en Chromium con `apps/web/e2e/landing.check.mjs` — **24 aserciones**:
+
+- Estructura: 4 capas de video, 5 overlays, contador lateral, indicador de scroll.
+- Identidad: fondo `#0a0a0a`, cuerpo en Space Mono, versículo en Newsreader.
+- **Scrub real**: el `currentTime` del video avanza al scrollear (`0.00s → 2.50s`) y el video **no se reproduce solo**.
+- Crossfade entre capítulos y overlay de cierre.
+- El CTA navega a `/entrar?registro=1` y el formulario arranca en modo registro.
+- `prefers-reduced-motion` desactiva Lenis y el capítulo 01 sigue visible.
+- Cero errores de JavaScript en consola.
+
+Se mantiene GSAP + ScrollTrigger + Lenis (ADR-003), cargados en un chunk aparte (142 KB) que solo se descarga en `/`.
+
 ### Evidencia de HU-0.2
 
 Ejecutado contra el stack local (`supabase start` + `node dist/main.js`):
@@ -78,7 +94,7 @@ Ninguna historia empezada. El esqueleto de módulos y las rutas placeholder ya s
 | **S3** Medios & Feed | HU-8.1, 8.2, 8.3, 3.1, 3.3 | ⬜ |
 | **S4** Feed social & Chat | HU-3.2, 3.4, 6.1, 6.2 | ⬜ |
 | **S5** Alabanza | HU-2.1 🟡 *(store + player bar)*, 2.2, 2.3, 2.4 | ⬜ |
-| **S6** Admin & Landing & Hardening | HU-7.1, 7.2, 9.1 + RNF | ⬜ |
+| **S6** Admin & Landing & Hardening | HU-7.1, 7.2, **HU-9.1 ✅**, + RNF | 🟡 |
 
 ---
 
