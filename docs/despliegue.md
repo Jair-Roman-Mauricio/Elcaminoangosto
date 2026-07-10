@@ -60,6 +60,12 @@ Dos trampas que costaron un build cada una:
 1. **`--prod=false` en el install es obligatorio.** Con `NODE_ENV=production`, pnpm poda las `devDependencies` y el build se queda sin `nest`, `vite` ni `tsup`.
 2. **`railway environment new staging` cambia el entorno enlazado.** Cualquier `railway variables --set` posterior escribe en el entorno equivocado. **Pasa siempre `--environment` explícito.**
 
+### Node 22 es obligatorio
+
+`@supabase/supabase-js` 2.110 requiere **Node 22+**: al construir el cliente inicializa un `RealtimeClient` que exige `WebSocket` nativo, ausente en Node 20. Railpack usaba Node 20 por defecto y el worker moría en el arranque con *«Node.js detected but native WebSocket not found»*.
+
+Fijado en tres sitios para que no dependa de un panel: `engines.node` en el `package.json` raíz, `.nvmrc`, y `RAILPACK_NODE_VERSION=22` en cada servicio.
+
 ### El worker es ESM
 
 `apps/worker` declara `"type": "module"`. `tsc` emite `import './config'` **sin extensión**, y Node ESM lo rechaza en tiempo de ejecución (`ERR_MODULE_NOT_FOUND`). No lo detecta ni `tsc` ni `pnpm build`: solo se ve al ejecutar el `dist`. Por eso el worker se empaqueta con **tsup** a un único archivo ESM.
