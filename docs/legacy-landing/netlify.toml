@@ -1,0 +1,35 @@
+# Netlify, arrastrando la carpeta dist/ a app.netlify.com/drop
+#
+# No hay build: el sitio es estático. Netlify sirve HTTP Range de fábrica,
+# que es justo lo que el scrub del video necesita para poder buscar frames.
+
+[build]
+  publish = "."
+
+# El HTML siempre fresco: es donde apuntan las rutas a media/ y posters/.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Los videos pesan 21 MB: que el navegador los guarde una semana.
+# Accept-Ranges lo pone Netlify solo; no hay que declararlo.
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/posters/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

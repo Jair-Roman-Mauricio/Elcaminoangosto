@@ -1,0 +1,18 @@
+{
+  "name": "landing-camino",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Landing cristiana con scroll cinematografico",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "media": "./scripts/encode.sh",
+    "build": "./scripts/build.sh",
+    "preview": "cd dist && PORT=4174 node ../scripts/serve.mjs",
+    "shots": "node scripts/capture.mjs",
+    "scrub": "node scripts/scrub.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

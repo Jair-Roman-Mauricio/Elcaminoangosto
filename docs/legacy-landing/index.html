@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+<title>El Camino — Un recorrido por la vida de Jesús</title>
+<meta name="description" content="Un recorrido contemplativo en cuatro capítulos: el desierto, el sermón, el camino y el amanecer. Una invitación a caminar con Él." />
+
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="es_ES" />
+<meta property="og:title" content="El Camino — Un recorrido por la vida de Jesús" />
+<meta property="og:description" content="Cuatro capítulos. Un mismo camino. Una invitación a caminar con Él." />
+<meta property="og:image" content="posters/1.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0a'/><path d='M16 6v20M9 13h14' stroke='%23f7f6f2' stroke-width='1.5'/></svg>" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&display=swap" rel="stylesheet" />
+
+<link rel="preload" as="image" href="posters/1.jpg" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ══ ESCENARIO DE VIDEO: 4 capas fijas apiladas, solo una visible ══ -->
+<div class="stage" aria-hidden="true">
+  <!-- Los videos NO se reproducen solos: el scroll mueve su currentTime.
+       Por eso no llevan `loop` ni `autoplay`. Vienen de media/, que es
+       la versión con todos los fotogramas en keyframe (ver scripts/encode.sh). -->
+  <div class="video-layer is-active" data-video="0" style="background-image:url('posters/1.jpg')">
+    <video src="media/1.mp4" poster="posters/1.jpg" preload="auto" muted playsinline disablepictureinpicture></video>
+  </div>
+  <div class="video-layer" data-video="1" style="background-image:url('posters/2.jpg')">
+    <video src="media/2.mp4" poster="posters/2.jpg" preload="auto" muted playsinline disablepictureinpicture></video>
+  </div>
+  <!-- 3 y 4 diferidos: el src real vive en data-src hasta que se acercan -->
+  <div class="video-layer" data-video="2" style="background-image:url('posters/3.jpg')">
+    <video data-src="media/3.mp4" poster="posters/3.jpg" preload="none" muted playsinline disablepictureinpicture></video>
+  </div>
+  <div class="video-layer" data-video="3" style="background-image:url('posters/4.jpg')">
+    <video data-src="media/4.mp4" poster="posters/4.jpg" preload="none" muted playsinline disablepictureinpicture></video>
+  </div>
+  <div class="stage-vignette"></div>
+</div>
+
+<!-- ══ OVERLAYS DE TEXTO: fijos, uno por capítulo + el cierre ══ -->
+<div class="overlays">
+  <!-- Los rellena script.js desde CHAPTERS -->
+</div>
+
+<!-- ══ NAV ══ -->
+<header class="nav">
+  <a class="nav__brand" href="#top">El&nbsp;Camino</a>
+  <nav class="nav__links">
+    <span class="nav__meta">04&nbsp;capítulos</span>
+    <a class="nav__cta" href="#cierre">Comenzar</a>
+  </nav>
+</header>
+
+<!-- ══ CONTADOR DE CAPÍTULOS (lateral) ══ -->
+<aside class="counter" aria-hidden="true">
+  <span class="counter__item" data-step="0">01</span>
+  <span class="counter__dot"></span>
+  <span class="counter__item" data-step="1">02</span>
+  <span class="counter__dot"></span>
+  <span class="counter__item" data-step="2">03</span>
+  <span class="counter__dot"></span>
+  <span class="counter__item" data-step="3">04</span>
+</aside>
+
+<!-- ══ INDICADOR DE SCROLL (solo hero) ══ -->
+<div class="scroll-hint" data-hint>
+  <span>Desliza</span>
+  <span class="scroll-hint__line"></span>
+</div>
+
+<!-- ══ RECORRIDO: secciones vacías que dirigen el scroll ══ -->
+<main id="top">
+  <section class="chapter" data-step="0"></section>
+  <section class="chapter" data-step="1"></section>
+  <section class="chapter" data-step="2"></section>
+  <section class="chapter" data-step="3"></section>
+  <section class="chapter chapter--cierre" id="cierre" data-step="4"></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

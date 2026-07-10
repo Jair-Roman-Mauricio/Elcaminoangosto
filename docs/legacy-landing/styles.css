@@ -1,0 +1,490 @@
+/* ═══════════════════════════════════════════════════════════
+   EL CAMINO — hoja de estilo
+   Estética: editorial minimalista. Mono, monocromático, aire.
+   Todo lo retocable vive en :root
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* — Paleta: base neutra + dos acentos, usados con moderación — */
+  --negro: #0a0a0a;
+  --hueso: #f7f6f2;
+  --vino: #b41e44;
+  --marino: #1b3460;
+
+  --texto: var(--hueso);
+  --texto-tenue: rgba(247, 246, 242, 0.55);
+  --linea: rgba(247, 246, 242, 0.15);
+  --linea-fuerte: rgba(247, 246, 242, 0.4);
+
+  /* — Tipografía — */
+  --mono: "Space Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+
+  --track-label: 0.14em; /* microlabels y nav */
+  --track-boton: 0.1em;
+  --track-titulo: 0.01em;
+
+  /* — Formas — */
+  --radius: 0.8rem;
+  --borde: 1px solid var(--linea);
+
+  /* — Ritmo vertical / aire — */
+  --gutter: clamp(1.5rem, 5vw, 5rem);
+  --aire-xs: 0.75rem;
+  --aire-s: 1.25rem;
+  --aire-m: 2rem;
+  --aire-l: 3.5rem;
+
+  /* — Movimiento: lento, ease-out, sin rebote — */
+  --fade: 0.9s;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* — Overscan del video: oculta las barras negras y esquinas
+       redondeadas que vienen quemadas en 3.mp4 y 4.mp4 — */
+  --video-scale: 1.04;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { scroll-behavior: auto; }
+
+body {
+  margin: 0;
+  background: var(--negro);
+  color: var(--texto);
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--vino); color: var(--hueso); }
+
+/* ── Lenis ────────────────────────────────────────────────── */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+/* ═══ ESCENARIO DE VIDEO ═══════════════════════════════════ */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--negro);
+  overflow: hidden;
+}
+
+.video-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-size: cover;
+  background-position: center;
+  will-change: opacity;
+}
+.video-layer.is-active { opacity: 1; }
+
+.video-layer video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transform: scale(var(--video-scale));
+  transform-origin: center;
+}
+
+/* Viñeta muy sutil + velo superior para que el nav se lea
+   también sobre los cielos claros (capítulos 03 y 04). */
+.stage-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(10, 10, 10, 0.45) 0%, rgba(10, 10, 10, 0.18) 8%, transparent 17%),
+    radial-gradient(
+      ellipse 95% 85% at 50% 45%,
+      transparent 55%,
+      rgba(10, 10, 10, 0.35) 100%
+    );
+}
+
+/* ═══ NAV ══════════════════════════════════════════════════ */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--aire-m);
+  padding: clamp(1.1rem, 2.4vw, 2rem) var(--gutter);
+  padding-top: max(clamp(1.1rem, 2.4vw, 2rem), env(safe-area-inset-top));
+  mix-blend-mode: normal;
+}
+
+.nav__brand {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 2.5vw, 2.25rem);
+}
+
+.nav__meta {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  color: var(--texto-tenue);
+}
+
+.nav__cta {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: var(--track-boton);
+  color: var(--texto);
+  text-decoration: none;
+  padding: 0.6rem 1.1rem;
+  border: var(--borde);
+  border-radius: var(--radius);
+  transition: border-color var(--fade) var(--ease),
+              background-color var(--fade) var(--ease);
+}
+.nav__cta:hover {
+  border-color: var(--vino);
+  background: rgba(180, 30, 68, 0.12);
+}
+
+/* ═══ CONTADOR DE CAPÍTULOS (lateral izquierdo) ════════════ */
+.counter {
+  position: fixed;
+  left: var(--gutter);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.625rem;
+  letter-spacing: var(--track-label);
+}
+
+.counter__item {
+  color: var(--texto-tenue);
+  opacity: 0.5;
+  transition: opacity var(--fade) var(--ease), color var(--fade) var(--ease);
+}
+.counter__item.is-on {
+  opacity: 1;
+  color: var(--texto);
+}
+
+.counter__dot {
+  width: 1px;
+  height: 1.4rem;
+  background: var(--linea);
+}
+
+/* ═══ INDICADOR DE SCROLL ══════════════════════════════════ */
+.scroll-hint {
+  position: fixed;
+  bottom: max(2rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  color: var(--texto-tenue);
+  transition: opacity var(--fade) var(--ease);
+}
+
+.scroll-hint__line {
+  width: 1px;
+  height: 3.5rem;
+  background: linear-gradient(to bottom, var(--linea-fuerte), transparent);
+}
+
+/* ═══ OVERLAYS DE TEXTO ════════════════════════════════════ */
+.overlays {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  opacity: 0;
+  visibility: hidden;
+  padding-block: clamp(5.5rem, 11vh, 9rem) clamp(5.5rem, 11vh, 8rem);
+  /* Simétrico: deja pasillo al contador lateral SIN descentrar
+     los capítulos centrados. */
+  padding-inline: calc(var(--gutter) + 4rem);
+}
+
+/* — Scrim: solo bajo el texto, nunca sobre todo el video — */
+.overlay__scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* — Posiciones de texto por capítulo — */
+.overlay[data-pos="top-center"] { place-items: start center; text-align: center; }
+.overlay[data-pos="top-left"]   { place-items: start start; text-align: left; }
+.overlay[data-pos="bottom-left"]{ place-items: end start; text-align: left; }
+.overlay[data-pos="center"]     { place-items: center center; text-align: center; }
+
+/* "split": título arriba, versículo abajo. Deja libre la franja
+   central de la imagen — necesario en el hero, donde la figura
+   camina justo por el medio. */
+.overlay[data-pos="split"] {
+  align-content: space-between;
+  justify-items: center;
+  text-align: center;
+}
+.overlay[data-pos="split"] .overlay__stack { display: contents; }
+.overlay[data-pos="split"] .overlay__inner:last-child { padding-bottom: 3.5rem; }
+
+.overlay[data-pos="split"] .overlay__scrim {
+  background:
+    linear-gradient(to bottom, rgba(10, 10, 10, 0.58) 0%, rgba(10,10,10,0.22) 26%, transparent 46%),
+    linear-gradient(to top, rgba(10, 10, 10, 0.52) 0%, transparent 32%);
+}
+
+.overlay[data-pos="top-center"] .overlay__scrim {
+  background: linear-gradient(to bottom,
+    rgba(10, 10, 10, 0.6) 0%, rgba(10, 10, 10, 0.32) 30%, transparent 58%);
+}
+.overlay[data-pos="top-left"] .overlay__scrim {
+  background:
+    linear-gradient(to bottom, rgba(10,10,10,0.5) 0%, transparent 52%),
+    linear-gradient(105deg, rgba(10,10,10,0.62) 0%, rgba(10,10,10,0.2) 40%, transparent 62%);
+}
+.overlay[data-pos="bottom-left"] .overlay__scrim {
+  background:
+    linear-gradient(to top, rgba(10,10,10,0.62) 0%, transparent 55%),
+    linear-gradient(75deg, rgba(10,10,10,0.5) 0%, transparent 55%);
+}
+.overlay[data-pos="center"] .overlay__scrim {
+  background: radial-gradient(ellipse 72% 58% at 50% 50%,
+    rgba(10, 10, 10, 0.62) 0%, rgba(10, 10, 10, 0.34) 45%, transparent 74%);
+}
+
+/* Anchos en rem, no en ch: `ch` se resuelve contra el font-size del
+   contenedor (16px), no contra el del título — daba columnas de ~380px
+   y títulos partidos en cuatro líneas. */
+.overlay__stack {
+  position: relative;
+  max-width: 44rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aire-m);
+}
+.overlay[data-pos="top-left"] .overlay__stack,
+.overlay[data-pos="bottom-left"] .overlay__stack { max-width: 30rem; }
+.overlay[data-pos="center"] .overlay__stack { max-width: 40rem; }
+
+.overlay__inner {
+  position: relative;
+  max-width: 44rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aire-s);
+}
+
+/* — Microlabel: CAPÍTULO 01 — EL DESIERTO — */
+.overlay__label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  color: var(--texto-tenue);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.overlay[data-pos="top-center"] .overlay__label,
+.overlay[data-pos="split"] .overlay__label,
+.overlay[data-pos="center"] .overlay__label { justify-content: center; }
+
+.overlay__label::after {
+  content: "";
+  width: 2.5rem;
+  height: 1px;
+  background: var(--linea-fuerte);
+}
+
+/* — Título de capítulo — */
+.overlay__title {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 3.5vw, 3.2rem);
+  line-height: 1.12;
+  letter-spacing: var(--track-titulo);
+  text-wrap: balance;
+}
+
+/* — Versículo: serif editorial, sobria — */
+.overlay__verse {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.0625rem, 1.55vw, 1.6rem);
+  line-height: 1.55;
+  color: rgba(247, 246, 242, 0.88);
+  text-wrap: pretty;
+}
+
+.overlay__ref {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  color: var(--texto-tenue);
+}
+
+/* ═══ CIERRE / CTA ═════════════════════════════════════════ */
+.overlay__actions {
+  margin-top: var(--aire-m);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--aire-s);
+  pointer-events: auto;
+}
+
+.boton {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: var(--track-boton);
+  color: var(--texto);
+  text-decoration: none;
+  padding: 1.05rem 2.4rem;
+  border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radius);
+  background: rgba(10, 10, 10, 0.2);
+  transition: border-color var(--fade) var(--ease),
+              background-color var(--fade) var(--ease),
+              color var(--fade) var(--ease);
+}
+.boton:hover,
+.boton:focus-visible {
+  border-color: var(--vino);
+  background: var(--vino);
+  color: var(--hueso);
+}
+
+.boton--sutil {
+  border-color: transparent;
+  background: transparent;
+  color: var(--texto-tenue);
+  padding: 0.6rem 0;
+  font-size: 0.6875rem;
+  text-decoration: underline;
+  text-underline-offset: 0.45em;
+  text-decoration-color: var(--linea);
+}
+.boton--sutil:hover,
+.boton--sutil:focus-visible {
+  background: transparent;
+  color: var(--texto);
+  text-decoration-color: var(--marino);
+}
+
+.overlay__pie {
+  margin: var(--aire-l) 0 0;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  color: rgba(247, 246, 242, 0.35);
+}
+
+:where(a, button):focus-visible {
+  outline: 1px solid var(--hueso);
+  outline-offset: 4px;
+  border-radius: var(--radius);
+}
+
+/* ═══ RECORRIDO ════════════════════════════════════════════ */
+main { position: relative; z-index: 10; pointer-events: none; }
+
+/* Cada capítulo scrubea 10s de video. Con menos recorrido el video
+   corre demasiado rápido bajo el dedo; con más, se hace pesado. */
+.chapter { height: 260vh; }
+.chapter--cierre { height: 120vh; }
+
+/* ═══ MÓVIL ════════════════════════════════════════════════ */
+@media (max-width: 820px) {
+  :root {
+    --gutter: 1.5rem;
+    --video-scale: 1.06;
+  }
+
+  /* En vertical el recorte lateral es agresivo: el texto pasa a
+     ocupar el ancho y las posiciones laterales se centran. */
+  .overlay {
+    padding-block: clamp(6rem, 14vh, 8rem) clamp(6rem, 14vh, 7rem);
+    padding-inline: var(--gutter); /* sin contador, no hace falta pasillo */
+  }
+  .overlay[data-pos="top-left"]    { place-items: start center; text-align: center; }
+  .overlay[data-pos="bottom-left"] { place-items: end center; text-align: center; }
+  .overlay[data-pos="top-left"] .overlay__label,
+  .overlay[data-pos="bottom-left"] .overlay__label { justify-content: center; }
+
+  .overlay__stack,
+  .overlay[data-pos="top-left"] .overlay__stack,
+  .overlay[data-pos="bottom-left"] .overlay__stack,
+  .overlay[data-pos="center"] .overlay__stack { max-width: 22rem; }
+  .overlay__inner { max-width: 22rem; }
+  .overlay[data-pos="split"] .overlay__inner:last-child { padding-bottom: 2.5rem; }
+
+  .overlay[data-pos="top-left"] .overlay__scrim {
+    background: linear-gradient(to bottom,
+      rgba(10,10,10,0.66) 0%, rgba(10,10,10,0.3) 34%, transparent 60%);
+  }
+  .overlay[data-pos="bottom-left"] .overlay__scrim {
+    background: linear-gradient(to top,
+      rgba(10,10,10,0.7) 0%, rgba(10,10,10,0.3) 34%, transparent 62%);
+  }
+
+  /* El contador estorba en pantallas angostas */
+  .counter { display: none; }
+
+  .nav__meta { display: none; }
+
+  .boton { padding: 1rem 1.9rem; }
+}
+
+@media (max-width: 820px) and (orientation: portrait) {
+  .chapter { height: 240vh; }
+}
+
+/* ═══ REDUCED MOTION ═══════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  :root { --fade: 0.25s; }
+  .stage-vignette { opacity: 0.6; }
+  .scroll-hint__line { height: 2rem; }
+}

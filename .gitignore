@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Entorno — nunca commitear secretos
+.env
+.env.*
+!.env.example
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# CodeGraph (índice generado)
+.codegraph/
+
+# Capturas de QA de la landing legacy (58 MB, regenerables con scripts/capture.mjs)
+shots/
+
+# Sistema / editores
+.DS_Store
+.kombai/
+*.log
+coverage/

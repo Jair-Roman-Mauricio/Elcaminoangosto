@@ -1,0 +1,26 @@
+{
+  "name": "@elcamino/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tailwind-preset": "./tailwind-preset.js",
+    "./eslint": "./eslint.config.js",
+    "./prettier": "./prettier.config.js",
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/node.json": "./tsconfig/node.json",
+    "./tsconfig/react.json": "./tsconfig/react.json"
+  },
+  "files": ["tailwind-preset.js", "eslint.config.js", "prettier.config.js", "tsconfig"],
+  "scripts": {
+    "lint": "echo \"(config) sin fuentes que lintar\"",
+    "typecheck": "echo \"(config) sin fuentes que typechequear\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.14.0",
+    "typescript-eslint": "^8.18.1"
+  }
+}
