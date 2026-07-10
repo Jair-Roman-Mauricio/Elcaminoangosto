@@ -98,6 +98,22 @@ La **landing real manda**. Se reescribió `DESIGN.md` por completo, token por to
 
 ---
 
+## ADR-005 — Registro sin confirmación de correo en el MVP
+
+**Fecha:** 2026-07-10 · **Estado:** Aceptada (decidida por el responsable humano)
+
+**Contexto.** El proyecto Supabase remoto nacía con la confirmación de correo **activada** (`mailer_autoconfirm: false`). Un usuario recién registrado quedaba `Waiting for verification` y no podía iniciar sesión (`Email not confirmed`). Además, no hay proveedor de correo (SMTP) configurado, así que el correo de confirmación nunca llegaba: el registro era una vía muerta.
+
+**Decisión.** Desactivar la confirmación de correo en el MVP: `mailer_autoconfirm: true`. El `signUp` devuelve sesión al instante y el usuario entra directo. Se aplicó por la Management API sobre el proyecto remoto (`PATCH /v1/projects/{ref}/config/auth`) y ya estaba así en `supabase/config.toml` para local (`[auth.email] enable_confirmations = false`). De paso se corrigió `site_url`, que apuntaba a `http://localhost:3000`, al dominio real del front.
+
+**Consecuencias.**
+- ✅ El registro funciona de punta a punta sin infraestructura de correo.
+- ⚠️ **Cualquiera puede registrarse con un correo que no le pertenece.** Aceptable en el MVP (sin pagos, sin datos sensibles todavía), pero **antes de abrir la plataforma** hay que: configurar un SMTP propio, reactivar `mailer_autoconfirm: false` y añadir la recuperación de contraseña (HU-1.4).
+- El ajuste del remoto vive en el panel/API, **no en git**. `supabase/config.toml` tiene `site_url` local, así que **no se debe hacer `supabase config push`** al remoto sin antes parametrizar las URLs por entorno; sobrescribiría el `site_url` de producción con localhost. Anotado en `docs/despliegue.md`.
+- El formulario de `/entrar` muestra ahora feedback explícito: éxito ("¡Cuenta creada! Entrando…") o, si algún día se reactiva la confirmación, el aviso de "revisa tu correo".
+
+---
+
 ## Preguntas abiertas
 
 | ID | Pregunta | Estado | Propuesta por defecto |
