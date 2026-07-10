@@ -19,7 +19,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/event-emitter": "^3.0.0",
     "@nestjs/platform-express": "^11.0.1",
-    "@nestjs/swagger": "^8.1.0",
+    "@nestjs/swagger": "^11.0.0",
     "@nestjs/throttler": "^6.3.0",
     "@supabase/supabase-js": "^2.47.10",
     "drizzle-orm": "^0.38.3",

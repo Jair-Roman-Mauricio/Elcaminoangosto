@@ -72,6 +72,32 @@ La **landing real manda**. Se reescribió `DESIGN.md` por completo, token por to
 
 ---
 
+## ADR-004 — RLS se complementa con privilegios de columna
+
+**Fecha:** 2026-07-09 · **Estado:** Aceptada
+
+**Contexto.** Al ejecutar la suite `supabase/tests/rls.test.sql` contra la base local aparecieron dos defectos en las políticas escritas inicialmente:
+
+1. **Las políticas RLS no conceden permisos, los restringen.** Las tablas creadas por nuestras migraciones solo heredaban `REFERENCES, TRIGGER, TRUNCATE` de los *default privileges* de Supabase. Sin `GRANT SELECT/INSERT/UPDATE/DELETE`, Postgres respondía `permission denied for table courses` **antes** de evaluar ninguna política. Toda la capa de autorización estaba muerta.
+
+2. **RLS filtra filas, no columnas.** La política `profiles_editar_el_mio` (`update using (id = auth.uid())`) permitía a un ESTUDIANTE ejecutar `update profiles set role='ADMIN' where id = <yo>` y **ascenderse a administrador**. Verificado empíricamente antes del arreglo. El mismo agujero permitía subirse de nivel solo (desbloqueando cursos) y a un autor revertir la ocultación por moderación de su tarjeta.
+
+**Decisión.** Añadir `supabase/migrations/20260709000150_grants.sql`:
+
+- `GRANT` explícito del DML a `authenticated` (RLS filtra las filas). `anon` queda deliberadamente **sin privilegios**.
+- **Privilegios de columna** sobre los campos de gobernanza:
+  - `profiles`: solo `display_name, bio, avatar_url` son actualizables por el usuario. `role` y `current_level_id` no.
+  - `posts`: solo `caption`. El `status` no (protege la moderación).
+  - `courses`: todo menos `teacher_id` y `published_at`.
+- Esos campos se mutan **exclusivamente** por el API con `service_role`, que tiene `BYPASSRLS`.
+
+**Consecuencias.**
+- La invariante "un maestro nunca autopublica" queda cerrada por **tres** cerrojos independientes: la máquina de estados en `packages/shared-types`, el `with check` de la política RLS y la ausencia del privilegio de columna sobre `published_at`.
+- Un ADMIN tampoco puede cambiar roles vía PostgREST directo: debe pasar por el endpoint `PATCH /users/:id/role`. Es intencionado — así queda traza de auditoría.
+- `supabase/tests/rls.test.sql` contiene 16 aserciones y **debe correr en CI**. Es el único sitio donde estos agujeros son visibles: ninguno produce error de compilación.
+
+---
+
 ## Preguntas abiertas
 
 | ID | Pregunta | Estado | Propuesta por defecto |
