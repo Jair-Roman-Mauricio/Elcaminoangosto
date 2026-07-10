@@ -1,0 +1,100 @@
+/* ═══════════════════════════════════════════════════════════
+   Tokens globales — El Camino Angosto
+   Espejo en CSS vars del preset de Tailwind (packages/config).
+   Fuente de verdad: docs/DESIGN.md · Decisión: ADR-001.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Base */
+  --negro: #0a0a0a;
+  --hueso: #f7f6f2;
+
+  /* Acentos — usar con moderación */
+  --vino: #b41e44;
+  --marino: #1b3460;
+
+  /* Derivados del hueso */
+  --texto: var(--hueso);
+  --texto-tenue: rgba(247, 246, 242, 0.55);
+  --texto-debil: rgba(247, 246, 242, 0.35);
+  --linea: rgba(247, 246, 242, 0.15);
+  --linea-fuerte: rgba(247, 246, 242, 0.4);
+
+  /* Superficies elevadas */
+  --superficie-0: #0a0a0a;
+  --superficie-1: #101010;
+  --superficie-2: #181818;
+
+  /* Estado */
+  --exito: #2e7d5b;
+  --aviso: #c9862b;
+  --peligro: var(--vino);
+
+  /* Tipografía */
+  --mono: "Space Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+
+  --track-label: 0.14em;
+  --track-boton: 0.1em;
+  --track-titulo: 0.01em;
+
+  /* Formas */
+  --radius: 0.8rem;
+  --borde: 1px solid var(--linea);
+
+  /* Ritmo vertical */
+  --gutter: clamp(1.5rem, 5vw, 5rem);
+  --aire-xs: 0.75rem;
+  --aire-s: 1.25rem;
+  --aire-m: 2rem;
+  --aire-l: 3.5rem;
+
+  /* Movimiento: lento, ease-out, SIN rebote */
+  --fade: 0.9s;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--negro);
+  color: var(--texto);
+  font-family: var(--mono);
+  font-size: 16px; /* base 16px — ver ADR-001 */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--vino);
+  color: var(--hueso);
+}
+
+/* Foco visible — nunca `outline: none` (RNF-6, WCAG 2.1 AA) */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 1px solid var(--hueso);
+  outline-offset: 4px;
+  border-radius: var(--radius);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --fade: 0.25s;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
