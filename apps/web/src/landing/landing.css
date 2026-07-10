@@ -3,9 +3,12 @@
    Portada literalmente desde docs/legacy-landing/styles.css (HU-9.1).
    Identidad visual intacta: no cambies valores sin actualizar DESIGN.md.
 
-   Único cambio respecto al original: el selector global `main` pasa a
-   `.recorrido`. En la landing estática `main` era único; aquí la hoja es
-   global y habría roto el <main> de los layouts de la app.
+   Cambios respecto al original:
+     · El selector global `main` pasa a `.recorrido`. En la landing estática
+       `main` era único; aquí la hoja es global y habría roto el <main> de los
+       layouts de la app.
+     · Se eliminan las reglas de `.nav__meta` ("04 capítulos"): ese elemento
+       ya no existe en el nav.
    ═══════════════════════════════════════════════════════════ */
 
 :root
@@ -151,12 +154,6 @@ html.lenis, html.lenis body { height: auto; }
   gap: clamp(1rem, 2.5vw, 2.25rem);
 }
 
-.nav__meta {
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: var(--track-label);
-  color: var(--texto-tenue);
-}
 
 .nav__cta {
   font-size: 0.6875rem;
@@ -480,7 +477,6 @@ html.lenis, html.lenis body { height: auto; }
   /* El contador estorba en pantallas angostas */
   .counter { display: none; }
 
-  .nav__meta { display: none; }
 
   .boton { padding: 1rem 1.9rem; }
 }
