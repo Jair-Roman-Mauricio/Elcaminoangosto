@@ -29,11 +29,15 @@ type Modo = 'entrar' | 'registrarse'
  * Bajo `md` (991px) el panel desaparece: la foto pasa a fondo a pantalla
  * completa con un velo vertical, y el formulario se apoya encima.
  */
+/** Aviso tras un registro que exige confirmar el correo (si estuviera activa). */
+type Aviso = { tipo: 'exito' | 'confirmar'; texto: string } | null
+
 export function EntrarPage() {
   // La landing enlaza a `/entrar?registro=1` desde su CTA de cierre.
   const [params] = useSearchParams()
   const [modo, setModo] = useState<Modo>(params.has('registro') ? 'registrarse' : 'entrar')
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<Aviso>(null)
   const { session } = useSession()
   const location = useLocation()
 
@@ -50,17 +54,35 @@ export function EntrarPage() {
 
   const enviar = async ({ email, password, displayName }: Credenciales) => {
     setErrorServidor(null)
+    setAviso(null)
 
-    const { error } =
-      modo === 'entrar'
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { display_name: displayName ?? email.split('@')[0] } },
-          })
+    if (modo === 'entrar') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) setErrorServidor(error.message)
+      return
+    }
 
-    if (error) setErrorServidor(error.message)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName ?? email.split('@')[0] } },
+    })
+    if (error) {
+      setErrorServidor(error.message)
+      return
+    }
+
+    // Con auto-confirmación, `signUp` devuelve sesión y el SessionProvider
+    // redirige solo; mostramos un éxito breve por si la redirección tarda.
+    // Sin sesión, la confirmación por correo está activa: hay que avisar.
+    if (data.session) {
+      setAviso({ tipo: 'exito', texto: '¡Cuenta creada! Entrando…' })
+    } else {
+      setAviso({
+        tipo: 'confirmar',
+        texto: `Te enviamos un correo a ${email}. Confírmalo para entrar.`,
+      })
+    }
   }
 
   const esRegistro = modo === 'registrarse'
@@ -179,6 +201,21 @@ export function EntrarPage() {
                 </p>
               )}
 
+              {aviso && (
+                <p
+                  role="status"
+                  className={[
+                    'm-0 rounded border px-aire-s py-aire-xs font-mono text-body-s',
+                    aviso.tipo === 'exito'
+                      ? 'border-exito/40 text-exito'
+                      : 'border-linea text-texto-tenue',
+                  ].join(' ')}
+                >
+                  {aviso.tipo === 'exito' ? '✓ ' : '✉ '}
+                  {aviso.texto}
+                </p>
+              )}
+
               <Boton type="submit" disabled={isSubmitting} className="mt-aire-xs w-full">
                 {isSubmitting ? 'Un momento…' : esRegistro ? 'Registrarme' : 'Entrar'}
               </Boton>
@@ -193,6 +230,7 @@ export function EntrarPage() {
                 onClick={() => {
                   setModo(esRegistro ? 'entrar' : 'registrarse')
                   setErrorServidor(null)
+                  setAviso(null)
                 }}
               >
                 {esRegistro ? 'Iniciar sesión' : 'Regístrate ahora'}

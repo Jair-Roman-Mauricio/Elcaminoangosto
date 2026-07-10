@@ -20,6 +20,10 @@ Estado real de la infraestructura provisionada, y por qué está configurada as�
 
 > ⚠️ **Staging y producción comparten el mismo proyecto Supabase.** Es aceptable mientras no haya usuarios reales. Antes de abrir la plataforma, crea un segundo proyecto para staging y separa `SUPABASE_PROJECT_REF` por entorno de GitHub.
 
+### Autenticación (ADR-005)
+
+La confirmación de correo está **desactivada** en el MVP (`mailer_autoconfirm: true`) porque no hay SMTP configurado. Se ajusta en el panel de Supabase o por la Management API, **no** con `supabase config push`: `config.toml` tiene `site_url` local y sobrescribiría el de producción. Reactivar antes de abrir la plataforma, junto con un proveedor de correo y HU-1.4 (recuperación de contraseña).
+
 ### Seed
 
 `supabase/seed.sql` **solo** se aplica en local (`supabase db reset`). Nunca en remoto.
