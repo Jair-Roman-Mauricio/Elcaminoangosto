@@ -40,7 +40,7 @@ Leyenda: ✅ hecha · 🟡 parcial · ⬜ pendiente
 
 La landing original se portó a React **sin tocar el diseño**: mismos videos, mismos versículos, mismos scrims, mismo scrub. Único añadido: la entrada a la plataforma (`Crear cuenta` en el nav y `Crear mi cuenta` en el cierre, ambos a `/entrar?registro=1`).
 
-Verificado en Chromium con `apps/web/e2e/landing.check.mjs` — **24 aserciones**:
+Verificado en Chromium con `apps/web/e2e/landing.check.mjs` — **47 aserciones** (landing + login):
 
 - Estructura: 4 capas de video, 5 overlays, contador lateral, indicador de scroll.
 - Identidad: fondo `#0a0a0a`, cuerpo en Space Mono, versículo en Newsreader.
@@ -49,6 +49,7 @@ Verificado en Chromium con `apps/web/e2e/landing.check.mjs` — **24 aserciones*
 - El CTA navega a `/entrar?registro=1` y el formulario arranca en modo registro.
 - `prefers-reduced-motion` desactiva Lenis y el capítulo 01 sigue visible.
 - Cero errores de JavaScript en consola.
+- **Login**: la fotografía limpia es el fondo y la banda oscura se dibuja con `PanelCurvo` (SVG). El input arranca siempre a la derecha del vértice de la curva, comprobado a 1024, 1440 y 2560 px. En móvil el panel se retira y el formulario se apoya sobre la foto.
 
 Se mantiene GSAP + ScrollTrigger + Lenis (ADR-003), cargados en un chunk aparte (142 KB) que solo se descarga en `/`.
 

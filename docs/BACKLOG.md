@@ -101,6 +101,14 @@
 - **Dado** un ADMIN, **cuando** cambio el rol de un usuario, **entonces** sus capacidades se actualizan y queda registro de auditoría.
 - **Dado** un no-ADMIN, **cuando** intenta cambiar roles, **entonces** recibe `403`.
 
+### HU-1.4 — Recuperar contraseña
+> **Como** usuario **quiero** restablecer mi contraseña por correo **para** recuperar el acceso si la olvido. **(3 pts)**
+- **Dado** un correo registrado, **cuando** pido recuperarla, **entonces** recibo un enlace de un solo uso (Supabase `resetPasswordForEmail`).
+- **Dado** un correo no registrado, **entonces** la respuesta es idéntica: no se revela si la cuenta existe (enumeración de usuarios, OWASP).
+- **Cuando** abro el enlace, **entonces** puedo fijar una contraseña nueva y la sesión anterior se invalida.
+
+> Surgida al rediseñar el login (`/entrar`), que enlaza a `/recuperar`. Sin ella el enlace queda muerto.
+
 ### HU-1.3 — Niveles y mentoría
 > **Como** MAESTRO **quiero** ser mentor de estudiantes y ver su nivel **para** acompañar su discipulado. **(5 pts)**
 - **Entonces** existe `levels` (rank ordenable) y `mentorships` (mentor↔estudiante).

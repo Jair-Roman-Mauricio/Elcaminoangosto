@@ -96,9 +96,10 @@ export function LandingPage() {
           El&nbsp;Camino
         </a>
         <nav className="nav__links">
-          <span className="nav__meta">04&nbsp;capítulos</span>
-          <Link className="nav__cta" to={session ? '/discipulado' : '/entrar?registro=1'}>
-            {session ? 'Entrar' : 'Crear cuenta'}
+          {/* El registro vive en el cierre del recorrido, no aquí: quien llega
+              a la landing todavía no ha visto por qué debería registrarse. */}
+          <Link className="nav__cta" to={session ? '/discipulado' : '/entrar'}>
+            {session ? 'Entrar' : 'Iniciar sesión'}
           </Link>
         </nav>
       </header>
