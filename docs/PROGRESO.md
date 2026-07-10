@@ -31,7 +31,7 @@ Leyenda: ✅ hecha · 🟡 parcial · ⬜ pendiente
 |---|---|---|
 | ✅ | **HU-0.1** Scaffolding del monorepo | `pnpm install && pnpm build` compila `web`, `api`, `worker` y los 3 packages. `lint`/`typecheck`/`test`/`build` orquestados por Turborepo. |
 | ✅ | **HU-0.2** Autenticación base (Supabase + JWKS) | Verificado de punta a punta contra Supabase local (ver tabla abajo). |
-| 🟡 | **HU-0.3** CI/CD a Railway + migraciones | CI en verde; migraciones aplicadas al proyecto Supabase; los 4 servicios de Railway desplegados y **Online**. Falta `RAILWAY_TOKEN` para que el despliegue sea **automático** desde GitHub Actions. |
+| ✅ | **HU-0.3** CI/CD a Railway + migraciones | Un merge a `main` aplica las migraciones y despliega `api`, `worker` y `web` **automáticamente**, con smoke test del health check. Verificado en el run de Deploy #7. Queda el token de `staging` (el paso se omite con aviso, sin romper el pipeline). |
 | ✅ | **HU-0.4** Design system base y tokens | Preset de Tailwind + `packages/ui`. Página de muestra en `/kit-ui`. *Sin `Marquee`*: no existe en la landing y choca con su estética (Q-1). |
 | ✅ | **HU-0.5** CodeGraph indexado | `codegraph status` → 710 símbolos. Uso documentado en `AGENTS.md` §5. |
 | ⬜ | **HU-1.1** Perfil de usuario | `GET/PATCH /users/me` implementados. Falta la subida de avatar al bucket y la pantalla. |
@@ -108,7 +108,7 @@ Ninguna historia empezada. El esqueleto de módulos y las rutas placeholder ya s
 
 | # | Bloqueo | Qué desbloquea | Acción del responsable humano |
 |---|---|---|---|
-| 1 | `RAILWAY_TOKEN` ausente | Despliegue **automático** desde GitHub Actions (hoy se hace con `railway up` a mano) | Crear el token en Railway → Settings → Tokens y `gh secret set RAILWAY_TOKEN --env production` |
+| 1 | `RAILWAY_TOKEN` de `staging` ausente | Despliegue automático a staging desde `develop` | Los project tokens de Railway son por entorno. Crear el de `staging` y `gh secret set RAILWAY_TOKEN --env staging` |
 | 2 | Staging y producción comparten proyecto Supabase | Aislar datos antes de tener usuarios reales | Crear un segundo proyecto y separar `SUPABASE_PROJECT_REF` por entorno |
 | 3 | Credenciales expuestas en el chat de desarrollo | — | **Rotar** el Personal Access Token de Supabase y la contraseña de la BD |
 
