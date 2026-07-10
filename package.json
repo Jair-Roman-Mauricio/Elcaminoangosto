@@ -5,7 +5,7 @@
   "description": "Plataforma cristiana: Alabanza (música), Tarjetas de Fe (feed) y Discipulado (cursos) + chat mentor.",
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "turbo run dev",

@@ -17,6 +17,9 @@ async function main(): Promise<void> {
   const connection = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null })
 
   // La service key solo vive en el worker y en el API, nunca en el navegador.
+  //
+  // `createClient` construye siempre un RealtimeClient, que exige `WebSocket`
+  // nativo. Por eso este proceso requiere Node 22+ aunque solo use Storage.
   const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
   })
