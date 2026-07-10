@@ -1,9 +1,14 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { Role } from '@elcamino/shared-types'
 import { DRIZZLE, type Database } from '../../shared/database/database.module'
-import { profiles, levels } from '../../shared/database/schema'
-import { ProfileRepository, type ProfileEntity } from '../domain/profile.repository'
+import { profiles, levels, mentorships } from '../../shared/database/schema'
+import {
+  ProfileRepository,
+  type ProfileEntity,
+  type MenteeEntity,
+  type LevelEntity,
+} from '../domain/profile.repository'
 
 /** Adaptador Drizzle del puerto `ProfileRepository`. */
 @Injectable()
@@ -56,6 +61,49 @@ export class DrizzleProfileRepository extends ProfileRepository {
       .set({ currentLevelId: levelId, updatedAt: new Date() })
       .where(eq(profiles.id, id))
     return this.findByIdOrThrow(id)
+  }
+
+  async findMentees(mentorId: string): Promise<MenteeEntity[]> {
+    const filas = await this.db
+      .select({
+        studentId: profiles.id,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+        levelName: levels.name,
+        levelRank: levels.rank,
+      })
+      .from(mentorships)
+      .innerJoin(profiles, eq(mentorships.studentId, profiles.id))
+      .leftJoin(levels, eq(profiles.currentLevelId, levels.id))
+      .where(and(eq(mentorships.mentorId, mentorId), eq(mentorships.status, 'ACTIVE')))
+      .orderBy(asc(profiles.displayName))
+
+    return filas.map((f) => ({ ...f, levelRank: f.levelRank ?? 0 }))
+  }
+
+  async findLevels(): Promise<LevelEntity[]> {
+    return this.db
+      .select({ id: levels.id, name: levels.name, rank: levels.rank, description: levels.description })
+      .from(levels)
+      .orderBy(asc(levels.rank))
+  }
+
+  async findAll(): Promise<ProfileEntity[]> {
+    const filas = await this.db
+      .select({
+        id: profiles.id,
+        role: profiles.role,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+        bio: profiles.bio,
+        currentLevelId: profiles.currentLevelId,
+        levelRank: levels.rank,
+      })
+      .from(profiles)
+      .leftJoin(levels, eq(profiles.currentLevelId, levels.id))
+      .orderBy(asc(profiles.displayName))
+
+    return filas.map((f) => ({ ...f, levelRank: f.levelRank ?? 0 }))
   }
 
   private async findByIdOrThrow(id: string): Promise<ProfileEntity> {
