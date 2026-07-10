@@ -41,9 +41,23 @@ jobs:
       - name: Desplegar servicios
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          # SIEMPRE explícito: `railway environment new` cambia el entorno
+          # enlazado y un `up` sin `-e` despliega al que no toca.
+          RAILWAY_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
         run: |
           npm i -g @railway/cli
           for servicio in api worker web; do
-            echo "── Desplegando $servicio ──"
-            railway up --service "$servicio" --detach
+            echo "── Desplegando $servicio → $RAILWAY_ENV ──"
+            railway up --service "$servicio" --environment "$RAILWAY_ENV" --ci --yes
           done
+
+      - name: Smoke test del API
+        if: github.ref == 'refs/heads/main'
+        run: |
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              https://api-production-f113.up.railway.app/api/health || true)
+            [ "$code" = "200" ] && { echo "✓ API viva"; exit 0; }
+            sleep 15
+          done
+          echo "✗ El API no respondió 200 tras el despliegue"; exit 1
