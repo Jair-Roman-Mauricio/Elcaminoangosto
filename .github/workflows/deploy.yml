@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, develop]
+
+# Un despliegue a la vez por entorno; no se cancela a mitad.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    name: Migraciones + Railway
+    runs-on: ubuntu-latest
+    # `develop` = staging · `main` = producción (HU-0.3).
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── 1. Migraciones de Supabase, versionadas y reproducibles ──────────
+      # Van ANTES del despliegue: el código nuevo asume el esquema nuevo.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Aplicar migraciones
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+          supabase db push
+
+      # ── 2. Railway ───────────────────────────────────────────────────────
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Desplegar servicios
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          npm i -g @railway/cli
+          for servicio in api worker web; do
+            echo "── Desplegando $servicio ──"
+            railway up --service "$servicio" --detach
+          done

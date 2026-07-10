@@ -15,35 +15,41 @@ on conflict (rank) do nothing;
 -- ─── Usuarios ──────────────────────────────────────────────────────────────
 -- Se insertan en `auth.users`; el trigger `crear_perfil_al_registrarse`
 -- genera la fila de `profiles` con rol ESTUDIANTE. Después ajustamos roles.
+-- Los campos de token van a '' y NO a NULL: GoTrue los escanea a `string` en Go
+-- y un NULL revienta el login con
+-- `converting NULL to string is unsupported` → 500 "Database error querying schema".
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-  created_at, updated_at
+  created_at, updated_at,
+  confirmation_token, recovery_token,
+  email_change_token_new, email_change, email_change_token_current,
+  phone_change, phone_change_token, reauthentication_token
 )
 values
   ('00000000-0000-0000-0000-000000000000', '22222222-2222-4222-8222-000000000001',
    'authenticated', 'authenticated', 'admin@elcaminoangosto.test',
    crypt('camino123', gen_salt('bf')), now(),
    '{"provider":"email","providers":["email"]}', '{"display_name":"Ana Admin"}',
-   now(), now()),
+   now(), now(), '', '', '', '', '', '', '', ''),
 
   ('00000000-0000-0000-0000-000000000000', '22222222-2222-4222-8222-000000000002',
    'authenticated', 'authenticated', 'maestro@elcaminoangosto.test',
    crypt('camino123', gen_salt('bf')), now(),
    '{"provider":"email","providers":["email"]}', '{"display_name":"Marcos Maestro"}',
-   now(), now()),
+   now(), now(), '', '', '', '', '', '', '', ''),
 
   ('00000000-0000-0000-0000-000000000000', '22222222-2222-4222-8222-000000000003',
    'authenticated', 'authenticated', 'ester@elcaminoangosto.test',
    crypt('camino123', gen_salt('bf')), now(),
    '{"provider":"email","providers":["email"]}', '{"display_name":"Ester Estudiante"}',
-   now(), now()),
+   now(), now(), '', '', '', '', '', '', '', ''),
 
   ('00000000-0000-0000-0000-000000000000', '22222222-2222-4222-8222-000000000004',
    'authenticated', 'authenticated', 'esteban@elcaminoangosto.test',
    crypt('camino123', gen_salt('bf')), now(),
    '{"provider":"email","providers":["email"]}', '{"display_name":"Esteban Estudiante"}',
-   now(), now())
+   now(), now(), '', '', '', '', '', '', '', '')
 on conflict (id) do nothing;
 
 insert into auth.identities (id, user_id, provider_id, identity_data, provider, created_at, updated_at)

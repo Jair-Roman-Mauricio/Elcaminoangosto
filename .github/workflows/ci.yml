@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Variables ficticias: `validateEnv` corre al construir, no necesita el proyecto real.
+  SUPABASE_URL: https://ejemplo.supabase.co
+  SUPABASE_JWKS_URL: https://ejemplo.supabase.co/auth/v1/.well-known/jwks.json
+  SUPABASE_JWT_ISSUER: https://ejemplo.supabase.co/auth/v1
+  SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+  VITE_SUPABASE_URL: https://ejemplo.supabase.co
+  VITE_SUPABASE_ANON_KEY: ci-placeholder
+
+jobs:
+  calidad:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Turborepo cachea; el orden importa poco, pero fallar pronto ahorra minutos.
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  base-de-datos:
+    name: Migraciones y RLS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Levanta Postgres + GoTrue + Storage locales y aplica migraciones y seed.
+      - run: supabase start
+
+      # Sin esto, un agujero de RLS pasa el CI sin dejar rastro: ninguno de
+      # estos defectos produce error de compilación. Ver ADR-004.
+      - name: Suite de RLS (16 aserciones)
+        run: |
+          psql "$(supabase status -o env | grep '^DB_URL=' | cut -d= -f2- | tr -d '"')" \
+            -v ON_ERROR_STOP=1 -f supabase/tests/rls.test.sql
+
+      - name: Verificar que el login funciona (HU-0.2)
+        run: |
+          ANON=$(supabase status -o env | grep '^ANON_KEY=' | cut -d= -f2- | tr -d '"')
+          API=$(supabase status -o env | grep '^API_URL=' | cut -d= -f2- | tr -d '"')
+          TOKEN=$(curl -sf -X POST "$API/auth/v1/token?grant_type=password" \
+            -H "apikey: $ANON" -H 'Content-Type: application/json' \
+            -d '{"email":"ester@elcaminoangosto.test","password":"camino123"}' \
+            | jq -re .access_token)
+          ALG=$(echo "$TOKEN" | cut -d. -f1 | base64 -d 2>/dev/null | jq -r .alg)
+          echo "Algoritmo de firma: $ALG"
+          # El API rechaza HS256 a propósito (arquitectura.md §5).
+          test "$ALG" = "ES256" || test "$ALG" = "RS256"
