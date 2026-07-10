@@ -1,0 +1,13 @@
+# Revisor por defecto de todo el repositorio.
+*                       @Jair-Roman-Mauricio
+
+# Superficies sensibles: cambiarlas sin revisión es cómo se cuelan los agujeros.
+/supabase/              @Jair-Roman-Mauricio
+/.github/workflows/     @Jair-Roman-Mauricio
+/apps/api/src/modules/auth/    @Jair-Roman-Mauricio
+/apps/api/src/modules/shared/guards/  @Jair-Roman-Mauricio
+
+# Fuente de verdad del producto.
+/docs/contexto.md       @Jair-Roman-Mauricio
+/docs/arquitectura.md   @Jair-Roman-Mauricio
+/docs/decisiones.md     @Jair-Roman-Mauricio
