@@ -1,0 +1,17 @@
+# Normaliza los finales de línea en el repositorio.
+* text=auto eol=lf
+
+# Binarios: sin conversión ni diff textual.
+*.mp4  binary
+*.jpg  binary
+*.png  binary
+*.webp binary
+*.woff  binary
+*.woff2 binary
+
+# Generados: no ensucian el diff de un PR ni cuentan en las estadísticas.
+pnpm-lock.yaml  linguist-generated=true -diff
+docs/legacy-landing/**  linguist-vendored=true
+
+# El SQL de migraciones se revisa línea a línea: nunca como binario.
+*.sql text
