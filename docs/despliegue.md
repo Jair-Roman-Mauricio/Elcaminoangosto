@@ -105,16 +105,19 @@ Aplica las migraciones de Supabase **antes** de desplegar (el código nuevo asum
 | `SUPABASE_ACCESS_TOKEN` | secret | ✅ |
 | `SUPABASE_DB_PASSWORD` | secret | ✅ |
 | `SUPABASE_PROJECT_REF` | variable | ✅ |
-| `RAILWAY_TOKEN` | secret | ⬜ **pendiente** |
+| `RAILWAY_TOKEN` (entorno `production`) | secret | ✅ |
+| `RAILWAY_TOKEN` (entorno `staging`) | secret | ⬜ **pendiente** |
 
-`RAILWAY_TOKEN` no puede crearse por CLI. Genéralo en
-**Railway → proyecto `elcaminoangosto` → Settings → Tokens**, uno por entorno,
-y añádelo con:
+Los **project tokens de Railway están acotados a un único entorno** y no pueden
+crearse por CLI. Hace falta uno por entorno, desde
+**Railway → proyecto `elcaminoangosto` → Settings → Tokens**:
 
 ```bash
-gh secret set RAILWAY_TOKEN --repo Jair-Roman-Mauricio/Elcaminoangosto --env production --body '<token>'
-gh secret set RAILWAY_TOKEN --repo Jair-Roman-Mauricio/Elcaminoangosto --env staging   --body '<token-staging>'
+gh secret set RAILWAY_TOKEN --repo Jair-Roman-Mauricio/Elcaminoangosto --env staging --body '<token-staging>'
 ```
+
+Mientras falte el de `staging`, el job de despliegue **avisa y se salta el paso**
+en vez de fallar: las migraciones ya se aplicaron y eso sí es un éxito.
 
 ---
 

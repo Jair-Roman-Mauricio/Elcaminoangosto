@@ -45,6 +45,16 @@ jobs:
           # enlazado y un `up` sin `-e` despliega al que no toca.
           RAILWAY_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
         run: |
+          # Los project tokens de Railway están acotados a UN entorno. Si el de
+          # este entorno aún no existe, se avisa y se sale sin romper el pipeline:
+          # las migraciones ya se aplicaron y eso sí debe considerarse un éxito.
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::warning::No hay RAILWAY_TOKEN para '$RAILWAY_ENV'. Se omite el despliegue."
+            echo "Créalo en Railway → Settings → Tokens y añádelo con:"
+            echo "  gh secret set RAILWAY_TOKEN --env $RAILWAY_ENV --body '<token>'"
+            exit 0
+          fi
+
           npm i -g @railway/cli
           for servicio in api worker web; do
             echo "── Desplegando $servicio → $RAILWAY_ENV ──"
