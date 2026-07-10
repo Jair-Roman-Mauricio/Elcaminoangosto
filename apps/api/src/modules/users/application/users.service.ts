@@ -1,7 +1,12 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { DOMAIN_EVENTS, type Role, type UserLevelChangedEvent } from '@elcamino/shared-types'
-import { ProfileRepository, type ProfileEntity } from '../domain/profile.repository'
+import {
+  ProfileRepository,
+  type ProfileEntity,
+  type MenteeEntity,
+  type LevelEntity,
+} from '../domain/profile.repository'
 import { puedeEditarRecurso, type Actor } from '../../shared'
 
 /**
@@ -41,6 +46,21 @@ export class UsersService {
   /** HU-1.2 — cambio de rol. La restricción a ADMIN la impone `RolesGuard`. */
   async asignarRol(perfilId: string, role: Role): Promise<ProfileEntity> {
     return this.profiles.updateRole(perfilId, role)
+  }
+
+  /** HU-1.3 — estudiantes bajo la mentoría de este maestro. */
+  async misEstudiantes(mentorId: string): Promise<MenteeEntity[]> {
+    return this.profiles.findMentees(mentorId)
+  }
+
+  /** HU-1.2 — todos los usuarios, para el panel del ADMIN. */
+  async listarTodos(): Promise<ProfileEntity[]> {
+    return this.profiles.findAll()
+  }
+
+  /** Catálogo de niveles (para el catálogo del estudiante y el panel admin). */
+  async niveles(): Promise<LevelEntity[]> {
+    return this.profiles.findLevels()
   }
 
   /**

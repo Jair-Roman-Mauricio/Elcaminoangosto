@@ -11,7 +11,8 @@ export interface CardProps {
   thumbnailUrl?: string
   /** Obligatorio si hay thumbnail (RNF-6). */
   thumbnailAlt?: string
-  onClick?: () => void
+  /** Si se pasa, la tarjeta es interactiva (rol button + teclado). */
+  onClick?: (() => void) | undefined
   children?: ReactNode
   className?: string
 }

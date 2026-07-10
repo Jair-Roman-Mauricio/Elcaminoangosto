@@ -2,13 +2,16 @@ import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 import { RoleSchema, UpdateProfileSchema, type Role } from '@elcamino/shared-types'
+import { UsersService } from '../application/users.service'
+import {
+  CurrentUser,
+  type CurrentUserContext,
+  Roles,
+  RolesGuard,
+  ZodValidationPipe,
+} from '../../shared'
 
 const AsignarRolSchema = z.object({ role: RoleSchema })
-import { UsersService } from '../application/users.service'
-import { CurrentUser, type CurrentUserContext } from '../../shared/decorators/current-user.decorator'
-import { Roles } from '../../shared/decorators/roles.decorator'
-import { RolesGuard } from '../../shared/guards/roles.guard'
-import { ZodValidationPipe } from '../../shared/pipes/zod-validation.pipe'
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -34,6 +37,26 @@ export class UsersController {
       user.id,
       cambios as Partial<{ displayName: string; bio: string | null }>,
     )
+  }
+
+  @Get()
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Listar usuarios (HU-1.2, solo ADMIN)' })
+  async listar() {
+    return this.users.listarTodos()
+  }
+
+  @Get('levels')
+  @ApiOperation({ summary: 'Catálogo de niveles' })
+  async niveles() {
+    return this.users.niveles()
+  }
+
+  @Get('my-students')
+  @Roles('MAESTRO')
+  @ApiOperation({ summary: 'Mis estudiantes y su nivel (HU-1.3, MAESTRO)' })
+  async misEstudiantes(@CurrentUser() user: CurrentUserContext) {
+    return this.users.misEstudiantes(user.id)
   }
 
   @Patch(':id/role')
