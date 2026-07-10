@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { Boton, Eyebrow } from '@elcamino/ui'
 import { supabase } from '../lib/supabase'
@@ -22,7 +22,9 @@ type Modo = 'entrar' | 'registrarse'
  * ESTUDIANTE. El front nunca decide el rol.
  */
 export function EntrarPage() {
-  const [modo, setModo] = useState<Modo>('entrar')
+  // La landing enlaza a `/entrar?registro=1` desde su CTA principal.
+  const [params] = useSearchParams()
+  const [modo, setModo] = useState<Modo>(params.has('registro') ? 'registrarse' : 'entrar')
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const { session } = useSession()
   const location = useLocation()

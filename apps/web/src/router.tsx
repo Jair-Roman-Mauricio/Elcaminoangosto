@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import {
   AppLayout,
@@ -6,10 +7,17 @@ import {
   ENLACES_MAESTRO,
 } from './layouts/app-layout'
 import { RequireRole } from './auth/require-role'
-import { LandingPage } from './pages/landing'
 import { EntrarPage } from './pages/entrar'
 import { KitUiPage } from './pages/kit-ui'
 import { Pendiente } from './pages/pendiente'
+
+// La landing arrastra GSAP + Lenis (ADR-003). Se carga aparte para no
+// penalizar el bundle de la app autenticada.
+const LandingPage = lazy(() =>
+  import('./landing/landing-page').then((m) => ({ default: m.LandingPage })),
+)
+
+const Cargando = () => <div className="min-h-screen bg-negro" />
 
 /**
  * Rutas por rol. La guardia `RequireRole` es de UX; la autorización real vive
@@ -17,7 +25,14 @@ import { Pendiente } from './pages/pendiente'
  */
 export const router = createBrowserRouter([
   // ── Público ───────────────────────────────────────────────────────────
-  { path: '/', element: <LandingPage /> },
+  {
+    path: '/',
+    element: (
+      <Suspense fallback={<Cargando />}>
+        <LandingPage />
+      </Suspense>
+    ),
+  },
   { path: '/entrar', element: <EntrarPage /> },
   { path: '/kit-ui', element: <KitUiPage /> },
 
