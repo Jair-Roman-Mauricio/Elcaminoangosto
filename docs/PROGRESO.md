@@ -18,7 +18,8 @@ Leyenda: ✅ hecha · 🟡 parcial · ⬜ pendiente
 | ✅ | `apps/worker` — BullMQ + MediaProvider | `tsc` limpio; transcodificación pendiente (HU-8.2) |
 | ✅ | `supabase/` — 26 tablas, RLS, 5 buckets, seed | `supabase db reset` limpio; 16/16 aserciones de RLS |
 | ✅ | `apps/web` — Vite, router por rol, Query, Zustand | `vite build` limpio |
-| ✅ | CI/CD | `.github/workflows/{ci,deploy}.yml` — **no ejecutado aún** (falta `gh auth`) |
+| ✅ | CI/CD | 3 jobs en verde en GitHub Actions, incluida la suite de RLS |
+| ✅ | Infraestructura | Supabase migrado; Railway con `api`/`web`/`worker`/`Redis` **Online** |
 | ✅ | CodeGraph | 98 archivos, 710 nodos, 1 292 aristas; telemetría desactivada |
 | ✅ | ADRs | `docs/decisiones.md` — ADR-001..004, preguntas Q-1..Q-4 |
 
@@ -30,7 +31,7 @@ Leyenda: ✅ hecha · 🟡 parcial · ⬜ pendiente
 |---|---|---|
 | ✅ | **HU-0.1** Scaffolding del monorepo | `pnpm install && pnpm build` compila `web`, `api`, `worker` y los 3 packages. `lint`/`typecheck`/`test`/`build` orquestados por Turborepo. |
 | ✅ | **HU-0.2** Autenticación base (Supabase + JWKS) | Verificado de punta a punta contra Supabase local (ver tabla abajo). |
-| 🟡 | **HU-0.3** CI/CD a Railway + migraciones | Workflows escritos y migraciones versionadas. **Sin ejecutar**: falta autenticar `gh` y crear el proyecto Railway (Q-3, Q-4). |
+| 🟡 | **HU-0.3** CI/CD a Railway + migraciones | CI en verde; migraciones aplicadas al proyecto Supabase; los 4 servicios de Railway desplegados y **Online**. Falta `RAILWAY_TOKEN` para que el despliegue sea **automático** desde GitHub Actions. |
 | ✅ | **HU-0.4** Design system base y tokens | Preset de Tailwind + `packages/ui`. Página de muestra en `/kit-ui`. *Sin `Marquee`*: no existe en la landing y choca con su estética (Q-1). |
 | ✅ | **HU-0.5** CodeGraph indexado | `codegraph status` → 710 símbolos. Uso documentado en `AGENTS.md` §5. |
 | ⬜ | **HU-1.1** Perfil de usuario | `GET/PATCH /users/me` implementados. Falta la subida de avatar al bucket y la pantalla. |
@@ -81,12 +82,34 @@ Ninguna historia empezada. El esqueleto de módulos y las rutas placeholder ya s
 
 ---
 
+## Infraestructura viva
+
+| Recurso | Estado |
+|---|---|
+| Repositorio | https://github.com/Jair-Roman-Mauricio/Elcaminoangosto · `main` y `develop` protegidas |
+| Supabase | `gcxewueeidygglprxigx` (us-east-2) · 4 migraciones aplicadas · JWKS **ES256** |
+| Railway `api` | https://api-production-f113.up.railway.app · **Online** |
+| Railway `web` | https://web-production-551e4.up.railway.app · **Online** |
+| Railway `worker` | **Online** |
+| Railway `Redis` | **Online** |
+
+### Verificación en producción (no solo en local)
+
+| Prueba | Resultado |
+|---|---|
+| Registro → trigger crea `profiles` con rol `ESTUDIANTE` | ✅ |
+| Login → token **ES256** | ✅ |
+| `GET /api/users/me` en Railway verificando por JWKS | `200` + perfil |
+| Sin token / token basura | `401` |
+| 26/26 tablas con RLS en el proyecto remoto | ✅ (64 políticas) |
+| `profiles.role` actualizable por `authenticated` | **No** — protegido por privilegio de columna |
+
 ## Bloqueos actuales
 
 | # | Bloqueo | Qué desbloquea | Acción del responsable humano |
 |---|---|---|---|
-| 1 | `gh` sin autenticar | `git push` al repositorio remoto | `gh auth login` |
-| 2 | Sin proyecto Supabase remoto | Aplicar migraciones a staging/producción | Crear proyecto y dar `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` |
-| 3 | Sin proyecto Railway | Desplegar `api`, `worker`, `web` + plugin Redis | `railway init` (crea infraestructura facturable) y `RAILWAY_TOKEN` en GitHub |
+| 1 | `RAILWAY_TOKEN` ausente | Despliegue **automático** desde GitHub Actions (hoy se hace con `railway up` a mano) | Crear el token en Railway → Settings → Tokens y `gh secret set RAILWAY_TOKEN --env production` |
+| 2 | Staging y producción comparten proyecto Supabase | Aislar datos antes de tener usuarios reales | Crear un segundo proyecto y separar `SUPABASE_PROJECT_REF` por entorno |
+| 3 | Credenciales expuestas en el chat de desarrollo | — | **Rotar** el Personal Access Token de Supabase y la contraseña de la BD |
 
-Todo el desarrollo local funciona sin ninguno de los tres: `supabase start` levanta Postgres, Auth, Storage y Realtime.
+Todo el desarrollo local funciona sin ninguno: `supabase start` levanta Postgres, Auth, Storage y Realtime.
