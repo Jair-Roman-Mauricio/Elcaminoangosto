@@ -34,6 +34,10 @@ export const router = createBrowserRouter([
     ),
   },
   { path: '/entrar', element: <EntrarPage /> },
+  {
+    path: '/recuperar',
+    element: <Pendiente titulo="Recuperar contraseña" historia="HU-1.4 · Sprint S1" />,
+  },
   { path: '/kit-ui', element: <KitUiPage /> },
 
   // ── Estudiante ────────────────────────────────────────────────────────

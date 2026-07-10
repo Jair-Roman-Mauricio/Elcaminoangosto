@@ -55,6 +55,8 @@ Valores exactos de `docs/legacy-landing/styles.css`.
 
 > **No existe un tema claro.** La plataforma es oscura de extremo a extremo, igual que la landing. Si en el futuro se necesita superficie clara, se añade como decisión explícita en `decisiones.md`.
 
+**Única excepción documentada:** `#0d1117`, el negro azulado del panel del login (`apps/web/src/pages/panel-curvo.tsx`). No es un token ni un tercer acento: existe solo ahí, para que el panel continúe la atmósfera fría de la fotografía en vez de cortar contra el `--negro` puro. No lo uses en ningún otro sitio.
+
 ## 3. Tipografía
 
 Dos familias, ambas libres y ya cargadas por la landing desde Google Fonts:
@@ -172,6 +174,7 @@ La firma de movimiento es **una sola curva**, lenta y sin rebote. Cópiala liter
 - **CourseShell** (Udemy-like) — sidebar de módulos/lecciones + área de contenido + barra de progreso.
 - **ChatPanel** — lista de conversaciones + hilo + composer + botón "Solicitar subir de nivel".
 - **FormControls** — inputs con borde `--linea`, foco `--hueso` (outline, no glow); `textarea { resize: none }`.
+- **PanelCurvo** — banda oscura con borde en S para el login. La curva se midió píxel a píxel sobre la obra original y se reproduce con un `path` SVG normalizado (`viewBox 100×100` + `preserveAspectRatio="none"`), no con una imagen: así se estira a cualquier ancho y el formulario nunca se queda sin sitio. Su amplitud se reduce al 70% de la original por esa razón.
 
 ### Preset de Tailwind
 
