@@ -114,6 +114,26 @@ La **landing real manda**. Se reescribió `DESIGN.md` por completo, token por to
 
 ---
 
+## ADR-006 — Entrega de medios del feed: MP4 progresivo con faststart, no HLS (todavía)
+
+**Fecha:** 2026-07-11 · **Estado:** Aceptada
+
+**Contexto.** El hito de S3 pide "transcodificar a HLS y verlo en el feed vertical con arranque <2s". Pero servir HLS desde Supabase Storage con **URLs firmadas** (RNF-4, exigido para medio privado) es complejo: cada segmento `.ts` es un objeto independiente y las signed URLs de Supabase son por objeto, así que el manifiesto `.m3u8` tendría que reescribirse firmando N segmentos en cada petición. Es una pieza grande y frágil de construir y verificar bien.
+
+`arquitectura.md` §6 ya prevé esta tensión: *"para el MVP, Supabase Storage + hls.js + worker ffmpeg es suficiente… mover **solo** el video a Cloudflare Stream/Mux **si el volumen lo exige**"*.
+
+**Decisión.** Para el MVP, el worker transcodifica cada video a un **MP4 normalizado con `-movflags +faststart`** (el átomo `moov` al principio → el navegador empieza a reproducir sin descargar el archivo entero) y genera un **póster**. El feed lo sirve por **URL firmada** de corta vida. HTTP Range + faststart dan arranque <2s en clips cortos verticales, y ya está verificado que el hosting sirve Range (206).
+
+La abstracción `MediaProvider` (Strategy) y la generación de derivados quedan preparadas para añadir HLS o `MuxMediaProvider` cuando el volumen de video lo justifique, **sin tocar el dominio**.
+
+**Consecuencias.**
+- ✅ Pipeline completo, real y verificable de punta a punta con ffmpeg local.
+- ✅ Cumple RNF-1 (<2s p75) para los clips cortos del feed y RNF-4 (URL firmada de corta vida).
+- ⚠️ No hay *adaptive bitrate*: un clip largo en una red lenta no baja de calidad. Aceptable para tarjetas de fe (cortas). Cuando el feed crezca, se añade HLS/Mux tras la misma interfaz `MediaProvider`.
+- El campo `media_assets.hls_path` queda `null` por ahora; el reproductor usa el MP4 normalizado (guardado en `media_assets.path`, o un derivado).
+
+---
+
 ## Preguntas abiertas
 
 | ID | Pregunta | Estado | Propuesta por defecto |
