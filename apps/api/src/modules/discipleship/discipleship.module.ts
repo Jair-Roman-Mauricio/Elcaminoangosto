@@ -1,10 +1,14 @@
 import { Module, type OnModuleInit } from '@nestjs/common'
 import { DiscipleshipController } from './interface/discipleship.controller'
+import { CourseAuthoringController } from './interface/course-authoring.controller'
 import { DiscipleshipService } from './application/discipleship.service'
+import { CourseAuthoringService } from './application/course-authoring.service'
 import { CourseRepository } from './domain/course.repository'
 import { EnrollmentRepository } from './domain/enrollment.repository'
+import { CourseReviewRepository } from './domain/course-review.repository'
 import { DrizzleCourseRepository } from './infrastructure/drizzle-course.repository'
 import { DrizzleEnrollmentRepository } from './infrastructure/drizzle-enrollment.repository'
+import { DrizzleCourseReviewRepository } from './infrastructure/drizzle-course-review.repository'
 import { PolicyRegistry } from '../shared'
 
 /**
@@ -16,13 +20,15 @@ import { PolicyRegistry } from '../shared'
  * este repositorio (AGENTS.md §4).
  */
 @Module({
-  controllers: [DiscipleshipController],
+  controllers: [DiscipleshipController, CourseAuthoringController],
   providers: [
     DiscipleshipService,
+    CourseAuthoringService,
     { provide: CourseRepository, useClass: DrizzleCourseRepository },
     { provide: EnrollmentRepository, useClass: DrizzleEnrollmentRepository },
+    { provide: CourseReviewRepository, useClass: DrizzleCourseReviewRepository },
   ],
-  exports: [DiscipleshipService],
+  exports: [DiscipleshipService, CourseAuthoringService],
 })
 export class DiscipleshipModule implements OnModuleInit {
   constructor(

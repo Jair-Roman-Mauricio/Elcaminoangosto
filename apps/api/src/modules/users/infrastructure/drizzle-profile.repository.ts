@@ -106,6 +106,14 @@ export class DrizzleProfileRepository extends ProfileRepository {
     return filas.map((f) => ({ ...f, levelRank: f.levelRank ?? 0 }))
   }
 
+  async findAdminIds(): Promise<string[]> {
+    const filas = await this.db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.role, 'ADMIN'))
+    return filas.map((f) => f.id)
+  }
+
   private async findByIdOrThrow(id: string): Promise<ProfileEntity> {
     const perfil = await this.findById(id)
     if (!perfil) throw new NotFoundException('Perfil no encontrado')

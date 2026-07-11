@@ -49,4 +49,7 @@ export abstract class ProfileRepository {
 
   /** Todos los perfiles, para el panel de gestión de roles del ADMIN (HU-1.2). */
   abstract findAll(): Promise<ProfileEntity[]>
+
+  /** Ids de los administradores, para notificarles eventos de gobernanza. */
+  abstract findAdminIds(): Promise<string[]>
 }

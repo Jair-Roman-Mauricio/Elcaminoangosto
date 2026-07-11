@@ -1,5 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common'
-import { asc, count, eq, sql } from 'drizzle-orm'
+import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { asc, count, eq, sql, type SQL } from 'drizzle-orm'
+import type { CourseStatus } from '@elcamino/shared-types'
 import { DRIZZLE, type Database } from '../../shared'
 import {
   courses,
@@ -67,7 +68,7 @@ export class DrizzleCourseRepository extends CourseRepository {
     return this.findOne(eq(courses.slug, slug))
   }
 
-  private async findOne(where: ReturnType<typeof eq>): Promise<CourseEntity | null> {
+  private async findOne(where: SQL): Promise<CourseEntity | null> {
     const filas = await this.db
       .select({
         id: courses.id,
@@ -159,5 +160,129 @@ export class DrizzleCourseRepository extends CourseRepository {
       .innerJoin(courseModules, eq(lessons.moduleId, courseModules.id))
       .where(eq(courseModules.courseId, courseId))
     return filas[0]?.n ?? 0
+  }
+
+  // ── Autoría y ciclo de vida ────────────────────────────────────────────────
+
+  async findByTeacher(teacherId: string): Promise<CourseEntity[]> {
+    return this.findMany(eq(courses.teacherId, teacherId))
+  }
+
+  async findByStatus(status: CourseStatus): Promise<CourseEntity[]> {
+    return this.findMany(eq(courses.status, status))
+  }
+
+  private async findMany(where: SQL): Promise<CourseEntity[]> {
+    const filas = await this.db
+      .select({
+        id: courses.id,
+        teacherId: courses.teacherId,
+        title: courses.title,
+        slug: courses.slug,
+        description: courses.description,
+        thumbnailAssetId: courses.thumbnailAssetId,
+        requiredLevelId: courses.requiredLevelId,
+        requiredLevelRank: levels.rank,
+        isFree: courses.isFree,
+        status: courses.status,
+        plannedModules: courses.plannedModules,
+        publishedAt: courses.publishedAt,
+      })
+      .from(courses)
+      .leftJoin(levels, eq(courses.requiredLevelId, levels.id))
+      .where(where)
+      .orderBy(asc(courses.updatedAt))
+    return filas.map((f) => ({ ...f, requiredLevelRank: f.requiredLevelRank ?? null }))
+  }
+
+  async createDraft(input: {
+    teacherId: string
+    title: string
+    slug: string
+    description: string | null
+    requiredLevelId: string | null
+    isFree: boolean
+    plannedModules: number
+  }): Promise<CourseEntity> {
+    const [fila] = await this.db
+      .insert(courses)
+      .values({ ...input, status: 'DRAFT' })
+      .returning({ id: courses.id })
+    if (!fila) throw new NotFoundException('No se pudo crear el curso')
+    const curso = await this.findById(fila.id)
+    if (!curso) throw new NotFoundException('No se pudo crear el curso')
+    return curso
+  }
+
+  async updateDraft(
+    courseId: string,
+    changes: {
+      title?: string | undefined
+      description?: string | null | undefined
+      requiredLevelId?: string | null | undefined
+      isFree?: boolean | undefined
+      plannedModules?: number | undefined
+    },
+  ): Promise<CourseEntity> {
+    await this.db
+      .update(courses)
+      .set({ ...changes, updatedAt: new Date() })
+      .where(eq(courses.id, courseId))
+    return this.findByIdOrThrow(courseId)
+  }
+
+  async setStatus(courseId: string, status: CourseStatus): Promise<CourseEntity> {
+    await this.db
+      .update(courses)
+      .set({
+        status,
+        // Un curso PUBLISHED siempre tiene fecha (constraint del esquema).
+        ...(status === 'PUBLISHED' ? { publishedAt: new Date() } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(courses.id, courseId))
+    return this.findByIdOrThrow(courseId)
+  }
+
+  async addModule(courseId: string, title: string, orderIndex: number): Promise<string> {
+    const [fila] = await this.db
+      .insert(courseModules)
+      .values({ courseId, title, orderIndex })
+      .returning({ id: courseModules.id })
+    if (!fila) throw new NotFoundException('No se pudo crear el módulo')
+    return fila.id
+  }
+
+  async addLesson(input: {
+    moduleId: string
+    title: string
+    type: 'VIDEO' | 'TEXT'
+    content: string | null
+    mediaAssetId: string | null
+    orderIndex: number
+    durationSeconds: number | null
+  }): Promise<string> {
+    const [fila] = await this.db.insert(lessons).values(input).returning({ id: lessons.id })
+    if (!fila) throw new NotFoundException('No se pudo crear la lección')
+    return fila.id
+  }
+
+  async hasAnyLesson(courseId: string): Promise<boolean> {
+    return (await this.countLessons(courseId)) > 0
+  }
+
+  async slugExists(slug: string): Promise<boolean> {
+    const filas = await this.db
+      .select({ id: courses.id })
+      .from(courses)
+      .where(eq(courses.slug, slug))
+      .limit(1)
+    return filas.length > 0
+  }
+
+  private async findByIdOrThrow(courseId: string): Promise<CourseEntity> {
+    const curso = await this.findById(courseId)
+    if (!curso) throw new NotFoundException('Curso no encontrado')
+    return curso
   }
 }
