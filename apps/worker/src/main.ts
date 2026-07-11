@@ -1,5 +1,6 @@
 import { Redis } from 'ioredis'
 import { createClient } from '@supabase/supabase-js'
+import postgres from 'postgres'
 import pino from 'pino'
 import { cargarConfig } from './config'
 import { SupabaseMediaProvider } from './media/supabase-media-provider'
@@ -24,6 +25,11 @@ async function main(): Promise<void> {
     auth: { persistSession: false },
   })
 
+  // El worker escribe el resultado directamente en `media_assets`. No comparte
+  // el EventEmitter del API (proceso aparte): la BD es la fuente de verdad, y
+  // el feed muestra un post solo cuando su media_asset está READY.
+  const sql = postgres(config.DATABASE_URL, { prepare: false, max: 4 })
+
   const provider = new SupabaseMediaProvider(supabase)
 
   const worker = crearMediaWorker({
@@ -32,8 +38,23 @@ async function main(): Promise<void> {
     logger,
     concurrency: config.MEDIA_CONCURRENCY,
     alTerminar: async (assetId, resultado) => {
-      // TODO(S3 · HU-8.2): actualizar `media_assets` y emitir MediaAssetReady/Failed.
-      logger.info({ assetId, resultado }, 'Resultado de transcodificación (persistencia pendiente)')
+      if (resultado.ok) {
+        await sql`
+          update public.media_assets
+          set status = 'READY',
+              poster_path = ${resultado.posterPath},
+              hls_path = ${resultado.hlsPath},
+              duration_seconds = ${resultado.durationSeconds},
+              updated_at = now()
+          where id = ${assetId}`
+        logger.info({ assetId }, 'media_assets → READY')
+      } else {
+        await sql`
+          update public.media_assets
+          set status = 'FAILED', updated_at = now()
+          where id = ${assetId}`
+        logger.error({ assetId, reason: resultado.reason }, 'media_assets → FAILED')
+      }
     },
   })
 
@@ -42,6 +63,7 @@ async function main(): Promise<void> {
   const apagar = async (senal: string): Promise<void> => {
     logger.info({ senal }, 'Apagando worker')
     await worker.close()
+    await sql.end({ timeout: 5 })
     await connection.quit()
     process.exit(0)
   }

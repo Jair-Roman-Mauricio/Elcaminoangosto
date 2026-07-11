@@ -36,6 +36,20 @@ Leyenda: ✅ hecha · 🟡 parcial · ⬜ pendiente
 | ✅ | **HU-0.5** CodeGraph indexado | `codegraph status` → 710 símbolos. Uso documentado en `AGENTS.md` §5. |
 | ⬜ | **HU-1.1** Perfil de usuario | `GET/PATCH /users/me` implementados. Falta la subida de avatar al bucket y la pantalla. |
 
+### Sprint S3 — Medios & Feed ✅
+
+Hito demostrable cumplido: **subir un video (subida reanudable) → transcodificar a MP4 web en el worker → verlo en el feed vertical con arranque <2s.**
+
+- **HU-8.1** Subida reanudable: el cliente sube por **TUS** (`tus-js-client`) al endpoint resumable de Supabase Storage, tolerante a cortes; el API reserva el asset con la ruta en la carpeta del usuario.
+- **HU-8.2** Pipeline de transcodificación: el API encola en **BullMQ**; el **worker** descarga el original, lo procesa con **ffmpeg** (MP4 H.264/AAC con `-movflags +faststart` + póster) y marca `media_assets` como `READY`. Verificado con ffmpeg real: el átomo `moov` queda al principio (`moov@36` antes de `mdat@2971`) → arranque rápido.
+- **HU-8.3** Entrega segura: URL firmada de corta vida (60 min) tras autorizar; servida con HTTP Range (206).
+- **HU-3.1** Feed vertical: contenedor `scroll-snap`, el video en foco se reproduce y los demás se pausan (IntersectionObserver), respetando `prefers-reduced-motion`.
+- **HU-3.3** Publicar tarjeta: MAESTRO/ADMIN (Q-2: publicación directa + moderación posterior). Un estudiante recibe `403`. El post solo aparece cuando su medio está `READY`.
+
+**Decisión ADR-006:** MP4 progresivo con faststart en vez de HLS para el MVP (HLS es complejo con URLs firmadas por segmento; se difiere hasta que el volumen lo justifique, como prevé `arquitectura.md` §6).
+
+**Verificado:** pipeline completo contra Redis + ffmpeg reales (`apps/api/e2e/s3-pipeline.mjs`, 16 aserciones incluida la de faststart) y en Chromium (`apps/web/e2e/s3-milestone.mjs`): el video se reproduce solo al entrar en foco, con URL firmada, y el gating de publicación funciona.
+
 ### Sprint S2 — Discipulado II & Aprobación ✅
 
 Hito demostrable cumplido: **el maestro crea un borrador → lo envía → el admin lo aprueba → el estudiante lo ve publicado; todo auditado en `course_reviews`.**
@@ -118,7 +132,7 @@ Ninguna historia empezada. El esqueleto de módulos y las rutas placeholder ya s
 |---|---|---|
 | **S1** Identidad & Discipulado I | HU-1.2 ✅, HU-1.3 ✅, HU-4.1 ✅, HU-4.2 ✅ | ✅ |
 | **S2** Discipulado II & Aprobación | HU-4.3 ✅, 4.4 ✅, 5.1 ✅, 5.2 ✅, 5.3 ✅ · (4.5 pendiente) | ✅ |
-| **S3** Medios & Feed | HU-8.1, 8.2, 8.3, 3.1, 3.3 | ⬜ |
+| **S3** Medios & Feed | HU-8.1 ✅, 8.2 ✅, 8.3 ✅, 3.1 ✅, 3.3 ✅ | ✅ |
 | **S4** Feed social & Chat | HU-3.2, 3.4, 6.1, 6.2 | ⬜ |
 | **S5** Alabanza | HU-2.1 🟡 *(store + player bar)*, 2.2, 2.3, 2.4 | ⬜ |
 | **S6** Admin & Landing & Hardening | HU-7.1, 7.2, **HU-9.1 ✅**, + RNF | 🟡 |

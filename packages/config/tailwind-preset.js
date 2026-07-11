@@ -102,5 +102,16 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Oculta la barra de scroll del feed vertical sin perder el desplazamiento.
+    function ({ addUtilities }) {
+      addUtilities({
+        '.scrollbar-none': {
+          'scrollbar-width': 'none',
+          '-ms-overflow-style': 'none',
+          '&::-webkit-scrollbar': { display: 'none' },
+        },
+      })
+    },
+  ],
 }
