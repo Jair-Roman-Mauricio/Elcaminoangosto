@@ -2,11 +2,16 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
 import { Boton, Eyebrow, Verse } from '@elcamino/ui'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../auth/session'
+import { PageTransition } from '../components/page-transition'
 import { PanelCurvo, FONDO_PANEL } from './panel-curvo'
+
+/** Curva del sistema (DESIGN.md §5). */
+const EASE = [0.22, 0.61, 0.36, 1] as const
 
 const CredencialesSchema = z.object({
   email: z.string().email('Introduce un correo válido'),
@@ -144,27 +149,51 @@ export function EntrarPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-center px-gutter py-aire-l md:min-h-screen">
+        <PageTransition className="flex items-center justify-center px-gutter py-aire-l md:min-h-screen">
           <div className="flex w-full max-w-sm flex-col gap-aire-m">
+            {/* El encabezado hace crossfade al alternar registro/login. */}
             <header className="flex flex-col gap-aire-xs">
-              <Eyebrow>{esRegistro ? 'Crear cuenta' : 'Iniciar sesión'}</Eyebrow>
-              <h2 className="m-0 font-mono text-h-m font-normal text-hueso">
-                {esRegistro ? 'Comienza tu camino' : 'Continúa tu camino'}
-              </h2>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={modo}
+                  className="flex flex-col gap-aire-xs"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3, ease: EASE }}
+                >
+                  <Eyebrow>{esRegistro ? 'Crear cuenta' : 'Iniciar sesión'}</Eyebrow>
+                  <h2 className="m-0 font-mono text-h-m font-normal text-hueso">
+                    {esRegistro ? 'Comienza tu camino' : 'Continúa tu camino'}
+                  </h2>
+                </motion.div>
+              </AnimatePresence>
             </header>
 
             <form onSubmit={handleSubmit(enviar)} className="flex flex-col gap-aire-s" noValidate>
-              {esRegistro && (
-                <Campo
-                  id="displayName"
-                  label="Nombre"
-                  type="text"
-                  autoComplete="name"
-                  placeholder="Cómo quieres que te llamemos"
-                  error={errors.displayName?.message}
-                  {...register('displayName')}
-                />
-              )}
+              {/* El campo Nombre se expande/colapsa suavemente al cambiar de modo. */}
+              <AnimatePresence initial={false}>
+                {esRegistro && (
+                  <motion.div
+                    key="displayName"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3, ease: EASE }}
+                    className="overflow-hidden"
+                  >
+                    <Campo
+                      id="displayName"
+                      label="Nombre"
+                      type="text"
+                      autoComplete="name"
+                      placeholder="Cómo quieres que te llamemos"
+                      error={errors.displayName?.message}
+                      {...register('displayName')}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <Campo
                 id="email"
@@ -244,7 +273,7 @@ export function EntrarPage() {
               ← Volver al recorrido
             </Link>
           </div>
-        </div>
+        </PageTransition>
       </main>
     </div>
   )

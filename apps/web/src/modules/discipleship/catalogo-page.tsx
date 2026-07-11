@@ -41,35 +41,29 @@ function CursoCard({ curso }: { curso: CatalogItem }) {
   const navigate = useNavigate()
   const enroll = useEnroll()
 
-  const eyebrow = [
-    curso.requiredLevelRank ? `Nivel ${curso.requiredLevelRank}` : 'Abierto',
-    curso.isFree ? 'Gratis' : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
+  const nivel = curso.requiredLevelRank ? `Nivel ${curso.requiredLevelRank}` : 'Abierto'
   const abrir = () => navigate(`/discipulado/${curso.slug}`)
 
   return (
     <Card
-      eyebrow={eyebrow}
       titulo={curso.title}
       meta={`${curso.teacherName} · ${curso.lessonCount} lecciones`}
+      media={<CursoMedia nivel={nivel} bloqueado={!curso.unlocked} />}
       onClick={curso.unlocked ? abrir : undefined}
-      className={curso.unlocked ? '' : 'opacity-60'}
+      className={curso.unlocked ? '' : 'opacity-70'}
     >
       {curso.description && (
         <p className="m-0 line-clamp-2 font-mono text-body-s text-texto-tenue">{curso.description}</p>
       )}
 
       {!curso.unlocked && curso.lockedReason && (
-        <p className="m-0 flex items-center gap-2 font-mono text-eyebrow uppercase tracking-label text-aviso">
+        <p className="m-0 mt-auto flex items-center gap-2 pt-aire-xs font-mono text-eyebrow uppercase tracking-label text-aviso">
           <span aria-hidden>🔒</span> {curso.lockedReason}
         </p>
       )}
 
       {curso.unlocked && (
-        <div className="mt-aire-xs">
+        <div className="mt-auto pt-aire-xs">
           {curso.enrolled ? (
             <button
               type="button"
@@ -94,6 +88,27 @@ function CursoCard({ curso }: { curso: CatalogItem }) {
         </div>
       )}
     </Card>
+  )
+}
+
+/** Placeholder de la mitad superior mientras los cursos no traen miniatura. */
+function CursoMedia({ nivel, bloqueado }: { nivel: string; bloqueado: boolean }) {
+  return (
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-marino/40 via-superficie-2 to-negro">
+      {/* Cruz bajo arco, el motivo de la marca. */}
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden className="h-14 w-14 text-hueso/[0.18]">
+        <path d="M10 46V20a14 14 0 0 1 28 0v26" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
+        <path d="M24 12v26M16 21h16" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
+      </svg>
+      <span className="absolute left-aire-s top-aire-s font-mono text-eyebrow uppercase tracking-label text-hueso/70">
+        {nivel}
+      </span>
+      {bloqueado && (
+        <span aria-hidden className="absolute right-aire-s top-aire-s text-body">
+          🔒
+        </span>
+      )}
+    </div>
   )
 }
 
