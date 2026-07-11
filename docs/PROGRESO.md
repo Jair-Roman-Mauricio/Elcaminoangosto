@@ -36,6 +36,19 @@ Leyenda: ✅ hecha · 🟡 parcial · ⬜ pendiente
 | ✅ | **HU-0.5** CodeGraph indexado | `codegraph status` → 710 símbolos. Uso documentado en `AGENTS.md` §5. |
 | ⬜ | **HU-1.1** Perfil de usuario | `GET/PATCH /users/me` implementados. Falta la subida de avatar al bucket y la pantalla. |
 
+### Sprint S2 — Discipulado II & Aprobación ✅
+
+Hito demostrable cumplido: **el maestro crea un borrador → lo envía → el admin lo aprueba → el estudiante lo ve publicado; todo auditado en `course_reviews`.**
+
+- **HU-4.3** Autoría de cursos: crear borrador (nace en DRAFT), añadir módulos y lecciones. Solo se edita la estructura en DRAFT o REJECTED.
+- **HU-4.4** Vista de estudiante: el maestro previsualiza su curso en cualquier estado; un tercero no puede.
+- **HU-5.1/5.2/5.3** Flujo de aprobación completo. Toda transición pasa por `canTransition` (shared-types); **no existe DRAFT→PUBLISHED**. La decisión del admin se audita en `course_reviews` (un rechazo exige notas). Eventos `CourseSubmitted`/`CourseReviewed`/`CoursePublished`.
+- **notifications**: nuevo bounded context que escucha esos eventos y notifica a los admins (envío) y al maestro (decisión), sin importar ningún módulo ajeno.
+
+**Backend:** `CourseAuthoringService` + `course_reviews` + módulo `notifications`. **11 tests de dominio** de la máquina de estados (incluida la regla inviolable). Verificado contra el API real (`apps/api/e2e/s2-flow.mjs`, 24 aserciones): creación, envío, notificación al admin, imposibilidad de autopublicar, aprobación, auditoría, notificación al maestro, publicación, visibilidad para el estudiante, y el flujo de rechazo con notas.
+
+**Frontend:** «Mis cursos» + editor (módulos/lecciones, enviar, publicar, notas de rechazo), cola de revisión del admin (tomar, aprobar, rechazar con notas). Verificado en Chromium (`apps/web/e2e/s2-milestone.mjs`): el hito completo de punta a punta.
+
 ### Sprint S1 — Identidad & Discipulado I ✅
 
 Hito demostrable cumplido: **un estudiante ve el catálogo de su nivel, se inscribe y completa una lección con el progreso guardado.**
@@ -104,7 +117,7 @@ Ninguna historia empezada. El esqueleto de módulos y las rutas placeholder ya s
 | Sprint | Historias | Estado |
 |---|---|---|
 | **S1** Identidad & Discipulado I | HU-1.2 ✅, HU-1.3 ✅, HU-4.1 ✅, HU-4.2 ✅ | ✅ |
-| **S2** Discipulado II & Aprobación | HU-4.3, 4.4, 4.5, 5.1, 5.2, 5.3 | ⬜ |
+| **S2** Discipulado II & Aprobación | HU-4.3 ✅, 4.4 ✅, 5.1 ✅, 5.2 ✅, 5.3 ✅ · (4.5 pendiente) | ✅ |
 | **S3** Medios & Feed | HU-8.1, 8.2, 8.3, 3.1, 3.3 | ⬜ |
 | **S4** Feed social & Chat | HU-3.2, 3.4, 6.1, 6.2 | ⬜ |
 | **S5** Alabanza | HU-2.1 🟡 *(store + player bar)*, 2.2, 2.3, 2.4 | ⬜ |

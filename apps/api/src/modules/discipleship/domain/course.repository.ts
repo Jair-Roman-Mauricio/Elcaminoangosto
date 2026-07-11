@@ -79,4 +79,54 @@ export abstract class CourseRepository {
 
   /** Nº total de lecciones del curso. Denominador del progreso. */
   abstract countLessons(courseId: string): Promise<number>
+
+  // ── Autoría (HU-4.3) y ciclo de vida (E5) ────────────────────────────────
+
+  /** Cursos de un maestro, en cualquier estado (para "Mis cursos"). */
+  abstract findByTeacher(teacherId: string): Promise<CourseEntity[]>
+
+  /** Todos los cursos en un estado dado (cola de revisión del admin). */
+  abstract findByStatus(status: CourseStatus): Promise<CourseEntity[]>
+
+  abstract createDraft(input: {
+    teacherId: string
+    title: string
+    slug: string
+    description: string | null
+    requiredLevelId: string | null
+    isFree: boolean
+    plannedModules: number
+  }): Promise<CourseEntity>
+
+  abstract updateDraft(
+    courseId: string,
+    changes: {
+      title?: string | undefined
+      description?: string | null | undefined
+      requiredLevelId?: string | null | undefined
+      isFree?: boolean | undefined
+      plannedModules?: number | undefined
+    },
+  ): Promise<CourseEntity>
+
+  /** Cambia el estado. `publishedAt` se fija al pasar a PUBLISHED. */
+  abstract setStatus(courseId: string, status: CourseStatus): Promise<CourseEntity>
+
+  abstract addModule(courseId: string, title: string, orderIndex: number): Promise<string>
+
+  abstract addLesson(input: {
+    moduleId: string
+    title: string
+    type: 'VIDEO' | 'TEXT'
+    content: string | null
+    mediaAssetId: string | null
+    orderIndex: number
+    durationSeconds: number | null
+  }): Promise<string>
+
+  /** ¿El curso tiene al menos una lección? (requisito para enviar a revisión). */
+  abstract hasAnyLesson(courseId: string): Promise<boolean>
+
+  /** ¿El slug ya existe? Para generar uno único al crear. */
+  abstract slugExists(slug: string): Promise<boolean>
 }

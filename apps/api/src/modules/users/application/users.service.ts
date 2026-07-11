@@ -58,6 +58,11 @@ export class UsersService {
     return this.profiles.findAll()
   }
 
+  /** Ids de los administradores, para notificarles eventos de gobernanza. */
+  async idsDeAdmins(): Promise<string[]> {
+    return this.profiles.findAdminIds()
+  }
+
   /** Catálogo de niveles (para el catálogo del estudiante y el panel admin). */
   async niveles(): Promise<LevelEntity[]> {
     return this.profiles.findLevels()
