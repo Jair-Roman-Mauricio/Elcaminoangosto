@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import { SessionProvider } from './auth/session'
 import { router } from './router'
 import { ApiError } from './lib/api-client'
@@ -26,9 +27,13 @@ if (!raiz) throw new Error('Falta el nodo #root en index.html')
 createRoot(raiz).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <RouterProvider router={router} />
-      </SessionProvider>
+      {/* `reducedMotion="user"` neutraliza el movimiento de Framer Motion para
+          quien lo pida en su sistema (RNF-6), en toda la app de una vez. */}
+      <MotionConfig reducedMotion="user">
+        <SessionProvider>
+          <RouterProvider router={router} />
+        </SessionProvider>
+      </MotionConfig>
     </QueryClientProvider>
   </StrictMode>,
 )

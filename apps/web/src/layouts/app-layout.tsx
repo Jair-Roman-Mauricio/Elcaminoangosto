@@ -1,8 +1,9 @@
-import { Link, NavLink as RouterNavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink as RouterNavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Nav, Boton } from '@elcamino/ui'
 import { usePerfil } from '../auth/session'
 import { supabase } from '../lib/supabase'
 import { PlayerBar } from '../modules/music/player-bar'
+import { PageTransition } from '../components/page-transition'
 
 interface EnlaceDeNav {
   to: string
@@ -13,6 +14,7 @@ interface EnlaceDeNav {
 export function AppLayout({ enlaces }: { enlaces: EnlaceDeNav[] }) {
   const { data: perfil } = usePerfil()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const salir = async () => {
     await supabase.auth.signOut()
@@ -55,8 +57,12 @@ export function AppLayout({ enlaces }: { enlaces: EnlaceDeNav[] }) {
         ))}
       </Nav>
 
+      {/* La transición se reejecuta al cambiar de ruta (key = pathname): anima
+          la entrada a la plataforma y cada navegación entre secciones. */}
       <main className="px-gutter pt-32">
-        <Outlet />
+        <PageTransition key={location.pathname}>
+          <Outlet />
+        </PageTransition>
       </main>
 
       {/* Persiste entre navegaciones: vive fuera del <Outlet /> (HU-2.1). */}
