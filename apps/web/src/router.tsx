@@ -17,6 +17,8 @@ import { MisCursosPage } from './modules/discipleship/mis-cursos-page'
 import { EditorCursoPage } from './modules/discipleship/editor-curso-page'
 import { UsuariosPage } from './modules/admin/usuarios-page'
 import { RevisionesPage } from './modules/admin/revisiones-page'
+import { FeedPage } from './modules/feed/feed-page'
+import { PublicarTarjetaPage } from './modules/feed/publicar-tarjeta-page'
 
 // La landing arrastra GSAP + Lenis (ADR-003). Se carga aparte para no
 // penalizar el bundle de la app autenticada.
@@ -57,10 +59,8 @@ export const router = createBrowserRouter([
     children: [
       { path: '/discipulado', element: <CatalogoPage /> },
       { path: '/discipulado/:slug', element: <CursoPage /> },
-      {
-        path: '/tarjetas',
-        element: <Pendiente titulo="Tarjetas de Fe" historia="HU-3.1 · Sprint S3" />,
-      },
+      { path: '/tarjetas', element: <FeedPage /> },
+      { path: '/tarjetas/publicar', element: <PublicarTarjetaPage /> },
       {
         path: '/alabanza',
         element: <Pendiente titulo="Alabanza" historia="HU-2.2 · Sprint S5" />,
