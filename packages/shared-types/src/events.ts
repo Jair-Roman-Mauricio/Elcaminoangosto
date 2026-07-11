@@ -46,6 +46,12 @@ export interface CoursePublishedEvent {
   requiredLevelRank: number
 }
 
+export interface CourseReviewedEvent {
+  courseId: string
+  teacherId: string
+  decision: 'APPROVED' | 'REJECTED'
+}
+
 export interface LessonCompletedEvent {
   enrollmentId: string
   lessonId: string
