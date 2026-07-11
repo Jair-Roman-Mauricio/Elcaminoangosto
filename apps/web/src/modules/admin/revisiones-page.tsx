@@ -11,7 +11,7 @@ export function RevisionesPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-aire-m py-aire-m">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Administración</Eyebrow>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">Cursos por revisar</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Cursos por revisar</h1>
       </header>
 
       {isPending && <p className="font-mono text-body text-texto-tenue">Cargando…</p>}
@@ -42,7 +42,7 @@ function FilaRevision({ curso }: { curso: AuthoringCourse }) {
       <div className="flex items-start justify-between gap-aire-s">
         <div className="flex flex-col gap-aire-xs">
           <div className="flex items-center gap-aire-s">
-            <h2 className="m-0 font-mono text-h-s font-normal text-hueso">{curso.title}</h2>
+            <h2 className="m-0 font-mono text-h-s font-normal text-contenido">{curso.title}</h2>
             <EstadoBadge status={curso.status} />
           </div>
           {curso.description && (
@@ -90,7 +90,7 @@ function FilaRevision({ curso }: { curso: AuthoringCourse }) {
             onChange={(e) => setNotas(e.target.value)}
             rows={2}
             placeholder="Qué debe corregir el maestro"
-            className="resize-none rounded border border-linea bg-negro/30 px-aire-s py-aire-xs font-mono text-body-s text-hueso placeholder:text-texto-debil focus:border-hueso"
+            className="resize-none rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body-s text-contenido placeholder:text-texto-debil focus:border-contenido"
           />
           <div className="flex gap-aire-s">
             <Boton type="submit" disabled={reject.isPending || notas.trim().length < 1}>

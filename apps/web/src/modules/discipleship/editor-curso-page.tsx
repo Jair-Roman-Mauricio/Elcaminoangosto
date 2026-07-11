@@ -38,7 +38,7 @@ export function EditorCursoPage() {
           <Eyebrow rule={false}>Editor</Eyebrow>
           <EstadoBadge status={curso.status} />
         </div>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">{curso.title}</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">{curso.title}</h1>
         {curso.description && (
           <p className="m-0 font-mono text-body text-texto-tenue">{curso.description}</p>
         )}
@@ -60,7 +60,7 @@ export function EditorCursoPage() {
             </p>
             <ul className="m-0 flex list-none flex-col gap-1 p-0">
               {m.lessons.map((l) => (
-                <li key={l.id} className="flex items-center gap-2 font-mono text-body-s text-hueso">
+                <li key={l.id} className="flex items-center gap-2 font-mono text-body-s text-contenido">
                   <span aria-hidden className="text-texto-debil">
                     {l.type === 'VIDEO' ? '▷' : '≡'}
                   </span>
@@ -101,7 +101,7 @@ function NuevoModulo({ courseId }: { courseId: string }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Título del módulo"
-          className="rounded border border-linea bg-negro/30 px-aire-s py-aire-xs font-mono text-body text-hueso placeholder:text-texto-debil focus:border-hueso"
+          className="rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body text-contenido placeholder:text-texto-debil focus:border-contenido"
         />
       </div>
       <Boton type="submit" variante="nav" disabled={add.isPending || !title.trim()}>
@@ -122,7 +122,7 @@ function NuevaLeccion({ courseId, moduleId }: { courseId: string; moduleId: stri
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="self-start font-mono text-eyebrow uppercase tracking-label text-hueso underline decoration-vino underline-offset-4 hover:text-vino"
+        className="self-start font-mono text-eyebrow uppercase tracking-label text-contenido underline decoration-vino underline-offset-4 hover:text-vino"
       >
         + Añadir lección
       </button>
@@ -145,20 +145,20 @@ function NuevaLeccion({ courseId, moduleId }: { courseId: string; moduleId: stri
           },
         )
       }}
-      className="flex flex-col gap-aire-xs rounded border border-linea bg-negro/20 p-aire-s"
+      className="flex flex-col gap-aire-xs rounded border border-linea bg-superficie-2 p-aire-s"
     >
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Título de la lección"
-        className="rounded border border-linea bg-negro/30 px-aire-s py-1 font-mono text-body-s text-hueso placeholder:text-texto-debil focus:border-hueso"
+        className="rounded border border-linea bg-superficie-2 px-aire-s py-1 font-mono text-body-s text-contenido placeholder:text-texto-debil focus:border-contenido"
       />
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={2}
         placeholder="Contenido (texto de la lección)"
-        className="resize-none rounded border border-linea bg-negro/30 px-aire-s py-1 font-mono text-body-s text-hueso placeholder:text-texto-debil focus:border-hueso"
+        className="resize-none rounded border border-linea bg-superficie-2 px-aire-s py-1 font-mono text-body-s text-contenido placeholder:text-texto-debil focus:border-contenido"
       />
       <div className="flex gap-aire-s">
         <Boton type="submit" variante="nav" disabled={add.isPending}>
@@ -223,7 +223,7 @@ function NotasDeRechazo({ courseId, status }: { courseId: string; status: Course
       <p className="m-0 font-mono text-eyebrow uppercase tracking-label text-vino">
         Rechazado por {rechazo.reviewerName}
       </p>
-      <p className="m-0 font-mono text-body-s text-hueso">{rechazo.notes}</p>
+      <p className="m-0 font-mono text-body-s text-contenido">{rechazo.notes}</p>
     </div>
   )
 }

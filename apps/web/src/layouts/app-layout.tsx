@@ -4,6 +4,7 @@ import { usePerfil } from '../auth/session'
 import { supabase } from '../lib/supabase'
 import { PlayerBar } from '../modules/music/player-bar'
 import { PageTransition } from '../components/page-transition'
+import { ThemeToggle } from '../theme/theme'
 
 interface EnlaceDeNav {
   to: string
@@ -22,15 +23,16 @@ export function AppLayout({ enlaces }: { enlaces: EnlaceDeNav[] }) {
   }
 
   return (
-    <div className="min-h-screen bg-negro pb-24">
+    <div className="min-h-screen bg-fondo pb-24">
       <Nav
         marca={
-          <Link to="/" className="text-hueso no-underline">
+          <Link to="/" className="text-contenido no-underline">
             El Camino Angosto
           </Link>
         }
         acciones={
           <>
+            <ThemeToggle />
             <span className="hidden font-mono text-eyebrow uppercase tracking-label text-texto-tenue cine:inline">
               {perfil?.role}
             </span>
@@ -47,8 +49,8 @@ export function AppLayout({ enlaces }: { enlaces: EnlaceDeNav[] }) {
             className={({ isActive }) =>
               [
                 'font-mono text-label uppercase tracking-label no-underline',
-                'transition-colors duration-fade ease-camino hover:text-hueso',
-                isActive ? 'text-hueso' : 'text-texto-tenue',
+                'transition-colors duration-fade ease-camino hover:text-contenido',
+                isActive ? 'text-contenido' : 'text-texto-tenue',
               ].join(' ')
             }
           >

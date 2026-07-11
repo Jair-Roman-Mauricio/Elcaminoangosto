@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MotionConfig } from 'framer-motion'
 import { SessionProvider } from './auth/session'
+import { ThemeProvider } from './theme/theme'
 import { router } from './router'
 import { ApiError } from './lib/api-client'
 import './index.css'
@@ -30,9 +31,11 @@ createRoot(raiz).render(
       {/* `reducedMotion="user"` neutraliza el movimiento de Framer Motion para
           quien lo pida en su sistema (RNF-6), en toda la app de una vez. */}
       <MotionConfig reducedMotion="user">
-        <SessionProvider>
-          <RouterProvider router={router} />
-        </SessionProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <RouterProvider router={router} />
+          </SessionProvider>
+        </ThemeProvider>
       </MotionConfig>
     </QueryClientProvider>
   </StrictMode>,

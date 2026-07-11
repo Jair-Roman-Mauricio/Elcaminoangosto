@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
+import type { AuthError } from '@supabase/supabase-js'
 import { Boton, Eyebrow, Verse } from '@elcamino/ui'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../auth/session'
@@ -37,6 +38,33 @@ type Modo = 'entrar' | 'registrarse'
 /** Aviso tras un registro que exige confirmar el correo (si estuviera activa). */
 type Aviso = { tipo: 'exito' | 'confirmar'; texto: string } | null
 
+/** ¿El error de signUp indica que el correo ya está registrado? */
+function esCorreoExistente(error: AuthError): boolean {
+  return (
+    error.code === 'user_already_exists' ||
+    error.code === 'email_exists' ||
+    /already registered|already been registered/i.test(error.message)
+  )
+}
+
+/** Traduce los errores de Supabase Auth a mensajes claros en español. */
+function mensajeDeError(error: AuthError): string {
+  const code = error.code ?? ''
+  if (code === 'invalid_credentials' || /invalid login credentials/i.test(error.message)) {
+    return 'Correo o contraseña incorrectos. Revisa tus datos.'
+  }
+  if (code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
+    return 'Tu correo aún no está confirmado. Escríbenos si el problema persiste.'
+  }
+  if (error.status === 429 || /rate limit/i.test(error.message)) {
+    return 'Demasiados intentos. Espera un momento y vuelve a probar.'
+  }
+  if (code === 'weak_password' || /password should be/i.test(error.message)) {
+    return 'La contraseña es demasiado débil. Usa al menos 8 caracteres.'
+  }
+  return 'No se pudo completar. Inténtalo de nuevo en un momento.'
+}
+
 export function EntrarPage() {
   // La landing enlaza a `/entrar?registro=1` desde su CTA de cierre.
   const [params] = useSearchParams()
@@ -60,20 +88,31 @@ export function EntrarPage() {
   const enviar = async ({ email, password, displayName }: Credenciales) => {
     setErrorServidor(null)
     setAviso(null)
+    const correo = email.trim().toLowerCase()
 
     if (modo === 'entrar') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setErrorServidor(error.message)
+      const { error } = await supabase.auth.signInWithPassword({ email: correo, password })
+      if (error) setErrorServidor(mensajeDeError(error))
       return
     }
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: correo,
       password,
-      options: { data: { display_name: displayName ?? email.split('@')[0] } },
+      options: { data: { display_name: displayName ?? correo.split('@')[0] } },
     })
     if (error) {
-      setErrorServidor(error.message)
+      // Si el correo ya existe, no es un fallo: se lleva al usuario a iniciar
+      // sesión con ese mismo correo, en vez de dejarlo atascado creando cuentas.
+      if (esCorreoExistente(error)) {
+        setModo('entrar')
+        setAviso({
+          tipo: 'confirmar',
+          texto: `Ya tienes una cuenta con ${correo}. Inicia sesión con tu contraseña.`,
+        })
+        return
+      }
+      setErrorServidor(mensajeDeError(error))
       return
     }
 
@@ -85,7 +124,7 @@ export function EntrarPage() {
     } else {
       setAviso({
         tipo: 'confirmar',
-        texto: `Te enviamos un correo a ${email}. Confírmalo para entrar.`,
+        texto: `Te enviamos un correo a ${correo}. Confírmalo para entrar.`,
       })
     }
   }
@@ -93,7 +132,10 @@ export function EntrarPage() {
   const esRegistro = modo === 'registrarse'
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-negro">
+    // El login es inmersivo sobre una foto oscura: siempre oscuro, al margen
+    // del tema de la app. `data-theme="dark"` hace que sus tokens (líneas,
+    // texto tenue) resuelvan en oscuro aunque el tema activo sea claro.
+    <div data-theme="dark" className="relative min-h-screen overflow-hidden bg-negro">
       {/* Fotografía limpia, sin textos ni banda quemada. En móvil se encuadra
           sobre el sendero; en escritorio, sobre el valle. */}
       <img

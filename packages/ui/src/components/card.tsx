@@ -77,7 +77,7 @@ export function Card({
       {/* Mitad inferior: información. */}
       <div className="flex flex-1 flex-col gap-aire-xs p-aire-s">
         {eyebrow && <Eyebrow rule={false}>{eyebrow}</Eyebrow>}
-        <h3 className="m-0 font-mono text-h-s font-normal leading-tight text-hueso">{titulo}</h3>
+        <h3 className="m-0 font-mono text-h-s font-normal leading-tight text-contenido">{titulo}</h3>
         {meta && <p className="m-0 font-mono text-body-s text-texto-tenue">{meta}</p>}
         {children}
       </div>

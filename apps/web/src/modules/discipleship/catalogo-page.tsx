@@ -13,7 +13,7 @@ export function CatalogoPage() {
     <div className="mx-auto flex max-w-5xl flex-col gap-aire-l py-aire-m">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Discipulado</Eyebrow>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">Catálogo de cursos</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Catálogo de cursos</h1>
         <p className="m-0 font-mono text-body text-texto-tenue">
           Cursos de tu nivel y anteriores. Los de nivel superior se desbloquean al avanzar.
         </p>
@@ -80,7 +80,7 @@ function CursoCard({ curso }: { curso: CatalogItem }) {
                 e.stopPropagation()
                 enroll.mutate(curso.id, { onSuccess: abrir })
               }}
-              className="font-mono text-eyebrow uppercase tracking-label text-hueso underline decoration-vino underline-offset-4 hover:text-vino disabled:opacity-50"
+              className="font-mono text-eyebrow uppercase tracking-label text-contenido underline decoration-vino underline-offset-4 hover:text-vino disabled:opacity-50"
             >
               {enroll.isPending ? 'Inscribiendo…' : 'Inscribirme'}
             </button>
@@ -96,11 +96,11 @@ function CursoMedia({ nivel, bloqueado }: { nivel: string; bloqueado: boolean })
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-marino/40 via-superficie-2 to-negro">
       {/* Cruz bajo arco, el motivo de la marca. */}
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden className="h-14 w-14 text-hueso/[0.18]">
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden className="h-14 w-14 text-contenido/[0.18]">
         <path d="M10 46V20a14 14 0 0 1 28 0v26" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
         <path d="M24 12v26M16 21h16" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
       </svg>
-      <span className="absolute left-aire-s top-aire-s font-mono text-eyebrow uppercase tracking-label text-hueso/70">
+      <span className="absolute left-aire-s top-aire-s font-mono text-eyebrow uppercase tracking-label text-contenido/70">
         {nivel}
       </span>
       {bloqueado && (

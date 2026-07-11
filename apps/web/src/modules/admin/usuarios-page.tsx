@@ -28,7 +28,7 @@ export function UsuariosPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-aire-m py-aire-m">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Administración</Eyebrow>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">Usuarios y roles</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Usuarios y roles</h1>
       </header>
 
       {isPending && <p className="font-mono text-body text-texto-tenue">Cargando…</p>}
@@ -46,7 +46,7 @@ export function UsuariosPage() {
             <tbody>
               {usuarios.map((u) => (
                 <tr key={u.id} className="border-b border-linea/50">
-                  <td className="py-aire-s pr-aire-s text-hueso">{u.displayName}</td>
+                  <td className="py-aire-s pr-aire-s text-contenido">{u.displayName}</td>
                   <td className="py-aire-s pr-aire-s text-texto-tenue">
                     {u.levelRank > 0 ? u.levelRank : '—'}
                   </td>
@@ -57,7 +57,7 @@ export function UsuariosPage() {
                       onChange={(e) =>
                         cambiarRol.mutate({ id: u.id, role: RoleSchema.parse(e.target.value) })
                       }
-                      className="rounded border border-linea bg-superficie-1 px-aire-xs py-1 font-mono text-body-s text-hueso focus:border-hueso"
+                      className="rounded border border-linea bg-superficie-1 px-aire-xs py-1 font-mono text-body-s text-contenido focus:border-contenido"
                     >
                       {RoleSchema.options.map((r) => (
                         <option key={r} value={r}>

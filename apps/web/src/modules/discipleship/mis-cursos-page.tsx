@@ -14,7 +14,7 @@ export function MisCursosPage() {
       <header className="flex items-end justify-between gap-aire-m">
         <div className="flex flex-col gap-aire-xs">
           <Eyebrow>Discipulado</Eyebrow>
-          <h1 className="m-0 font-mono text-h-l font-normal text-hueso">Mis cursos</h1>
+          <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Mis cursos</h1>
         </div>
         <Boton onClick={() => setCreando((v) => !v)}>
           {creando ? 'Cancelar' : 'Nuevo curso'}
@@ -60,7 +60,7 @@ function EditarLink({ slug }: { slug: string }) {
         e.stopPropagation()
         navigate(`/maestro/cursos/${slug}`)
       }}
-      className="font-mono text-eyebrow uppercase tracking-label text-hueso underline decoration-vino underline-offset-4 hover:text-vino"
+      className="font-mono text-eyebrow uppercase tracking-label text-contenido underline decoration-vino underline-offset-4 hover:text-vino"
     >
       Abrir →
     </button>
@@ -96,7 +96,7 @@ function FormularioNuevoCurso({ onHecho }: { onHecho: () => void }) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="resize-none rounded border border-linea bg-negro/30 px-aire-s py-aire-xs font-mono text-body text-hueso placeholder:text-texto-debil focus:border-hueso"
+          className="resize-none rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body text-contenido placeholder:text-texto-debil focus:border-contenido"
           placeholder="De qué trata el curso"
         />
       </div>
@@ -126,7 +126,7 @@ function Campo({
         value={valor}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="rounded border border-linea bg-negro/30 px-aire-s py-aire-xs font-mono text-body text-hueso placeholder:text-texto-debil focus:border-hueso"
+        className="rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body text-contenido placeholder:text-texto-debil focus:border-contenido"
       />
     </div>
   )
@@ -135,7 +135,7 @@ function Campo({
 function CursoMediaMaestro({ status }: { status: string }) {
   return (
     <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-marino/30 via-superficie-2 to-negro">
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden className="h-12 w-12 text-hueso/[0.15]">
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden className="h-12 w-12 text-contenido/[0.15]">
         <path d="M10 46V20a14 14 0 0 1 28 0v26" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
         <path d="M24 12v26M16 21h16" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
       </svg>

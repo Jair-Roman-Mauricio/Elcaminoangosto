@@ -19,20 +19,22 @@ const base =
   'motion-reduce:duration-fade-corto disabled:opacity-40 disabled:pointer-events-none'
 
 const variantes: Record<BotonVariante, string> = {
+  // El texto base usa el token temático; en hover se rellena de vino y el
+  // texto pasa a `hueso` (blanco fijo sobre el acento, en ambos temas).
   primary: cn(
-    'text-label tracking-boton text-hueso',
+    'text-label tracking-boton text-contenido',
     'px-[2.4rem] py-[1.05rem] rounded',
-    'border border-linea-fuerte bg-negro/20',
+    'border border-linea-fuerte bg-transparent',
     'hover:border-vino hover:bg-vino hover:text-hueso',
   ),
   sutil: cn(
     'text-label tracking-boton text-texto-tenue',
     'px-0 py-[0.6rem] border-0 bg-transparent',
     'underline underline-offset-[0.45em] decoration-linea',
-    'hover:text-hueso hover:decoration-marino',
+    'hover:text-contenido hover:decoration-marino',
   ),
   nav: cn(
-    'text-label tracking-boton text-hueso',
+    'text-label tracking-boton text-contenido',
     'px-[1.1rem] py-[0.6rem] rounded',
     'border border-linea bg-transparent',
     'hover:border-vino hover:bg-vino/10',

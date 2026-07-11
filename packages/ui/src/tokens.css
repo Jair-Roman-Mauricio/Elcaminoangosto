@@ -1,57 +1,90 @@
 /* ═══════════════════════════════════════════════════════════
    Tokens globales — El Camino Angosto
    Espejo en CSS vars del preset de Tailwind (packages/config).
-   Fuente de verdad: docs/DESIGN.md · Decisión: ADR-001.
+   Fuente de verdad: docs/DESIGN.md · Decisiones: ADR-001, ADR-007.
+
+   El tema se aplica con `data-theme` en <html> (light por defecto).
+   Las superficies y el texto son SEMÁNTICOS y cambian por tema; los
+   acentos de marca (vino, marino) y los valores absolutos (negro, hueso)
+   son fijos. La landing y el login se fuerzan a oscuro con su propio
+   `data-theme="dark"`.
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* Base */
+  /* ── Acentos de marca (fijos, no cambian con el tema) ── */
   --negro: #0a0a0a;
   --hueso: #f7f6f2;
-
-  /* Acentos — usar con moderación */
   --vino: #b41e44;
   --marino: #1b3460;
 
-  /* Derivados del hueso */
-  --texto: var(--hueso);
-  --texto-tenue: rgba(247, 246, 242, 0.55);
-  --texto-debil: rgba(247, 246, 242, 0.35);
-  --linea: rgba(247, 246, 242, 0.15);
-  --linea-fuerte: rgba(247, 246, 242, 0.4);
-
-  /* Superficies elevadas */
-  --superficie-0: #0a0a0a;
-  --superficie-1: #101010;
-  --superficie-2: #181818;
-
-  /* Estado */
-  --exito: #2e7d5b;
-  --aviso: #c9862b;
-  --peligro: var(--vino);
-
-  /* Tipografía */
+  /* ── Tipografía ── */
   --mono: "Space Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --serif: "Newsreader", Georgia, "Times New Roman", serif;
-
   --track-label: 0.14em;
   --track-boton: 0.1em;
   --track-titulo: 0.01em;
 
-  /* Formas */
+  /* ── Formas y ritmo ── */
   --radius: 0.8rem;
-  --borde: 1px solid var(--linea);
-
-  /* Ritmo vertical */
   --gutter: clamp(1.5rem, 5vw, 5rem);
   --aire-xs: 0.75rem;
   --aire-s: 1.25rem;
   --aire-m: 2rem;
   --aire-l: 3.5rem;
 
-  /* Movimiento: lento, ease-out, SIN rebote */
+  /* ── Movimiento: lento, ease-out, SIN rebote ── */
   --fade: 0.9s;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* ── Estado (constantes; funcionan sobre ambos temas) ── */
+  --exito: #2e7d5b;
+  --aviso: #c9862b;
+  --peligro: var(--vino);
+}
+
+/* ── TEMA CLARO (por defecto) ─────────────────────────────── */
+:root,
+:root[data-theme="light"] {
+  --fondo: #f4f2ec; /* blanco cálido */
+  --superficie-0: #f4f2ec;
+  --superficie-1: #ffffff;
+  --superficie-2: #ebe8e0;
+
+  --contenido: #14110f; /* negro cálido */
+  --contenido-tenue: rgba(20, 17, 15, 0.62);
+  --contenido-debil: rgba(20, 17, 15, 0.42);
+
+  --linea: rgba(20, 17, 15, 0.14);
+  --linea-fuerte: rgba(20, 17, 15, 0.3);
+
+  /* Anillo de foco visible sobre fondo claro. */
+  --foco: var(--contenido);
+
+  /* Alias heredados (misma semántica, para no romper clases existentes). */
+  --texto: var(--contenido);
+  --texto-tenue: var(--contenido-tenue);
+  --texto-debil: var(--contenido-debil);
+}
+
+/* ── TEMA OSCURO ──────────────────────────────────────────── */
+:root[data-theme="dark"] {
+  --fondo: #0a0a0a;
+  --superficie-0: #0a0a0a;
+  --superficie-1: #101010;
+  --superficie-2: #181818;
+
+  --contenido: #f7f6f2;
+  --contenido-tenue: rgba(247, 246, 242, 0.55);
+  --contenido-debil: rgba(247, 246, 242, 0.35);
+
+  --linea: rgba(247, 246, 242, 0.15);
+  --linea-fuerte: rgba(247, 246, 242, 0.4);
+
+  --foco: var(--hueso);
+
+  --texto: var(--contenido);
+  --texto-tenue: var(--contenido-tenue);
+  --texto-debil: var(--contenido-debil);
 }
 
 *,
@@ -62,14 +95,18 @@
 
 body {
   margin: 0;
-  background: var(--negro);
-  color: var(--texto);
+  background: var(--fondo);
+  color: var(--contenido);
   font-family: var(--mono);
   font-size: 16px; /* base 16px — ver ADR-001 */
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  /* Suaviza el cambio de tema. */
+  transition:
+    background-color var(--fade) var(--ease),
+    color var(--fade) var(--ease);
 }
 
 ::selection {
@@ -79,7 +116,7 @@ body {
 
 /* Foco visible — nunca `outline: none` (RNF-6, WCAG 2.1 AA) */
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
-  outline: 1px solid var(--hueso);
+  outline: 1px solid var(--foco);
   outline-offset: 4px;
   border-radius: var(--radius);
 }

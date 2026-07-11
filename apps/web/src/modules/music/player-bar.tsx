@@ -28,7 +28,7 @@ export function PlayerBar() {
             )}
           </div>
           <div className="min-w-0">
-            <p className="truncate font-mono text-body-s text-hueso">{pista.titulo}</p>
+            <p className="truncate font-mono text-body-s text-contenido">{pista.titulo}</p>
             <Eyebrow rule={false}>{pista.artista}</Eyebrow>
           </div>
         </div>
@@ -38,7 +38,7 @@ export function PlayerBar() {
             type="button"
             onClick={anterior}
             aria-label="Anterior"
-            className="font-mono text-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-hueso"
+            className="font-mono text-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-contenido"
           >
             ◄◄
           </button>
@@ -47,7 +47,7 @@ export function PlayerBar() {
             type="button"
             onClick={siguiente}
             aria-label="Siguiente"
-            className="font-mono text-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-hueso"
+            className="font-mono text-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-contenido"
           >
             ►►
           </button>

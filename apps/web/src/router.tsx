@@ -26,7 +26,7 @@ const LandingPage = lazy(() =>
   import('./landing/landing-page').then((m) => ({ default: m.LandingPage })),
 )
 
-const Cargando = () => <div className="min-h-screen bg-negro" />
+const Cargando = () => <div className="min-h-screen bg-fondo" />
 
 /**
  * Rutas por rol. La guardia `RequireRole` es de UX; la autorización real vive
