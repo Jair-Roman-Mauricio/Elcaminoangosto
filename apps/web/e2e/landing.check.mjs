@@ -37,8 +37,12 @@ ok('microlabel del capítulo', norm(label1).includes('CAPÍTULO 01') && norm(lab
 ok('overlay 01 visible', (await page.locator('.overlay[data-step="0"]').evaluate((e) => getComputedStyle(e).opacity)) > 0.5)
 
 console.log('\n── Identidad visual (tokens reales) ──')
-const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-ok('fondo negro #0a0a0a', bg === 'rgb(10, 10, 10)', bg)
+// La landing es oscura vía `.landing-root` (el body es temático desde ADR-007).
+const bg = await page.evaluate(() => {
+  const r = document.querySelector('.landing-root')
+  return r ? getComputedStyle(r).backgroundColor : getComputedStyle(document.body).backgroundColor
+})
+ok('la landing es oscura #0a0a0a', bg === 'rgb(10, 10, 10)', bg)
 const font = await page.evaluate(() => getComputedStyle(document.body).fontFamily)
 ok('cuerpo en Space Mono', font.includes('Space Mono'), font.split(',')[0])
 const verseFont = await page.locator('.overlay__verse').first().evaluate((e) => getComputedStyle(e).fontFamily)

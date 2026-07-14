@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Boton, Eyebrow } from '@elcamino/ui'
+import { Boton, Eyebrow, Field, Textarea } from '@elcamino/ui'
 import { subirMedioReanudable, esperarProcesado } from './media-upload'
 import { usePublicarTarjeta } from './feed-api'
 
@@ -48,7 +48,7 @@ export function PublicarTarjetaPage() {
     <div className="mx-auto flex max-w-lg flex-col gap-aire-m py-aire-m">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Tarjetas de Fe</Eyebrow>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">Publicar una tarjeta</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Publicar una tarjeta</h1>
         <p className="m-0 font-mono text-body-s text-texto-tenue">
           Un video vertical corto para edificar a la comunidad.
         </p>
@@ -65,29 +65,26 @@ export function PublicarTarjetaPage() {
             setFase('elegir')
             setError(null)
           }}
-          className="font-mono text-body-s text-texto-tenue file:mr-aire-s file:rounded file:border file:border-linea file:bg-negro/30 file:px-aire-s file:py-1 file:font-mono file:text-eyebrow file:uppercase file:tracking-label file:text-hueso hover:file:border-vino"
+          className="font-mono text-body-s text-texto-tenue file:mr-aire-s file:rounded file:border file:border-linea file:bg-superficie-2 file:px-aire-s file:py-1 file:font-mono file:text-eyebrow file:uppercase file:tracking-label file:text-contenido hover:file:border-vino"
         />
 
         {file && (
-          <p className="m-0 font-mono text-body-s text-hueso">
+          <p className="m-0 font-mono text-body-s text-contenido">
             {file.name} · {(file.size / (1024 * 1024)).toFixed(1)} MB
           </p>
         )}
 
-        <div className="flex flex-col gap-aire-xs">
-          <label className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
-            Texto (opcional)
-          </label>
-          <textarea
+        <Field label="Texto (opcional)" htmlFor="caption">
+          <Textarea
+            id="caption"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             rows={2}
             disabled={ocupado}
             maxLength={500}
             placeholder="Un versículo, una reflexión…"
-            className="resize-none rounded border border-linea bg-negro/30 px-aire-s py-aire-xs font-mono text-body text-hueso placeholder:text-texto-debil focus:border-hueso"
           />
-        </div>
+        </Field>
 
         {fase === 'subiendo' && <Progreso label={`Subiendo… ${pct}%`} pct={pct} />}
         {fase === 'procesando' && <Progreso label="Transcodificando el video…" pct={100} pulsa />}

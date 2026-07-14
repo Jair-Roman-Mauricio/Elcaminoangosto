@@ -37,7 +37,7 @@ export function FeedPage() {
       {puedePublicar && (
         <Link
           to="/tarjetas/publicar"
-          className="fixed bottom-24 right-gutter z-20 rounded-full border border-linea-fuerte bg-superficie-1/90 px-aire-m py-aire-s font-mono text-eyebrow uppercase tracking-label text-hueso no-underline backdrop-blur transition-colors duration-fade ease-camino hover:border-vino hover:bg-vino"
+          className="fixed bottom-24 right-gutter z-20 rounded-full border border-linea-fuerte bg-superficie-1/90 px-aire-m py-aire-s font-mono text-eyebrow uppercase tracking-label text-contenido no-underline backdrop-blur transition-colors duration-fade ease-camino hover:border-vino hover:bg-vino hover:text-hueso"
         >
           + Publicar
         </Link>
@@ -95,6 +95,7 @@ function TarjetaViewport({ card }: { card: FeedCard }) {
   return (
     <section
       ref={ref}
+      data-theme="dark"
       className="relative flex h-full snap-start snap-always items-center justify-center overflow-hidden bg-negro"
     >
       {card.type === 'VIDEO' ? (

@@ -21,30 +21,40 @@ export default {
     },
     extend: {
       colors: {
+        // Acentos de marca y absolutos: fijos, no cambian con el tema.
         negro: '#0a0a0a',
         hueso: '#f7f6f2',
         vino: '#b41e44',
         marino: '#1b3460',
 
-        // Superficies elevadas (extensión para la app)
-        superficie: {
-          0: '#0a0a0a',
-          1: '#101010',
-          2: '#181818',
+        // ── Tokens SEMÁNTICOS: cambian con el tema (ver tokens.css, ADR-007) ──
+        // Fondo de página y contenido (texto) principal.
+        fondo: 'var(--fondo)',
+        contenido: {
+          DEFAULT: 'var(--contenido)',
+          tenue: 'var(--contenido-tenue)',
+          debil: 'var(--contenido-debil)',
         },
 
-        // Derivados del hueso, como opacidades fijas
+        // Superficies elevadas (tarjetas, modales, player bar).
+        superficie: {
+          0: 'var(--superficie-0)',
+          1: 'var(--superficie-1)',
+          2: 'var(--superficie-2)',
+        },
+
+        // Alias heredados: misma semántica que `contenido`, ahora theme-aware.
         texto: {
-          DEFAULT: '#f7f6f2',
-          tenue: 'rgba(247, 246, 242, 0.55)',
-          debil: 'rgba(247, 246, 242, 0.35)',
+          DEFAULT: 'var(--contenido)',
+          tenue: 'var(--contenido-tenue)',
+          debil: 'var(--contenido-debil)',
         },
         linea: {
-          DEFAULT: 'rgba(247, 246, 242, 0.15)',
-          fuerte: 'rgba(247, 246, 242, 0.40)',
+          DEFAULT: 'var(--linea)',
+          fuerte: 'var(--linea-fuerte)',
         },
 
-        // Semánticos de estado
+        // Semánticos de estado (constantes sobre ambos temas)
         exito: '#2e7d5b',
         aviso: '#c9862b',
         peligro: '#b41e44', // = vino
@@ -89,7 +99,7 @@ export default {
       },
 
       borderColor: {
-        DEFAULT: 'rgba(247, 246, 242, 0.15)',
+        DEFAULT: 'var(--linea)',
       },
 
       // Curva única: ease-out lento, SIN rebote. No añadas otras.

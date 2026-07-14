@@ -23,7 +23,8 @@ export function LandingPage() {
   const { session } = useSession()
 
   return (
-    <div ref={setRoot} className="landing-root">
+    // La landing es inmersiva y siempre oscura, al margen del tema de la app.
+    <div ref={setRoot} data-theme="dark" className="landing-root min-h-screen bg-negro">
       {/* ══ ESCENARIO DE VIDEO: 4 capas fijas apiladas, solo una visible ══ */}
       <div className="stage" aria-hidden="true">
         {CHAPTERS.map((c, i) => (

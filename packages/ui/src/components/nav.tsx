@@ -26,7 +26,7 @@ export function Nav({ marca, children, acciones, className }: NavProps) {
         className,
       )}
     >
-      <div className="font-mono text-body-s uppercase tracking-label text-hueso">{marca}</div>
+      <div className="font-mono text-body-s uppercase tracking-label text-contenido">{marca}</div>
 
       {children && (
         <div className="flex items-center gap-[clamp(1rem,2.5vw,2.25rem)]">{children}</div>
@@ -47,7 +47,7 @@ export function NavLink({
     <a
       className={cn(
         'font-mono text-label uppercase tracking-label text-texto-tenue no-underline',
-        'transition-colors duration-fade ease-camino hover:text-hueso',
+        'transition-colors duration-fade ease-camino hover:text-contenido',
         className,
       )}
       {...props}

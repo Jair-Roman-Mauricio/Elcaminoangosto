@@ -15,7 +15,7 @@ export function Pendiente({ titulo, historia }: PendienteProps) {
   return (
     <Reveal className="mx-auto flex max-w-2xl flex-col gap-aire-s py-aire-l">
       <Eyebrow>{historia}</Eyebrow>
-      <h1 className="m-0 font-mono text-h-l font-normal text-hueso">{titulo}</h1>
+      <h1 className="m-0 font-mono text-h-l font-normal text-contenido">{titulo}</h1>
       <p className="m-0 font-mono text-body text-texto-tenue">
         Esta pantalla se construye en el sprint indicado. Ver <code>docs/BACKLOG.md</code>.
       </p>
