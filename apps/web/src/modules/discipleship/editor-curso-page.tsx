@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Boton, Eyebrow } from '@elcamino/ui'
+import { Boton, Eyebrow, Field, Input, Textarea } from '@elcamino/ui'
 import type { CourseStatus } from '@elcamino/shared-types'
 import {
   useStudentView,
@@ -95,15 +95,14 @@ function NuevoModulo({ courseId }: { courseId: string }) {
       }}
       className="flex items-end gap-aire-s"
     >
-      <div className="flex flex-1 flex-col gap-aire-xs">
-        <label className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">Nuevo módulo</label>
-        <input
+      <Field label="Nuevo módulo" htmlFor="nuevo-modulo" className="flex-1">
+        <Input
+          id="nuevo-modulo"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Título del módulo"
-          className="rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body text-contenido placeholder:text-texto-debil focus:border-contenido"
         />
-      </div>
+      </Field>
       <Boton type="submit" variante="nav" disabled={add.isPending || !title.trim()}>
         Añadir
       </Boton>
@@ -147,18 +146,18 @@ function NuevaLeccion({ courseId, moduleId }: { courseId: string; moduleId: stri
       }}
       className="flex flex-col gap-aire-xs rounded border border-linea bg-superficie-2 p-aire-s"
     >
-      <input
+      <Input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Título de la lección"
-        className="rounded border border-linea bg-superficie-2 px-aire-s py-1 font-mono text-body-s text-contenido placeholder:text-texto-debil focus:border-contenido"
+        className="py-1 text-body-s"
       />
-      <textarea
+      <Textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={2}
         placeholder="Contenido (texto de la lección)"
-        className="resize-none rounded border border-linea bg-superficie-2 px-aire-s py-1 font-mono text-body-s text-contenido placeholder:text-texto-debil focus:border-contenido"
+        className="py-1 text-body-s"
       />
       <div className="flex gap-aire-s">
         <Boton type="submit" variante="nav" disabled={add.isPending}>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Boton, Eyebrow } from '@elcamino/ui'
+import { Boton, Eyebrow, Field, Textarea } from '@elcamino/ui'
 import { useReviewQueue, useReviewActions, type AuthoringCourse } from '../discipleship/authoring-api'
 import { EstadoBadge } from '../discipleship/estado-curso'
 
@@ -82,16 +82,16 @@ function FilaRevision({ curso }: { curso: AuthoringCourse }) {
           }}
           className="flex flex-col gap-aire-xs"
         >
-          <label className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
-            Notas del rechazo (obligatorias)
-          </label>
-          <textarea
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-            rows={2}
-            placeholder="Qué debe corregir el maestro"
-            className="resize-none rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body-s text-contenido placeholder:text-texto-debil focus:border-contenido"
-          />
+          <Field label="Notas del rechazo (obligatorias)" htmlFor={`notas-${curso.id}`}>
+            <Textarea
+              id={`notas-${curso.id}`}
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              rows={2}
+              placeholder="Qué debe corregir el maestro"
+              className="text-body-s"
+            />
+          </Field>
           <div className="flex gap-aire-s">
             <Boton type="submit" disabled={reject.isPending || notas.trim().length < 1}>
               {reject.isPending ? 'Rechazando…' : 'Confirmar rechazo'}

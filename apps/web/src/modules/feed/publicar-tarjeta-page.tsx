@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Boton, Eyebrow } from '@elcamino/ui'
+import { Boton, Eyebrow, Field, Textarea } from '@elcamino/ui'
 import { subirMedioReanudable, esperarProcesado } from './media-upload'
 import { usePublicarTarjeta } from './feed-api'
 
@@ -74,20 +74,17 @@ export function PublicarTarjetaPage() {
           </p>
         )}
 
-        <div className="flex flex-col gap-aire-xs">
-          <label className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
-            Texto (opcional)
-          </label>
-          <textarea
+        <Field label="Texto (opcional)" htmlFor="caption">
+          <Textarea
+            id="caption"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             rows={2}
             disabled={ocupado}
             maxLength={500}
             placeholder="Un versículo, una reflexión…"
-            className="resize-none rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body text-contenido placeholder:text-texto-debil focus:border-contenido"
           />
-        </div>
+        </Field>
 
         {fase === 'subiendo' && <Progreso label={`Subiendo… ${pct}%`} pct={pct} />}
         {fase === 'procesando' && <Progreso label="Transcodificando el video…" pct={100} pulsa />}

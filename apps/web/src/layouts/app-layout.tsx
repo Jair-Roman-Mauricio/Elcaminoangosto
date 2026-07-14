@@ -4,7 +4,7 @@ import { usePerfil } from '../auth/session'
 import { supabase } from '../lib/supabase'
 import { PlayerBar } from '../modules/music/player-bar'
 import { PageTransition } from '../components/page-transition'
-import { ThemeToggle } from '../theme/theme'
+import { ThemeToggle } from '../components/theme'
 
 interface EnlaceDeNav {
   to: string

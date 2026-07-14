@@ -42,9 +42,13 @@
   --peligro: var(--vino);
 }
 
-/* ── TEMA CLARO (por defecto) ─────────────────────────────── */
+/* ── TEMA CLARO (por defecto) ─────────────────────────────────
+   Sin el prefijo `:root`: así `[data-theme="dark"]` puede ir en un <div>
+   anidado (landing, login, feed de video) y sus descendientes heredan el
+   tema, al margen del tema global en <html>. Con `:root[data-theme]` solo
+   respondía <html> y los contenedores forzados no tenían efecto. */
 :root,
-:root[data-theme="light"] {
+[data-theme="light"] {
   --fondo: #f4f2ec; /* blanco cálido */
   --superficie-0: #f4f2ec;
   --superficie-1: #ffffff;
@@ -67,7 +71,7 @@
 }
 
 /* ── TEMA OSCURO ──────────────────────────────────────────── */
-:root[data-theme="dark"] {
+[data-theme="dark"] {
   --fondo: #0a0a0a;
   --superficie-0: #0a0a0a;
   --superficie-1: #101010;

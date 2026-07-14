@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RoleSchema, type Role } from '@elcamino/shared-types'
-import { Eyebrow } from '@elcamino/ui'
+import { Eyebrow, Select } from '@elcamino/ui'
 import { apiClient } from '../../lib/api-client'
 
 interface UsuarioRow {
@@ -51,20 +51,20 @@ export function UsuariosPage() {
                     {u.levelRank > 0 ? u.levelRank : '—'}
                   </td>
                   <td className="py-aire-s">
-                    <select
+                    <Select
                       value={u.role}
                       disabled={cambiarRol.isPending}
                       onChange={(e) =>
                         cambiarRol.mutate({ id: u.id, role: RoleSchema.parse(e.target.value) })
                       }
-                      className="rounded border border-linea bg-superficie-1 px-aire-xs py-1 font-mono text-body-s text-contenido focus:border-contenido"
+                      className="w-auto py-1 text-body-s"
                     >
                       {RoleSchema.options.map((r) => (
                         <option key={r} value={r}>
                           {r}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </td>
                 </tr>
               ))}

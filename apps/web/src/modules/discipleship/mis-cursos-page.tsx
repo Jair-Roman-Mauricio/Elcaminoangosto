@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Boton, Card, Eyebrow, Reveal } from '@elcamino/ui'
+import { Boton, Card, Eyebrow, Field, Input, Reveal, Textarea } from '@elcamino/ui'
 import { useMyCourses, useCreateCourse } from './authoring-api'
 import { EstadoBadge } from './estado-curso'
 
@@ -88,47 +88,32 @@ function FormularioNuevoCurso({ onHecho }: { onHecho: () => void }) {
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-aire-s rounded border border-linea bg-superficie-1 p-aire-m">
-      <Campo label="Título del curso" valor={title} onChange={setTitle} placeholder="Mínimo 3 caracteres" />
-      <div className="flex flex-col gap-aire-xs">
-        <label className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">Descripción</label>
-        <textarea
+    <form
+      onSubmit={enviar}
+      className="flex flex-col gap-aire-s rounded border border-linea bg-superficie-1 p-aire-m"
+    >
+      <Field label="Título del curso" htmlFor="nuevo-titulo">
+        <Input
+          id="nuevo-titulo"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Mínimo 3 caracteres"
+        />
+      </Field>
+      <Field label="Descripción" htmlFor="nuevo-desc">
+        <Textarea
+          id="nuevo-desc"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="resize-none rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body text-contenido placeholder:text-texto-debil focus:border-contenido"
           placeholder="De qué trata el curso"
         />
-      </div>
+      </Field>
       {crear.isError && <p className="m-0 font-mono text-body-s text-vino">No se pudo crear el curso.</p>}
       <Boton type="submit" disabled={crear.isPending || title.trim().length < 3}>
         {crear.isPending ? 'Creando…' : 'Crear borrador'}
       </Boton>
     </form>
-  )
-}
-
-function Campo({
-  label,
-  valor,
-  onChange,
-  placeholder,
-}: {
-  label: string
-  valor: string
-  onChange: (v: string) => void
-  placeholder?: string
-}) {
-  return (
-    <div className="flex flex-col gap-aire-xs">
-      <label className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">{label}</label>
-      <input
-        value={valor}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="rounded border border-linea bg-superficie-2 px-aire-s py-aire-xs font-mono text-body text-contenido placeholder:text-texto-debil focus:border-contenido"
-      />
-    </div>
   )
 }
 
