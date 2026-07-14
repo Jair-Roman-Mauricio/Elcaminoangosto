@@ -21,19 +21,19 @@ export function KitUiPage() {
   const reduced = useReducedMotion()
 
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-aire-l bg-negro px-gutter py-aire-l">
+    <main className="mx-auto flex max-w-4xl flex-col gap-aire-l bg-fondo px-gutter py-aire-l">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Design system</Eyebrow>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">Kit de interfaz</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Kit de interfaz</h1>
         <p className="m-0 font-mono text-body-s text-texto-tenue">
           Tokens de <code>docs/DESIGN.md</code>. Movimiento reducido:{' '}
-          <strong className="text-hueso">{reduced ? 'sí' : 'no'}</strong>
+          <strong className="text-contenido">{reduced ? 'sí' : 'no'}</strong>
         </p>
       </header>
 
       <Seccion titulo="Color">
         <div className="grid grid-cols-2 gap-aire-s cine:grid-cols-4">
-          <Muestra nombre="negro" clase="bg-negro border border-linea" />
+          <Muestra nombre="negro" clase="bg-fondo border border-linea" />
           <Muestra nombre="hueso" clase="bg-hueso" />
           <Muestra nombre="vino" clase="bg-vino" />
           <Muestra nombre="marino" clase="bg-marino" />
@@ -45,9 +45,9 @@ export function KitUiPage() {
       </Seccion>
 
       <Seccion titulo="Tipografía">
-        <p className="m-0 font-mono text-h-xl text-hueso">Título de capítulo</p>
-        <p className="m-0 font-mono text-h-m text-hueso">Subtítulo</p>
-        <p className="m-0 font-mono text-body text-hueso">
+        <p className="m-0 font-mono text-h-xl text-contenido">Título de capítulo</p>
+        <p className="m-0 font-mono text-h-m text-contenido">Subtítulo</p>
+        <p className="m-0 font-mono text-body text-contenido">
           Cuerpo en Space Mono, la voz por defecto del sistema.
         </p>
         <Eyebrow>Eyebrow con su regla</Eyebrow>

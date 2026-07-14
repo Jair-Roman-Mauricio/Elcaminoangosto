@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 import { RoleSchema, UpdateProfileSchema, type Role } from '@elcamino/shared-types'
@@ -12,6 +12,13 @@ import {
 } from '../../shared'
 
 const AsignarRolSchema = z.object({ role: RoleSchema })
+
+const CrearCuentaSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  displayName: z.string().min(1).max(60),
+  role: RoleSchema,
+})
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -44,6 +51,15 @@ export class UsersController {
   @ApiOperation({ summary: 'Listar usuarios (HU-1.2, solo ADMIN)' })
   async listar() {
     return this.users.listarTodos()
+  }
+
+  @Post()
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Crear una cuenta con rol (HU-1.2, solo ADMIN)' })
+  async crearCuenta(
+    @Body(new ZodValidationPipe(CrearCuentaSchema)) body: z.infer<typeof CrearCuentaSchema>,
+  ) {
+    return this.users.crearCuenta({ ...body, email: body.email.trim().toLowerCase() })
   }
 
   @Get('levels')

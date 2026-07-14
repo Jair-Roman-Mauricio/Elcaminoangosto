@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Boton, Eyebrow } from '@elcamino/ui'
+import { Boton, Eyebrow, Field, Input, Textarea } from '@elcamino/ui'
 import type { CourseStatus } from '@elcamino/shared-types'
 import {
   useStudentView,
@@ -38,7 +38,7 @@ export function EditorCursoPage() {
           <Eyebrow rule={false}>Editor</Eyebrow>
           <EstadoBadge status={curso.status} />
         </div>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">{curso.title}</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">{curso.title}</h1>
         {curso.description && (
           <p className="m-0 font-mono text-body text-texto-tenue">{curso.description}</p>
         )}
@@ -60,7 +60,7 @@ export function EditorCursoPage() {
             </p>
             <ul className="m-0 flex list-none flex-col gap-1 p-0">
               {m.lessons.map((l) => (
-                <li key={l.id} className="flex items-center gap-2 font-mono text-body-s text-hueso">
+                <li key={l.id} className="flex items-center gap-2 font-mono text-body-s text-contenido">
                   <span aria-hidden className="text-texto-debil">
                     {l.type === 'VIDEO' ? '▷' : '≡'}
                   </span>
@@ -95,15 +95,14 @@ function NuevoModulo({ courseId }: { courseId: string }) {
       }}
       className="flex items-end gap-aire-s"
     >
-      <div className="flex flex-1 flex-col gap-aire-xs">
-        <label className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">Nuevo módulo</label>
-        <input
+      <Field label="Nuevo módulo" htmlFor="nuevo-modulo" className="flex-1">
+        <Input
+          id="nuevo-modulo"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Título del módulo"
-          className="rounded border border-linea bg-negro/30 px-aire-s py-aire-xs font-mono text-body text-hueso placeholder:text-texto-debil focus:border-hueso"
         />
-      </div>
+      </Field>
       <Boton type="submit" variante="nav" disabled={add.isPending || !title.trim()}>
         Añadir
       </Boton>
@@ -122,7 +121,7 @@ function NuevaLeccion({ courseId, moduleId }: { courseId: string; moduleId: stri
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="self-start font-mono text-eyebrow uppercase tracking-label text-hueso underline decoration-vino underline-offset-4 hover:text-vino"
+        className="self-start font-mono text-eyebrow uppercase tracking-label text-contenido underline decoration-vino underline-offset-4 hover:text-vino"
       >
         + Añadir lección
       </button>
@@ -145,20 +144,20 @@ function NuevaLeccion({ courseId, moduleId }: { courseId: string; moduleId: stri
           },
         )
       }}
-      className="flex flex-col gap-aire-xs rounded border border-linea bg-negro/20 p-aire-s"
+      className="flex flex-col gap-aire-xs rounded border border-linea bg-superficie-2 p-aire-s"
     >
-      <input
+      <Input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Título de la lección"
-        className="rounded border border-linea bg-negro/30 px-aire-s py-1 font-mono text-body-s text-hueso placeholder:text-texto-debil focus:border-hueso"
+        className="py-1 text-body-s"
       />
-      <textarea
+      <Textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={2}
         placeholder="Contenido (texto de la lección)"
-        className="resize-none rounded border border-linea bg-negro/30 px-aire-s py-1 font-mono text-body-s text-hueso placeholder:text-texto-debil focus:border-hueso"
+        className="py-1 text-body-s"
       />
       <div className="flex gap-aire-s">
         <Boton type="submit" variante="nav" disabled={add.isPending}>
@@ -223,7 +222,7 @@ function NotasDeRechazo({ courseId, status }: { courseId: string; status: Course
       <p className="m-0 font-mono text-eyebrow uppercase tracking-label text-vino">
         Rechazado por {rechazo.reviewerName}
       </p>
-      <p className="m-0 font-mono text-body-s text-hueso">{rechazo.notes}</p>
+      <p className="m-0 font-mono text-body-s text-contenido">{rechazo.notes}</p>
     </div>
   )
 }

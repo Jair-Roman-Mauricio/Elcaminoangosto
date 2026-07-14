@@ -60,10 +60,12 @@
 
 html { scroll-behavior: auto; }
 
-body {
-  margin: 0;
+/* La landing es SIEMPRE oscura (recorrido cinematográfico sobre video). Se
+   estila `.landing-root`, no `body`: si no, la hoja global de la landing (que
+   sobrevive en el chunk lazy) forzaría fondo oscuro al resto de la app temada. */
+.landing-root {
   background: var(--negro);
-  color: var(--texto);
+  color: var(--hueso);
   font-family: var(--mono);
   font-weight: 400;
   font-size: 16px;

@@ -23,7 +23,9 @@ env:
 jobs:
   commits:
     name: Conventional Commits
-    if: github.event_name == 'pull_request'
+    # Solo en PRs de feature (hacia develop). Los releases hacia main agrupan
+    # commits ya validados (a veces un squash con asunto largo) y no se revalidan.
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

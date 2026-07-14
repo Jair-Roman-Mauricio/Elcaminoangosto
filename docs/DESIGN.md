@@ -53,7 +53,7 @@ Valores exactos de `docs/legacy-landing/styles.css`.
 - **Foco visible**: `outline: 1px solid var(--hueso); outline-offset: 4px;` — nunca `outline: none`.
 - El acento `vino` en hover se usa **al 12% de opacidad como fondo** más el borde a color sólido (`.nav__cta`), o como fondo sólido con texto hueso (`.boton`).
 
-> **No existe un tema claro.** La plataforma es oscura de extremo a extremo, igual que la landing. Si en el futuro se necesita superficie clara, se añade como decisión explícita en `decisiones.md`.
+> **Tema claro/oscuro (ADR-007).** La app tiene dos temas con el **claro por defecto**, mediante tokens semánticos (`--fondo`, `--contenido`, `--superficie-*`, `--linea`) que cambian con `data-theme` en `<html>`. Los acentos de marca (`vino`, `marino`) y los absolutos (`negro`, `hueso`) son fijos. **La landing, el login y las secciones de video del feed se fuerzan a oscuro** (experiencias inmersivas). El toggle vive en el nav; la elección persiste en `localStorage`.
 
 **Única excepción documentada:** `#0d1117`, el negro azulado del panel del login (`apps/web/src/pages/panel-curvo.tsx`). No es un token ni un tercer acento: existe solo ahí, para que el panel continúe la atmósfera fría de la fotografía en vez de cortar contra el `--negro` puro. No lo uses en ningún otro sitio.
 

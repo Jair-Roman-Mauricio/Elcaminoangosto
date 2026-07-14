@@ -50,7 +50,7 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
           ← Catálogo
         </Link>
         <Eyebrow>{curso.requiredLevelRank ? `Nivel ${curso.requiredLevelRank}` : 'Abierto'}</Eyebrow>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">{curso.title}</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">{curso.title}</h1>
         <BarraProgreso pct={curso.progressPct} />
       </header>
 
@@ -72,7 +72,7 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
                       className={[
                         'flex w-full items-center gap-2 rounded px-aire-s py-aire-xs text-left',
                         'font-mono text-body-s transition-colors duration-fade ease-camino',
-                        l.id === activa?.id ? 'bg-superficie-2 text-hueso' : 'text-texto-tenue hover:bg-superficie-1',
+                        l.id === activa?.id ? 'bg-superficie-2 text-contenido' : 'text-texto-tenue hover:bg-superficie-1',
                       ].join(' ')}
                     >
                       <span aria-hidden className={completadas.has(l.id) ? 'text-exito' : 'text-texto-debil'}>
@@ -92,7 +92,7 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
           <article className="flex flex-col gap-aire-m rounded bg-superficie-1 p-aire-m">
             <div className="flex flex-col gap-aire-xs">
               <Eyebrow rule={false}>{activa.type === 'VIDEO' ? 'Video' : 'Lectura'}</Eyebrow>
-              <h2 className="m-0 font-mono text-h-m font-normal text-hueso">{activa.title}</h2>
+              <h2 className="m-0 font-mono text-h-m font-normal text-contenido">{activa.title}</h2>
             </div>
 
             <LeccionCuerpo leccion={activa} />
@@ -121,7 +121,7 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
 function LeccionCuerpo({ leccion }: { leccion: Lesson }) {
   if (leccion.type === 'TEXT') {
     return (
-      <div className="font-serif text-body-l leading-relaxed text-hueso/[0.9]">
+      <div className="font-serif text-body-l leading-relaxed text-contenido/[0.9]">
         {leccion.content?.split('\n').map((p, i) => (
           <p key={i} className="mb-aire-s">
             {p}
@@ -158,7 +158,7 @@ function NoInscrito({ curso, slug }: { curso: CourseDetail; slug: string }) {
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center gap-aire-m py-aire-l text-center">
       <Eyebrow>{curso.requiredLevelRank ? `Nivel ${curso.requiredLevelRank}` : 'Abierto'}</Eyebrow>
-      <h1 className="m-0 font-mono text-h-l font-normal text-hueso">{curso.title}</h1>
+      <h1 className="m-0 font-mono text-h-l font-normal text-contenido">{curso.title}</h1>
       {curso.description && <p className="m-0 font-mono text-body text-texto-tenue">{curso.description}</p>}
       <Boton onClick={() => enroll.mutate(curso.id)} disabled={enroll.isPending}>
         {enroll.isPending ? 'Inscribiendo…' : 'Inscribirme a este curso'}
@@ -176,7 +176,7 @@ function Bloqueado({ curso }: { curso: CourseDetail }) {
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center gap-aire-m py-aire-l text-center">
       <span aria-hidden className="text-4xl">🔒</span>
-      <h1 className="m-0 font-mono text-h-l font-normal text-hueso">{curso.title}</h1>
+      <h1 className="m-0 font-mono text-h-l font-normal text-contenido">{curso.title}</h1>
       <p className="m-0 font-mono text-body text-aviso">
         Este curso requiere el nivel {curso.requiredLevelRank}. Sigue avanzando para desbloquearlo.
       </p>

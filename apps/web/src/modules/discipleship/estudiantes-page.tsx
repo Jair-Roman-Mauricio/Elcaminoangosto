@@ -20,7 +20,7 @@ export function EstudiantesPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-aire-m py-aire-m">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Mentoría</Eyebrow>
-        <h1 className="m-0 font-mono text-h-l font-normal text-hueso">Mis estudiantes</h1>
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Mis estudiantes</h1>
       </header>
 
       {isPending && <p className="font-mono text-body text-texto-tenue">Cargando…</p>}
@@ -35,7 +35,7 @@ export function EstudiantesPage() {
               key={m.studentId}
               className="flex items-center justify-between rounded bg-superficie-1 px-aire-s py-aire-s"
             >
-              <span className="font-mono text-body text-hueso">{m.displayName}</span>
+              <span className="font-mono text-body text-contenido">{m.displayName}</span>
               <span className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
                 {m.levelName ?? `Nivel ${m.levelRank || '—'}`}
               </span>

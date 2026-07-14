@@ -34,7 +34,22 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers.set('Authorization', `Bearer ${session.access_token}`)
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...init, headers })
+  // Timeout: una petición que nunca responde (API caído, BD colgada) debe
+  // fallar, no colgarse. Sin esto, un fetch pendiente deja la UI en «Cargando…»
+  // para siempre. 15 s cubre de sobra cualquier lectura legítima.
+  let response: Response
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? AbortSignal.timeout(15_000),
+    })
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'TimeoutError') {
+      throw new ApiError(0, 'El servidor tardó demasiado en responder.')
+    }
+    throw new ApiError(0, 'No se pudo conectar con el servidor.')
+  }
 
   if (!response.ok) {
     let mensaje = `Error ${response.status}`

@@ -134,6 +134,27 @@ La abstracción `MediaProvider` (Strategy) y la generación de derivados quedan 
 
 ---
 
+## ADR-007 — Se añade tema claro/oscuro; el claro pasa a ser el tema base
+
+**Fecha:** 2026-07-11 · **Estado:** Aceptada (decidida por el responsable humano)
+
+**Contexto.** ADR-001 fijó una plataforma **oscura de extremo a extremo** ("No existe un tema claro"). El responsable humano pidió ahora un **cambio de tema claro/oscuro con el claro como base**.
+
+**Decisión.** Se introduce un sistema de temas por `data-theme` en `<html>`:
+
+- **Tokens semánticos** en `packages/ui/src/tokens.css`, con dos temas. Cambian con el tema: `--fondo`, `--superficie-0/1/2`, `--contenido` (+ tenue/débil), `--linea` (+ fuerte). Los acentos de marca (`--vino`, `--marino`) y los absolutos (`--negro`, `--hueso`) son **fijos**.
+- El preset de Tailwind mapea `bg-fondo`, `text-contenido`, `bg-superficie-*`, `border-linea` (y los alias `text-texto-*`) a esas variables, así que las clases existentes se vuelven theme-aware.
+- **Claro por defecto** (`:root`); `[data-theme="dark"]` invierte. El `ThemeProvider` persiste la elección en `localStorage`; un toggle sol/luna vive en el nav de la app.
+- **La landing y el login se fuerzan a oscuro** con su propio `data-theme="dark"`: son experiencias inmersivas sobre video/fotografía oscura donde un tema claro no tiene sentido. Las secciones de video del feed también (overlays claros sobre video oscuro).
+
+**Consecuencias.**
+- ✅ Tema claro/oscuro con base clara, persistente, sin recargar. Respeta `prefers-reduced-motion` (la transición de color se anula).
+- La hoja de la landing pasa de estilar `body` a `.landing-root`: si no, el chunk lazy de la landing forzaría fondo oscuro al resto de la app una vez visitada.
+- Los botones de marca (relleno `vino`) conservan texto `hueso` (blanco fijo) en hover, legible sobre el acento en ambos temas.
+- **ADR-001 queda revisado** en su punto "no hay tema claro"; el resto (paleta, tipografía, easing) sigue vigente. `DESIGN.md` §2 se actualiza.
+
+---
+
 ## Preguntas abiertas
 
 | ID | Pregunta | Estado | Propuesta por defecto |

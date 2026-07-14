@@ -14,7 +14,7 @@ export interface VerseProps {
 export function Verse({ children, referencia, className }: VerseProps) {
   return (
     <figure className={cn('m-0 flex flex-col gap-aire-s', className)}>
-      <blockquote className="m-0 font-serif text-verse font-light text-hueso/[0.88]">
+      <blockquote className="m-0 font-serif text-verse font-light text-contenido/[0.88]">
         {children}
       </blockquote>
       {referencia && (
