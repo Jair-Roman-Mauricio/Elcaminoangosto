@@ -7,6 +7,7 @@ import {
   type MenteeEntity,
   type LevelEntity,
 } from '../domain/profile.repository'
+import { AuthAdminPort } from '../domain/auth-admin.port'
 import { puedeEditarRecurso, type Actor } from '../../shared'
 
 /**
@@ -17,8 +18,32 @@ import { puedeEditarRecurso, type Actor } from '../../shared'
 export class UsersService {
   constructor(
     private readonly profiles: ProfileRepository,
+    private readonly authAdmin: AuthAdminPort,
     private readonly events: EventEmitter2,
   ) {}
+
+  /**
+   * HU-1.2 — el ADMIN crea una cuenta con un rol (p. ej. un MAESTRO). Crea la
+   * identidad en Auth (ya confirmada); el trigger inserta el perfil como
+   * ESTUDIANTE y aquí se ajusta al rol pedido. La restricción a ADMIN la impone
+   * `RolesGuard`.
+   */
+  async crearCuenta(input: {
+    email: string
+    password: string
+    displayName: string
+    role: Role
+  }): Promise<ProfileEntity> {
+    const userId = await this.authAdmin.createUser({
+      email: input.email,
+      password: input.password,
+      displayName: input.displayName,
+    })
+    // El nombre viaja en user_metadata, pero lo fijamos también en el perfil
+    // por si el trigger usó el prefijo del correo.
+    await this.profiles.updateProfile(userId, { displayName: input.displayName })
+    return this.profiles.updateRole(userId, input.role)
+  }
 
   async obtenerPerfil(id: string): Promise<ProfileEntity> {
     const perfil = await this.profiles.findById(id)

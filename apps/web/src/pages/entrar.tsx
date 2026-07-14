@@ -7,7 +7,7 @@ import { z } from 'zod'
 import type { AuthError } from '@supabase/supabase-js'
 import { Boton, Eyebrow, Verse } from '@elcamino/ui'
 import { supabase } from '../lib/supabase'
-import { useSession } from '../auth/session'
+import { useSession, usePerfil } from '../auth/session'
 import { PageTransition } from '../components/page-transition'
 import { PanelCurvo, FONDO_PANEL } from './panel-curvo'
 
@@ -72,6 +72,7 @@ export function EntrarPage() {
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [aviso, setAviso] = useState<Aviso>(null)
   const { session } = useSession()
+  const { data: perfil } = usePerfil()
   const location = useLocation()
 
   const {
@@ -81,8 +82,14 @@ export function EntrarPage() {
   } = useForm<Credenciales>({ resolver: zodResolver(CredencialesSchema) })
 
   if (session) {
-    const destino = (location.state as { desde?: string } | null)?.desde ?? '/discipulado'
-    return <Navigate to={destino} replace />
+    const desde = (location.state as { desde?: string } | null)?.desde
+    if (desde) return <Navigate to={desde} replace />
+    // Sin destino previo, el inicio depende del rol: el admin va a su panel;
+    // el profesor y el estudiante, al discipulado. Se espera al perfil.
+    if (perfil) {
+      return <Navigate to={perfil.role === 'ADMIN' ? '/admin' : '/discipulado'} replace />
+    }
+    return <div className="min-h-screen bg-negro" />
   }
 
   const enviar = async ({ email, password, displayName }: Credenciales) => {
