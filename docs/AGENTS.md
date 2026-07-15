@@ -48,6 +48,39 @@ docs/           → toda la documentación
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`). Un commit = un cambio coherente.
 - **Tests:** dominio con cobertura ≥ 70%; flujos críticos con e2e. Un PR no pasa sin CI verde.
 
+### 4.2 Transiciones de interfaz completa (regla por defecto)
+
+Todo cambio que reemplace una interfaz completa (por ejemplo, landing →
+login/registro, login → plataforma, logout o redirección tras autenticación)
+debe ejecutarse mediante `navegarConTransicion` desde
+`apps/web/src/components/page-transition.tsx`. La transición usa View
+Transitions API con fallback automático y revela la nueva interfaz desde la
+esquina superior izquierda mediante una máscara circular suave; la vista nueva
+siempre cubre a la anterior, sin pantallas intermedias negras. Debe respetar
+`prefers-reduced-motion` y no se debe duplicar la lógica de transición en cada
+página.
+
+### 4.1 Componentes de interfaz: reutilizar antes que escribir
+
+Regla: **ningún elemento de interfaz se maqueta a mano en una página si existe —o puede existir— como componente.** Botones, campos, selects, tarjetas, modales, navegación: todo sale de un componente compartido. Un `<button className="…">` suelto en una página es un error de revisión, no un atajo.
+
+El motivo no es estético: cada control maquetado a mano es una copia que se queda atrás. Cuando se añadió el tema claro/oscuro (ADR-007), los controles ad-hoc siguieron con colores fijos y el texto se volvió ilegible sobre el fondo nuevo. Los que venían de `packages/ui` cambiaron solos.
+
+**Dónde vive cada cosa:**
+
+- `packages/ui/src/components/` — componentes **genéricos**, sin dependencias de la app: `Boton`, `Field`, `Input`, `Textarea`, `Select`, `Card`, `Modal`, `Nav`, `Eyebrow`… No conocen el router, ni las rutas, ni el API.
+- `apps/web/src/components/` — componentes **de la aplicación**: los que sí saben de rutas, sesión o rol (`Sidebar`, `ThemeToggle`, `VistaComo`, `PageTransition`). Todo componente de la app va **dentro de esta carpeta**, no suelto junto a una página.
+
+**Y que sean fáciles de adaptar.** Un componente que solo sirve para el caso en que nació obliga a duplicarlo al segundo uso. Al diseñarlo:
+
+1. **Variantes con nombre, no banderas sueltas.** `variante="primary" | "nav" | "sutil"` describe la intención; `esGrande` + `esRojo` + `sinBorde` es una combinatoria que nadie mantiene.
+2. **Acepta `className` y reenvía el resto de props** (`...props`, `forwardRef`). Quien lo use debe poder ajustar un margen o poner un `id`/`aria-*` sin tocar el componente ni envolverlo en un `div`.
+3. **Composición sobre configuración.** Si un componente crece a base de props para tapar casos, parte el bloque en piezas (`Modal` recibe `children`; no lleva 12 props para dibujar el contenido).
+4. **Estilo solo con tokens semánticos** (`text-contenido`, `bg-superficie-1`, `border-linea`). Nunca colores absolutos en un componente, o dejará de funcionar al cambiar de tema.
+5. **Sin lógica de negocio dentro.** El componente pinta y avisa (`onX`); quién puede hacer qué lo decide la página o el guard.
+
+Antes de crear un componente nuevo, **consulta el grafo (§5)**: lo más probable es que ya exista uno al que solo le falta una variante. Extender el existente es la opción correcta; duplicarlo, no.
+
 ## 5. Uso de CodeGraph (grafo de contexto)
 
 **Qué es:** CodeGraph es un grafo de conocimiento local del código (símbolos, llamadas, imports, dependencias) que se expone por **MCP** a agentes como Claude Code. Evita explorar el repo con `grep`/`glob`/`read` archivo por archivo: el agente pregunta al grafo y obtiene el código relevante en una llamada, ahorrando tokens y tiempo.
@@ -95,6 +128,7 @@ codegraph status          # debe reportar Backend: native y symbols > 0
 - No inventar endpoints o tablas fuera del modelo de datos sin actualizar `arquitectura.md`.
 - No desactivar RLS ni usar la *service key* para operaciones de usuario normales.
 - No añadir dependencias pesadas sin justificar (peso, mantenimiento, licencia).
+- No maquetar a mano botones, campos ni diálogos en una página: usar los componentes compartidos (§4.1). Si el que existe no encaja, se le añade una variante; no se duplica.
 - No dejar `TODO` silenciosos: si algo queda pendiente, crear una historia/nota en `BACKLOG.md`.
 - No autopublicar cursos de maestros: **siempre** pasan por aprobación del admin.
 
@@ -114,4 +148,4 @@ codegraph init               # (re)indexar el grafo de código
 ```
 
 ## 10. Definición de "hecho" para el agente
-Ver **DoD** en `BACKLOG.md`. Un cambio no está terminado hasta que pasa CI, cumple criterios de aceptación, respeta RNF y deja el grafo reindexado.
+Ver **DoD** en `BACKLOG.md`. Un cambio no está terminado hasta que pasa CI, cumple criterios de aceptación, respeta RNF y deja el grafo reindexado. En la interfaz, además: **cero controles maquetados a mano** (§4.1) y la pantalla se ve bien en tema claro y oscuro.

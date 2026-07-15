@@ -1,6 +1,13 @@
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
 
+/** Ejecuta un cambio de interfaz completa con la máscara desde la esquina. */
+export function navegarConTransicion(navegar: () => void): void {
+  const doc = document as Document & { startViewTransition?: (update: () => void) => unknown }
+  if (doc.startViewTransition) doc.startViewTransition(navegar)
+  else navegar()
+}
+
 /** Curva única del sistema: ease-out lento, sin rebote (DESIGN.md §5). */
 const EASE = [0.22, 0.61, 0.36, 1] as const
 

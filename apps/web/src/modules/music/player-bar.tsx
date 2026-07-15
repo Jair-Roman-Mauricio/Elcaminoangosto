@@ -18,7 +18,7 @@ export function PlayerBar() {
     <div
       role="region"
       aria-label="Reproductor de música"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-linea bg-superficie-1"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-linea bg-superficie-1 cine:pl-[15.5rem]"
     >
       <div className="mx-auto flex max-w-screen-xl items-center gap-aire-m px-gutter py-aire-s">
         <div className="flex min-w-0 flex-1 items-center gap-aire-s">

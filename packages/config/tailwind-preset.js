@@ -62,6 +62,7 @@ export default {
 
       fontFamily: {
         mono: ['"Space Mono"', 'ui-monospace', '"SFMono-Regular"', 'Menlo', 'monospace'],
+        ui: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         serif: ['Newsreader', 'Georgia', '"Times New Roman"', 'serif'],
       },
 

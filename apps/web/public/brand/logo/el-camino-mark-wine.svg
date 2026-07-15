@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>El Camino Angosto</title>
+  <path d="M10 57V27C10 12 20 5 32 5s22 7 22 22v30H42L32 46 22 57z" fill="#b41e44"/>
+  <path d="M32 14v30M22 25h20M32 44 21 56M32 44l11 12" stroke="#0a0a0a" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

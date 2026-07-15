@@ -16,6 +16,7 @@ export interface CatalogItem {
   lessonCount: number
   unlocked: boolean
   enrolled: boolean
+  progressPct?: number
   lockedReason: string | null
 }
 
@@ -23,11 +24,19 @@ export interface Lesson {
   id: string
   moduleId: string
   title: string
-  type: 'VIDEO' | 'TEXT'
+  type: 'VIDEO' | 'TEXT' | 'EXAM'
   content: string | null
   mediaAssetId: string | null
   orderIndex: number
   durationSeconds: number | null
+  resources?: LessonResource[]
+}
+
+export interface LessonResource {
+  id: string
+  title: string
+  url: string
+  kind?: 'FILE' | 'LINK' | 'PDF'
 }
 
 export interface CourseModule {

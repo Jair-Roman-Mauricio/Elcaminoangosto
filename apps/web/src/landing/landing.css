@@ -144,7 +144,7 @@ html.lenis, html.lenis body { height: auto; }
 .nav__brand {
   font-family: var(--mono);
   font-size: 0.8125rem;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: var(--track-label);
   color: var(--texto);
   text-decoration: none;
@@ -161,17 +161,22 @@ html.lenis, html.lenis body { height: auto; }
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: var(--track-boton);
-  color: var(--texto);
+  color: var(--hueso);
   text-decoration: none;
-  padding: 0.6rem 1.1rem;
-  border: var(--borde);
-  border-radius: var(--radius);
+  padding: 0.85rem 1.6rem;
+  border: 1px solid var(--vino);
+  border-radius: 999px;
+  background: var(--vino);
   transition: border-color var(--fade) var(--ease),
-              background-color var(--fade) var(--ease);
+              background-color var(--fade) var(--ease),
+              color var(--fade) var(--ease);
 }
-.nav__cta:hover {
+.nav__cta:hover,
+.nav__cta:focus-visible,
+.nav__cta:active {
   border-color: var(--vino);
-  background: rgba(180, 30, 68, 0.12);
+  background: var(--vino);
+  color: var(--hueso);
 }
 
 /* ═══ CONTADOR DE CAPÍTULOS (lateral izquierdo) ════════════ */

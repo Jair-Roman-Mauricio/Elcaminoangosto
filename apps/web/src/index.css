@@ -3,3 +3,346 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Transición de navegación: una máscara polygonal con gradiente reemplaza la
+   pantalla anterior con un desvanecido diagonal, sin depender de Framer. */
+@supports (view-transition-name: root) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 720ms;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    mix-blend-mode: normal;
+    will-change: clip-path, opacity;
+    backface-visibility: hidden;
+  }
+
+  ::view-transition-old(root) {
+    animation: none;
+    z-index: 1;
+  }
+
+  ::view-transition-new(root) {
+    animation-name: camino-in;
+    z-index: 2;
+  }
+}
+
+@keyframes camino-out {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+
+@keyframes camino-in {
+  from { opacity: 1; clip-path: circle(0% at 0 0); }
+  to { opacity: 1; clip-path: circle(155% at 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 1ms; }
+}
+
+/* Reemplazo de contenidos dentro del aula. Se neutraliza únicamente la
+   máscara global para que la lección anterior permanezca visible mientras la
+   siguiente la sustituye con un movimiento corto y continuo. */
+@supports (view-transition-name: lesson-content) {
+  :root[data-lesson-transition='active']::view-transition-group(root),
+  :root[data-lesson-transition='active']::view-transition-old(root),
+  :root[data-lesson-transition='active']::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  ::view-transition-group(lesson-content) {
+    z-index: 20;
+    animation-duration: 900ms;
+    animation-timing-function: cubic-bezier(.22, .61, .36, 1);
+  }
+
+  ::view-transition-group(lesson-fullscreen-control) {
+    z-index: 100;
+    animation: none;
+  }
+
+  ::view-transition-old(lesson-content) {
+    z-index: 1;
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  ::view-transition-new(lesson-content) {
+    z-index: 2;
+    animation: lesson-content-gradient-reveal 900ms cubic-bezier(.22, .61, .36, 1) both;
+    mix-blend-mode: normal;
+    -webkit-mask-image: linear-gradient(
+      105deg,
+      #000 0%,
+      #000 47%,
+      rgb(0 0 0 / 72%) 49.5%,
+      rgb(0 0 0 / 24%) 51.5%,
+      transparent 53%
+    );
+    mask-image: linear-gradient(
+      105deg,
+      #000 0%,
+      #000 47%,
+      rgb(0 0 0 / 72%) 49.5%,
+      rgb(0 0 0 / 24%) 51.5%,
+      transparent 53%
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 220% 100%;
+    mask-size: 220% 100%;
+    will-change: -webkit-mask-position, mask-position;
+  }
+
+}
+
+@keyframes lesson-content-gradient-reveal {
+  from {
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
+  to {
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+  }
+}
+
+/* Cambio entre opciones del sidebar: solo barre el contenido del main. */
+.main-interface-transition {
+  /* La máscara solo existe durante el barrido. Mantenerla con `both` recorta
+     los elementos fixed al ancho interno del main incluso al terminar. */
+  animation: main-sweep 560ms linear;
+  will-change: clip-path;
+}
+
+@keyframes main-sweep {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-interface-transition { animation: none; }
+}
+
+/* El switch comparte el flujo superior del main y desaparece junto al paginador al hacer scroll. */
+.theme-toggle-anchor {
+  position: absolute;
+  inset-block-start: 5.5rem;
+  inset-inline-end: 1.5rem;
+  z-index: 10;
+}
+
+/* Panel de lecciones inmersivo: en escritorio es una columna del viewport,
+   no un elemento limitado por el ancho del grid del contenido. */
+.course-content-panel {
+  min-height: 100%;
+  border-inline-start: 1px solid var(--linea-fuerte);
+}
+
+.course-learning-divider { display: none; }
+
+/* Superficie estable del reproductor/contenido. Mantener una geometría fija
+   hace que la misma máscara se use para lecturas, videos y evaluaciones. */
+.course-lesson-stage {
+  min-height: clamp(22rem, 60svh, 32rem);
+  overflow: hidden;
+  contain: layout paint;
+  background: var(--fondo);
+}
+
+.course-lesson-stage:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  max-height: none;
+  margin: 0;
+  overflow-y: auto;
+  background: var(--fondo);
+}
+
+.course-lesson-stage:fullscreen .course-video-lesson,
+.course-lesson-stage:fullscreen .course-video-lesson video {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
+/* Indicador compartido por todas las lecciones. Su posición se calcula con la
+   fila real para que pueda deslizarse incluso entre módulos desplegables. */
+.course-lesson-selector {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 0;
+  background: var(--vino);
+  pointer-events: none;
+  transition:
+    transform 760ms cubic-bezier(.22, .61, .36, 1),
+    height 520ms cubic-bezier(.22, .61, .36, 1),
+    opacity 180ms ease-out;
+  will-change: transform, height;
+}
+
+.course-lesson-link {
+  background: transparent;
+}
+
+.course-lesson-link[aria-current='step'],
+.course-lesson-link[aria-current='step'] > span {
+  color: var(--hueso);
+}
+
+/* Barrido específico del aula: cada región se revela sin participar del
+   posicionamiento ni del scroll de las demás. */
+@keyframes course-learning-sweep {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes course-divider-sweep {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (min-width: 820px) {
+  html.course-learning-active,
+  body.course-learning-active {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body.course-learning-active #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body.course-learning-active main {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .course-learning-main {
+    position: fixed;
+    inset-block-start: 6.5rem;
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    inset-inline-end: clamp(24rem, 32vw, 42rem);
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: var(--aire-m) var(--gutter) 8rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    animation: course-learning-sweep 720ms linear both;
+  }
+
+  .course-overview {
+    width: calc(100% + (var(--gutter) * 2));
+    margin-inline: calc(var(--gutter) * -1);
+  }
+
+  .course-lesson-stage {
+    width: calc(100% + (var(--gutter) * 2));
+    height: min(72dvh, calc((100vw - clamp(24rem, 32vw, 42rem)) * .5625));
+    min-height: 24rem;
+    max-height: 46rem;
+    margin-inline: calc(var(--gutter) * -1);
+    overflow: hidden;
+  }
+
+  /* En una lección de video el reproductor es el contenido principal: ocupa
+     todo el ancho útil del aula, sin encabezados, tarjetas ni aire lateral. */
+  .course-video-lesson {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    background: var(--negro);
+  }
+
+  .course-video-lesson video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+  }
+
+  .course-content-panel {
+    position: fixed;
+    inset-block-start: 6.5rem;
+    inset-block-end: 0;
+    inset-inline-end: 0;
+    z-index: 5;
+    width: clamp(24rem, 32vw, 42rem);
+    min-width: 0;
+    height: calc(100dvh - 6.5rem);
+    margin: 0;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+    overflow-x: hidden;
+    animation: course-learning-sweep 620ms linear 120ms both;
+  }
+
+  .course-learning-divider {
+    position: fixed;
+    inset-block-start: 6.5rem;
+    inset-inline: 0;
+    z-index: 6;
+    display: block;
+    height: 1px;
+    background: var(--linea-fuerte);
+    pointer-events: none;
+    transform-origin: left center;
+    animation: course-divider-sweep 720ms linear both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(lesson-content),
+  ::view-transition-old(lesson-content),
+  ::view-transition-new(lesson-content) {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .course-learning-main,
+  .course-content-panel,
+  .course-learning-divider,
+  .course-lesson-selector {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (min-width: 820px) {
+  .theme-toggle-anchor {
+    inset-block-start: 2rem;
+    inset-inline-end: 2rem;
+  }
+}
+
+.sidebar-selector {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2.35rem;
+  border: 1px solid var(--vino);
+  border-radius: 0;
+  background: var(--vino);
+  pointer-events: none;
+  transition: transform 760ms cubic-bezier(.22, .61, .36, 1);
+  will-change: transform;
+}
+
+.sidebar-nav-link { z-index: 1; }
+.sidebar-nav-link[aria-current="page"] { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-selector { transition: none; }
+}

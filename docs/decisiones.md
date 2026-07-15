@@ -155,6 +155,16 @@ La abstracción `MediaProvider` (Strategy) y la generación de derivados quedan 
 
 ---
 
+## ADR-008 — La marca adopta un lockup de símbolo + wordmark
+
+**Fecha:** 2026-07-14 · **Estado:** Aceptada
+
+**Contexto.** La landing y el login usaban texto y una cruz aislada como marca. Eso no daba un identificador único ni una versión consistente para la plataforma, el favicon y los tamaños pequeños.
+
+**Decisión.** La identidad usa un símbolo SVG de puerta angosta, cruz y camino convergente, acompañado por el wordmark `ElCaminoAngosto`. El sistema se entrega en variantes de color claro, oscuro y vino, además de un lockup horizontal y un mark independiente. El componente `BrandLogo` vive en `packages/ui` y se reutiliza en landing, login, cabecera móvil y sidebar.
+
+**Consecuencias.** La marca es legible y escalable sin depender de una imagen raster. La exploración raster queda documentada en `apps/web/public/brand/logo/el-camino-logo-exploraciones.png`; los SVG son los assets de producción.
+
 ## Preguntas abiertas
 
 | ID | Pregunta | Estado | Propuesta por defecto |
