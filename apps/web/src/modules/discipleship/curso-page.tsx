@@ -99,35 +99,54 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
   }, [])
 
   useLayoutEffect(() => {
-    const contenedor = listaContenidoRef.current
-    const filaActiva = activa ? leccionRefs.current.get(activa.id) : undefined
-    const selectorVisible = Boolean(
-      contenedor && filaActiva && moduloActivo && modulosAbiertos.has(moduloActivo.id),
-    )
-
-    if (!contenedor || !filaActiva || !selectorVisible) {
-      setSelectorLeccion((actual) => ({ ...actual, visible: false }))
-      return
-    }
-
     const medir = () => {
+      const contenedor = listaContenidoRef.current
+      const filaActiva = activa ? leccionRefs.current.get(activa.id) : undefined
+      const selectorVisible = Boolean(
+        contenedor && filaActiva && moduloActivo && modulosAbiertos.has(moduloActivo.id),
+      )
+
+      if (!contenedor || !filaActiva || !selectorVisible) {
+        setSelectorLeccion((actual) => actual.visible ? { ...actual, visible: false } : actual)
+        return
+      }
+
       const cajaContenedor = contenedor.getBoundingClientRect()
       const cajaFila = filaActiva.getBoundingClientRect()
-      setSelectorLeccion({
+      const siguiente = {
         top: cajaFila.top - cajaContenedor.top,
         height: cajaFila.height,
         visible: true,
-      })
+      }
+      setSelectorLeccion((actual) =>
+        actual.top === siguiente.top &&
+        actual.height === siguiente.height &&
+        actual.visible === siguiente.visible
+          ? actual
+          : siguiente,
+      )
     }
 
-    medir()
-    const observador = new ResizeObserver(medir)
-    observador.observe(contenedor)
-    observador.observe(filaActiva)
+    let observador: ResizeObserver | null = null
+    let segundoFrame = 0
+    const primerFrame = window.requestAnimationFrame(() => {
+      // El panel cambia de árbol al montarse en document.body en escritorio.
+      // Medimos después de ese portal para no conservar una fila de altura cero.
+      segundoFrame = window.requestAnimationFrame(() => {
+        medir()
+        const contenedor = listaContenidoRef.current
+        const filaActiva = activa ? leccionRefs.current.get(activa.id) : undefined
+        observador = new ResizeObserver(medir)
+        if (contenedor) observador.observe(contenedor)
+        if (filaActiva) observador.observe(filaActiva)
+      })
+    })
     window.addEventListener('resize', medir)
 
     return () => {
-      observador.disconnect()
+      window.cancelAnimationFrame(primerFrame)
+      window.cancelAnimationFrame(segundoFrame)
+      observador?.disconnect()
       window.removeEventListener('resize', medir)
     }
   }, [activa?.id, moduloActivo?.id, modulosAbiertos])
@@ -822,29 +841,27 @@ function DetallePublico({
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-aire-l py-aire-m">
-      <div className="grid gap-aire-l cine:grid-cols-[minmax(0,1fr)_22rem] cine:items-start">
-        <section className="flex flex-col gap-aire-m">
-          <div
-            className="relative isolate flex min-h-[18rem] flex-col justify-end overflow-hidden bg-negro px-aire-m py-aire-l cine:min-h-[22rem]"
-            style={{ backgroundImage: "url('/brand/paisaje.jpg')", backgroundPosition: 'center', backgroundSize: 'cover' }}
-          >
-            <div className="absolute inset-0 -z-10 bg-gradient-to-t from-negro via-negro/75 to-negro/10" />
-            <div className="relative flex flex-wrap items-center gap-2 font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
-              <span className="bg-vino px-2 py-1 text-hueso">{curso.isFree ? 'Gratis' : 'Premium'}</span>
-              <span className="bg-negro/70 px-2 py-1 text-hueso">{curso.requiredLevelRank ? `Nivel ${curso.requiredLevelRank}` : 'Abierto'}</span>
-              {bloqueado && <span className="bg-vino px-2 py-1 text-hueso">Bloqueado</span>}
-            </div>
-            <div className="relative mt-aire-s flex flex-col gap-aire-s">
-              <h1 className="m-0 max-w-4xl font-mono text-h-l font-normal leading-tight text-hueso cine:text-[3.5rem]">{curso.title}</h1>
-              {curso.description && <p className="m-0 max-w-3xl font-ui text-body-l leading-relaxed text-hueso/80">{curso.description}</p>}
-            </div>
+      <section className="flex flex-col gap-aire-m">
+        <div
+          className="relative isolate flex min-h-[18rem] flex-col justify-end overflow-hidden bg-negro px-aire-m py-aire-l cine:min-h-[22rem]"
+          style={{ backgroundImage: "url('/brand/paisaje.webp')", backgroundPosition: 'center', backgroundSize: 'cover' }}
+        >
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-negro via-negro/75 to-negro/10" />
+          <div className="relative flex flex-wrap items-center gap-2 font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
+            <span className="bg-vino px-2 py-1 text-hueso">{curso.isFree ? 'Gratis' : 'Premium'}</span>
+            <span className="bg-negro/70 px-2 py-1 text-hueso">{curso.requiredLevelRank ? `Nivel ${curso.requiredLevelRank}` : 'Abierto'}</span>
+            {bloqueado && <span className="bg-vino px-2 py-1 text-hueso">Bloqueado</span>}
           </div>
-        </section>
+          <div className="relative mt-aire-s flex flex-col gap-aire-s">
+            <h1 className="m-0 max-w-4xl font-mono text-h-l font-normal leading-tight text-hueso cine:text-[3.5rem]">{curso.title}</h1>
+            {curso.description && <p className="m-0 max-w-3xl font-ui text-body-l leading-relaxed text-hueso/80">{curso.description}</p>}
+          </div>
+        </div>
 
-        <aside className="bg-superficie-1 shadow-2xl">
+        <div className="w-full bg-superficie-1 shadow-2xl">
           <PresentacionCurso />
-        </aside>
-      </div>
+        </div>
+      </section>
 
       <ContenidoCurso curso={curso} />
 

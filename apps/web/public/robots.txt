@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Estas pantallas requieren autenticación y no aportan páginas indexables.
+Disallow: /admin
+Disallow: /maestro
+Disallow: /perfil
+Disallow: /chat
+Disallow: /entrar
+Disallow: /recuperar
+Disallow: /restablecer-contrasena
+Disallow: /verificar-correo

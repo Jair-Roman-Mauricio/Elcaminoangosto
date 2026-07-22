@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import type { Role } from '@elcamino/shared-types'
-import { BrandLogo, Boton, cn } from '@elcamino/ui'
+import { BrandLogo, Boton, cn } from '@elcamino/ui/static'
 import { supabase } from '../lib/supabase'
 import { useVistaComo } from './vista-como'
 import { usePerfil } from '../auth/session'
-import { navegarConTransicion } from './page-transition'
+import { navegarConTransicion } from './view-transition'
 
 export interface EnlaceDeNav {
   to: string
@@ -22,14 +22,12 @@ export interface GrupoDeNav {
 const PLATAFORMA: EnlaceDeNav[] = [
   { to: '/discipulado', label: 'Discipulado' },
   { to: '/tarjetas', label: 'Tarjetas' },
+  { to: '/videos', label: 'Videos cristianos' },
   { to: '/alabanza', label: 'Alabanza' },
   { to: '/chat', label: 'Mentor' },
 ]
 
-/**
- * Los grupos del sidebar según el **rol efectivo**. El profesor ve lo mismo que
- * el alumno y, además, su sección de enseñanza: no hay un layout aparte.
- */
+/** Grupos del sidebar según el rol efectivo. */
 export function gruposPara(role: Role | undefined): GrupoDeNav[] {
   if (role === 'ADMIN') {
     return [
@@ -47,12 +45,12 @@ export function gruposPara(role: Role | undefined): GrupoDeNav[] {
 
   if (role === 'MAESTRO') {
     return [
-      { titulo: 'Plataforma', enlaces: PLATAFORMA },
       {
-        titulo: 'Enseñanza',
+        titulo: 'Profesor',
         enlaces: [
-          { to: '/maestro/cursos', label: 'Mis cursos' },
-          { to: '/maestro/estudiantes', label: 'Estudiantes' },
+          { to: '/maestro/cursos', label: 'Principal' },
+          { to: '/maestro/chat', label: 'Chat con estudiantes' },
+          { to: '/maestro/estudiantes', label: 'Mis estudiantes' },
         ],
       },
     ]
@@ -113,9 +111,10 @@ export function Sidebar({ abierto, onCerrar, oculto = false }: SidebarProps) {
           'cine:translate-x-0',
         )}
       >
-        <div className="border-b border-linea px-aire-s py-aire-m">
+        <div className="px-aire-s py-aire-m">
           <Link
             to="/"
+            aria-label="Ir al inicio"
             className="block w-full no-underline"
           >
           <BrandLogo layout="horizontal" tone="adaptive" size="sm" variante="sidebar" decorative />
@@ -163,7 +162,7 @@ export function Sidebar({ abierto, onCerrar, oculto = false }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="flex flex-col gap-aire-s border-t border-linea px-0 py-aire-m">
+        <div className="flex flex-col gap-aire-s px-0 py-aire-m">
           {rolReal === 'ADMIN' && <VerComo activo={viendoComo} onVer={verComo} />}
 
           <div className="flex items-center px-aire-m">

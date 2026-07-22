@@ -10,6 +10,9 @@ import {
   type LevelEntity,
 } from '../domain/profile.repository'
 
+const rankPredeterminado = (role: Role, rank: number | null) =>
+  rank ?? (role === 'ESTUDIANTE' ? 1 : 0)
+
 /** Adaptador Drizzle del puerto `ProfileRepository`. */
 @Injectable()
 export class DrizzleProfileRepository extends ProfileRepository {
@@ -36,7 +39,7 @@ export class DrizzleProfileRepository extends ProfileRepository {
     const fila = filas[0]
     if (!fila) return null
 
-    return { ...fila, levelRank: fila.levelRank ?? 0 }
+    return { ...fila, levelRank: rankPredeterminado(fila.role, fila.levelRank) }
   }
 
   async updateProfile(
@@ -78,12 +81,17 @@ export class DrizzleProfileRepository extends ProfileRepository {
       .where(and(eq(mentorships.mentorId, mentorId), eq(mentorships.status, 'ACTIVE')))
       .orderBy(asc(profiles.displayName))
 
-    return filas.map((f) => ({ ...f, levelRank: f.levelRank ?? 0 }))
+    return filas.map((f) => ({ ...f, levelRank: f.levelRank ?? 1 }))
   }
 
   async findLevels(): Promise<LevelEntity[]> {
     return this.db
-      .select({ id: levels.id, name: levels.name, rank: levels.rank, description: levels.description })
+      .select({
+        id: levels.id,
+        name: levels.name,
+        rank: levels.rank,
+        description: levels.description,
+      })
       .from(levels)
       .orderBy(asc(levels.rank))
   }
@@ -103,7 +111,7 @@ export class DrizzleProfileRepository extends ProfileRepository {
       .leftJoin(levels, eq(profiles.currentLevelId, levels.id))
       .orderBy(asc(profiles.displayName))
 
-    return filas.map((f) => ({ ...f, levelRank: f.levelRank ?? 0 }))
+    return filas.map((f) => ({ ...f, levelRank: rankPredeterminado(f.role, f.levelRank) }))
   }
 
   async findAdminIds(): Promise<string[]> {

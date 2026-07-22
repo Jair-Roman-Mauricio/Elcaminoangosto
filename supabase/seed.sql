@@ -72,12 +72,10 @@ update public.profiles set role = 'ADMIN'
 update public.profiles set role = 'MAESTRO'
   where id = '22222222-2222-4222-8222-000000000002';
 
--- Ester va por el nivel 2; Esteban acaba de empezar (nivel 1).
-update public.profiles set current_level_id = '11111111-1111-4111-8111-000000000002'
-  where id = '22222222-2222-4222-8222-000000000003';
-
-update public.profiles set current_level_id = '11111111-1111-4111-8111-000000000001'
-  where id = '22222222-2222-4222-8222-000000000004';
+-- Todo estudiante comienza en el nivel base (nivel 1).
+update public.profiles
+set current_level_id = '11111111-1111-4111-8111-000000000001'
+where role = 'ESTUDIANTE';
 
 -- ─── Mentoría ──────────────────────────────────────────────────────────────
 insert into public.mentorships (mentor_id, student_id) values

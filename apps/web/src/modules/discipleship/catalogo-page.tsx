@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Reveal } from '@elcamino/ui'
+import { Card } from '@elcamino/ui'
 import { useCatalog, type CatalogItem } from './api'
 
 /**
@@ -31,7 +31,12 @@ export function CatalogoPage() {
     if (!cursos) return []
     const termino = busqueda.trim().toLowerCase()
     return cursos.filter((curso) => {
-      const coincideTexto = !termino || [curso.title, curso.description ?? '', curso.teacherName].join(' ').toLowerCase().includes(termino)
+      const coincideTexto =
+        !termino ||
+        [curso.title, curso.description ?? '', curso.teacherName]
+          .join(' ')
+          .toLowerCase()
+          .includes(termino)
       // La API actual aún no expone categoría; mantenemos las categorías como
       // navegación preparada y Todos como filtro real hasta que exista el campo.
       const coincideCategoria = categoria === 'Todos' || categoria === 'Discipulado'
@@ -45,7 +50,12 @@ export function CatalogoPage() {
         <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Catálogo de cursos</h1>
         <label className="relative block w-full">
           <span className="sr-only">Buscar cursos</span>
-          <svg className="pointer-events-none absolute left-aire-s top-1/2 size-5 -translate-y-1/2 text-texto-tenue" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg
+            className="pointer-events-none absolute left-aire-s top-1/2 size-5 -translate-y-1/2 text-texto-tenue"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
             <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.5" />
             <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
@@ -53,7 +63,7 @@ export function CatalogoPage() {
             value={busqueda}
             onChange={(event) => setBusqueda(event.target.value)}
             placeholder="Buscar un curso, tema o maestro"
-            className="h-14 w-full rounded-full border border-linea bg-superficie-1 pl-12 pr-aire-s font-ui text-body text-contenido outline-none transition-colors placeholder:text-texto-tenue focus:border-vino"
+            className="h-14 w-full rounded-full border border-linea-fuerte bg-superficie-1 pl-12 pr-aire-s font-ui text-body text-contenido shadow-[inset_0_0_0_1px_var(--linea)] outline-none transition-[border-color,box-shadow] placeholder:text-texto-tenue focus:border-vino focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--vino)_12%,transparent)]"
           />
         </label>
         <nav
@@ -87,14 +97,14 @@ export function CatalogoPage() {
       {isError && <Estado>No se pudo cargar el catálogo.</Estado>}
 
       {cursos && cursos.length === 0 && <Estado>Aún no hay cursos publicados.</Estado>}
-      {cursos && cursos.length > 0 && cursosFiltrados.length === 0 && <Estado>No encontramos cursos con esa búsqueda.</Estado>}
+      {cursos && cursos.length > 0 && cursosFiltrados.length === 0 && (
+        <Estado>No encontramos cursos con esa búsqueda.</Estado>
+      )}
 
       {cursosFiltrados.length > 0 && (
         <div className="grid gap-aire-m sm:grid-cols-2 md:grid-cols-3">
-          {cursosFiltrados.map((c, i) => (
-            <Reveal key={c.id} delay={i * 0.05}>
-              <CursoCard curso={c} />
-            </Reveal>
+          {cursosFiltrados.map((curso) => (
+            <CursoCard key={curso.id} curso={curso} />
           ))}
         </div>
       )}
@@ -113,7 +123,7 @@ function CursoCard({ curso }: { curso: CatalogItem }) {
       titulo={curso.title}
       meta={`${curso.teacherName} · ${curso.lessonCount} lecciones`}
       media={<CursoMedia bloqueado={!curso.unlocked} />}
-      className={curso.unlocked ? '!border-0 !rounded-none hover:-translate-y-1 hover:shadow-lg' : '!border-0 !rounded-none opacity-80'}
+      className={`course-catalog-card !border-0 !rounded-none${curso.unlocked ? ' is-unlocked' : ' opacity-80'}`}
     >
       <div className="flex flex-wrap gap-2">
         <span className="rounded-sm bg-vino px-2 py-1 font-ui text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-hueso">
@@ -129,18 +139,25 @@ function CursoCard({ curso }: { curso: CatalogItem }) {
         )}
       </div>
       {curso.enrolled && (
-        <div className="flex items-center gap-2" aria-label={`Progreso ${Math.round(curso.progressPct ?? 0)}%`}>
+        <div
+          className="flex items-center gap-2"
+          aria-label={`Progreso ${Math.round(curso.progressPct ?? 0)}%`}
+        >
           <div className="h-1 flex-1 overflow-hidden bg-linea">
             <div
               className="h-full bg-vino transition-[width] duration-fade ease-camino"
               style={{ width: `${curso.progressPct ?? 0}%` }}
             />
           </div>
-          <span className="font-mono text-eyebrow tabular-nums text-texto-tenue">{Math.round(curso.progressPct ?? 0)}%</span>
+          <span className="font-mono text-eyebrow tabular-nums text-texto-tenue">
+            {Math.round(curso.progressPct ?? 0)}%
+          </span>
         </div>
       )}
       {curso.description && (
-        <p className="m-0 line-clamp-2 font-mono text-body-s text-texto-tenue">{curso.description}</p>
+        <p className="m-0 line-clamp-2 font-mono text-body-s text-texto-tenue">
+          {curso.description}
+        </p>
       )}
 
       {!curso.unlocked && curso.lockedReason && (
@@ -173,8 +190,18 @@ function CursoMedia({ bloqueado }: { bloqueado: boolean }) {
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-marino/40 via-superficie-2 to-negro">
       {/* Cruz bajo arco, el motivo de la marca. */}
       <svg viewBox="0 0 48 48" fill="none" aria-hidden className="h-14 w-14 text-contenido/[0.18]">
-        <path d="M10 46V20a14 14 0 0 1 28 0v26" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
-        <path d="M24 12v26M16 21h16" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
+        <path
+          d="M10 46V20a14 14 0 0 1 28 0v26"
+          stroke="currentColor"
+          strokeWidth={1.4}
+          strokeLinecap="round"
+        />
+        <path
+          d="M24 12v26M16 21h16"
+          stroke="currentColor"
+          strokeWidth={1.4}
+          strokeLinecap="round"
+        />
       </svg>
       {bloqueado && (
         <span className="absolute right-aire-s top-aire-s rounded-sm bg-vino px-2 py-1 font-ui text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-hueso">

@@ -222,6 +222,10 @@ export class CourseAuthoringService {
     id: string
     title: string
     description: string | null
+    requiredLevelId: string | null
+    requiredLevelRank: number | null
+    isFree: boolean
+    plannedModules: number
     status: CourseStatus
     modules: Awaited<ReturnType<CourseRepository['findStructure']>>
   }> {
@@ -233,6 +237,10 @@ export class CourseAuthoringService {
       id: curso.id,
       title: curso.title,
       description: curso.description,
+      requiredLevelId: curso.requiredLevelId,
+      requiredLevelRank: curso.requiredLevelRank,
+      isFree: curso.isFree,
+      plannedModules: curso.plannedModules,
       status: curso.status,
       modules: await this.courses.findStructure(courseId),
     }

@@ -8,7 +8,9 @@ import type { AuthError } from '@supabase/supabase-js'
 import { BrandLogo, Boton, Eyebrow, Field, Input, Verse } from '@elcamino/ui'
 import { supabase } from '../lib/supabase'
 import { useSession, usePerfil } from '../auth/session'
-import { PageTransition, navegarConTransicion } from '../components/page-transition'
+import { PageTransition } from '../components/page-transition'
+import { navegarConTransicion } from '../components/view-transition'
+import { PasswordField } from '../components/password-field'
 import { PanelCurvo } from './panel-curvo'
 
 /** Curva del sistema (DESIGN.md §5). */
@@ -28,7 +30,7 @@ type Modo = 'entrar' | 'registrarse'
  * `crear_perfil_al_registrarse` inserta la fila en `profiles` con rol
  * ESTUDIANTE. El front nunca decide el rol.
  *
- * El fondo es la fotografía limpia (`/brand/paisaje.jpg`). La banda oscura y
+ * El fondo es la fotografía limpia (`/brand/paisaje.webp`). La banda oscura y
  * su curva **no vienen en la imagen**: se dibujan con `PanelCurvo`, así se
  * adaptan a cualquier ancho y el formulario nunca se queda sin sitio.
  *
@@ -50,6 +52,9 @@ function esCorreoExistente(error: AuthError): boolean {
 /** Traduce los errores de Supabase Auth a mensajes claros en español. */
 function mensajeDeError(error: AuthError): string {
   const code = error.code ?? ''
+  if (code === 'email_address_not_authorized') {
+    return 'No pudimos enviar el correo de verificación. El servicio de correo aún no está habilitado para esta dirección.'
+  }
   if (code === 'invalid_credentials' || /invalid login credentials/i.test(error.message)) {
     return 'Correo o contraseña incorrectos. Revisa tus datos.'
   }
@@ -65,12 +70,20 @@ function mensajeDeError(error: AuthError): string {
   return 'No se pudo completar. Inténtalo de nuevo en un momento.'
 }
 
+function esCorreoNoConfirmado(error: AuthError): boolean {
+  return error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)
+}
+
 export function EntrarPage() {
   // La landing enlaza a `/entrar?registro=1` desde su CTA de cierre.
   const [params] = useSearchParams()
   const [modo, setModo] = useState<Modo>(params.has('registro') ? 'registrarse' : 'entrar')
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
-  const [aviso, setAviso] = useState<Aviso>(null)
+  const [aviso, setAviso] = useState<Aviso>(
+    params.get('clave') === 'actualizada'
+      ? { tipo: 'exito', texto: 'Contraseña actualizada. Ya puedes iniciar sesión.' }
+      : null,
+  )
   const { session } = useSession()
   const { data: perfil } = usePerfil()
   const location = useLocation()
@@ -84,13 +97,22 @@ export function EntrarPage() {
 
   const transiciónEnCurso = useRef(false)
   useEffect(() => {
-    if (!session || transiciónEnCurso.current) return
+    // Una sesión solo puede disparar la entrada desde el formulario de login.
+    // Si Auth estuviera mal configurado y `signUp` devolviera sesión inmediata,
+    // el modo registro debe permanecer bloqueado mientras la cerramos.
+    if (modo !== 'entrar' || !session || transiciónEnCurso.current) return
     const desde = (location.state as { desde?: string } | null)?.desde
-    const destino = desde ?? (perfil ? (perfil.role === 'ADMIN' ? '/admin' : '/discipulado') : null)
+    const destino = desde ?? (perfil
+      ? perfil.role === 'ADMIN'
+        ? '/admin'
+        : perfil.role === 'MAESTRO'
+          ? '/maestro/cursos'
+          : '/discipulado'
+      : null)
     if (!destino) return
     transiciónEnCurso.current = true
     navegarConTransicion(() => navigate(destino, { replace: true }))
-  }, [location.state, navigate, perfil, session])
+  }, [location.state, modo, navigate, perfil, session])
 
   // Tras iniciar sesión se conserva el fondo oscuro mientras el perfil termina
   // de cargar y la transición hacia la plataforma puede comenzar. El registro
@@ -106,14 +128,24 @@ export function EntrarPage() {
 
     if (modo === 'entrar') {
       const { error } = await supabase.auth.signInWithPassword({ email: correo, password })
-      if (error) setErrorServidor(mensajeDeError(error))
+      if (error) {
+        if (esCorreoNoConfirmado(error)) {
+          navigate('/verificar-correo', { state: { correo } })
+        } else {
+          setErrorServidor(mensajeDeError(error))
+        }
+      }
       return
     }
 
+    const emailRedirectTo = new URL('/verificar-correo', window.location.origin).toString()
     const { data, error } = await supabase.auth.signUp({
       email: correo,
       password,
-      options: { data: { display_name: displayName ?? correo.split('@')[0] } },
+      options: {
+        data: { display_name: displayName ?? correo.split('@')[0] },
+        emailRedirectTo,
+      },
     })
     if (error) {
       // Si el correo ya existe, no es un fallo: se lleva al usuario a iniciar
@@ -130,21 +162,18 @@ export function EntrarPage() {
       return
     }
 
-    // Con auto-confirmación, `signUp` devuelve sesión y enviamos explícitamente
-    // al usuario a la plataforma; mostramos un éxito breve por si tarda.
-    // Sin sesión, la confirmación por correo está activa: hay que avisar.
+    // Este flujo es deliberadamente fail-closed: una sesión inmediata significa
+    // que Supabase tiene la confirmación desactivada. Nunca dejamos entrar esa
+    // cuenta desde el registro, porque todavía no demostró acceso al correo.
     if (data.session) {
-      setAviso({ tipo: 'exito', texto: '¡Cuenta creada! Entrando…' })
-      // El registro termina en la plataforma, igual que un inicio de sesión.
-      // No dependemos de la URL de redirección de Supabase (que puede apuntar
-      // al site_url `/`): la cuenta nueva siempre empieza en Discipulado.
-      navegarConTransicion(() => navigate('/discipulado', { replace: true }))
-    } else {
-      setAviso({
-        tipo: 'confirmar',
-        texto: `Te enviamos un correo a ${correo}. Confírmalo para entrar.`,
-      })
+      await supabase.auth.signOut({ scope: 'local' })
+      setErrorServidor('El registro seguro no está disponible en este momento. Inténtalo más tarde.')
+      return
     }
+
+    // La pantalla comparte composición con el registro, por eso el cambio es
+    // inmediato y sin la transición de interfaz completa.
+    navigate('/verificar-correo', { replace: true, state: { correo } })
   }
 
   const esRegistro = modo === 'registrarse'
@@ -157,9 +186,11 @@ export function EntrarPage() {
       {/* Fotografía limpia, sin textos ni banda quemada. En móvil se encuadra
           sobre el sendero; en escritorio, sobre el valle. */}
       <img
-        src="/brand/paisaje.jpg"
+        src="/brand/paisaje.webp"
         alt=""
         aria-hidden
+        width={1535}
+        height={1024}
         className="absolute inset-0 h-full w-full object-cover object-[47%_42%] md:object-center"
         fetchPriority="high"
       />
@@ -260,10 +291,9 @@ export function EntrarPage() {
                 {...register('email')}
               />
 
-              <Campo
+              <PasswordField
                 id="password"
                 label="Contraseña"
-                type="password"
                 autoComplete={esRegistro ? 'new-password' : 'current-password'}
                 placeholder={esRegistro ? 'Mínimo 8 caracteres' : '••••••••'}
                 error={errors.password?.message}
@@ -273,6 +303,7 @@ export function EntrarPage() {
               {!esRegistro && (
                 <Link
                   to="/recuperar"
+                  data-sin-transicion
                   className="relative self-end font-mono text-eyebrow uppercase tracking-label text-texto-tenue no-underline transition-colors duration-fade ease-camino hover:text-hueso after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-vino after:transition-[width] after:duration-fade after:ease-camino hover:after:w-full focus-visible:after:w-full"
                 >
                   ¿Olvidaste tu contraseña?

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CourseStatus } from '@elcamino/shared-types'
+import type { CourseStatus, Level } from '@elcamino/shared-types'
 import { apiClient } from '../../lib/api-client'
 import type { CourseModule } from './api'
 
@@ -29,6 +29,10 @@ export interface StudentView {
   id: string
   title: string
   description: string | null
+  requiredLevelId: string | null
+  requiredLevelRank: number | null
+  isFree: boolean
+  plannedModules: number
   status: CourseStatus
   modules: CourseModule[]
 }
@@ -42,12 +46,41 @@ export function useMyCourses() {
   })
 }
 
+export function useLevels() {
+  return useQuery({
+    queryKey: ['niveles'],
+    queryFn: () => apiClient.get<Level[]>('/users/levels'),
+    staleTime: 10 * 60 * 1000,
+  })
+}
+
 export function useCreateCourse() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (input: { title: string; description: string | null }) =>
+    mutationFn: (input: {
+      title: string
+      description: string | null
+      requiredLevelId: string
+      isFree: true
+      plannedModules: number
+    }) =>
       apiClient.post<AuthoringCourse>('/discipleship/courses', input),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['my-courses'] }),
+  })
+}
+
+export function useUpdateCourse(courseId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: {
+      title?: string
+      description?: string | null
+      requiredLevelId?: string | null
+    }) => apiClient.patch<AuthoringCourse>(`/discipleship/courses/${courseId}`, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['my-courses'] })
+      void qc.invalidateQueries({ queryKey: ['student-view', courseId] })
+    },
   })
 }
 
