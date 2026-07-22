@@ -42,7 +42,7 @@ export class UsersController {
     return this.users.actualizarPerfil(
       { id: user.id, role: user.role, levelRank: user.levelRank },
       user.id,
-      cambios as Partial<{ displayName: string; bio: string | null }>,
+      cambios as Partial<{ displayName: string; avatarUrl: string | null; bio: string | null }>,
     )
   }
 

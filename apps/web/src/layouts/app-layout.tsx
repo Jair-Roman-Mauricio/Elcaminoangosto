@@ -1,17 +1,26 @@
-import { useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { PlayerBar } from '../modules/music/player-bar'
+import { buscarAlbumDeAlabanza, buscarCancionDeAlabanza, rutaDeReproduccion } from '../modules/music/alabanza-catalog'
+import { useFavoriteSongsStore } from '../stores/favorite-songs.store'
+import { usePlayerStore } from '../stores/player.store'
 import { PageTransition } from '../components/page-transition'
 import { Sidebar } from '../components/sidebar'
 import { useVistaComo } from '../components/vista-como'
-import { BrandLogo, cn } from '@elcamino/ui'
+import { BrandLogo, cn } from '@elcamino/ui/static'
 import { ThemeToggle } from '../components/theme'
 
+const PlayerBar = lazy(() => import('../modules/music/player-bar').then((modulo) => ({ default: modulo.PlayerBar })))
+
 const RUTAS_BASE = [
+  { prefijo: '/maestro/cursos', etiqueta: 'Principal' },
+  { prefijo: '/maestro/chat', etiqueta: 'Chat con estudiantes' },
+  { prefijo: '/maestro/estudiantes', etiqueta: 'Mis estudiantes' },
   { prefijo: '/discipulado', etiqueta: 'Discipulado' },
   { prefijo: '/tarjetas', etiqueta: 'Tarjetas de fe' },
-  { prefijo: '/alabanza', etiqueta: 'Alabanza' },
+  { prefijo: '/videos', etiqueta: 'Videos cristianos' },
+  { prefijo: '/alabanza', etiqueta: 'Alabanzas' },
   { prefijo: '/chat', etiqueta: 'Mentor' },
+  { prefijo: '/perfil', etiqueta: 'Mi perfil' },
 ] as const
 
 function etiquetaDeSegmento(segmento: string): string {
@@ -39,23 +48,54 @@ function construirMigas(pathname: string): Array<[string, string]> {
 }
 
 /**
- * Layout de la app autenticada, común a los tres roles. La navegación vive en un
- * sidebar y se deriva del **rol efectivo** (el real, o el que el admin esté
- * simulando con «Ver como»), así el profesor ve la interfaz de alumno más su
- * sección de enseñanza sin necesidad de un layout aparte.
+ * Layout de la app autenticada, común a los tres roles. La navegación vive en
+ * un sidebar y se deriva del rol efectivo (real o simulado por el admin).
  */
 export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { viendoComo, verComo } = useVistaComo()
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const cursoDetalle = location.pathname.startsWith('/discipulado/')
+  const { albumesFavoritos, hidratarFavoritos } = useFavoriteSongsStore()
+  const pistaActiva = usePlayerStore((estado) => estado.pista)
+  const editorCursoMaestro = /^\/maestro\/cursos\/[^/]+\/?$/.test(location.pathname)
+  const cursoDetalle = location.pathname.startsWith('/discipulado/') || editorCursoMaestro
+  const mosaicoTarjetas = location.pathname === '/tarjetas'
+  const paginaVideos = location.pathname.startsWith('/videos')
+  const paginaAlabanza = location.pathname.startsWith('/alabanza')
+  const paginaMentor = location.pathname.startsWith('/chat')
 
   const cerrarMenu = useCallback(() => setMenuAbierto(false), [])
   const migas = construirMigas(location.pathname)
+  const parametros = paginaAlabanza ? new URLSearchParams(location.search) : null
+  const songId = parametros?.get('song')
+  const cancion = buscarCancionDeAlabanza(songId)
+  const categoriaFavoritos = parametros?.get('category') === 'favorites'
+  const collectionId = parametros?.get('collection')
+  const coleccion = albumesFavoritos.find((albumFavorito) => albumFavorito.albumId === collectionId)
+  const albumId = parametros?.get('album') ?? cancion?.albumId
+  const album = buscarAlbumDeAlabanza(albumId)
+  const vistaDeReproduccion = Boolean(cancion)
+  if (coleccion) {
+    migas.push(['/alabanza?category=favorites', 'Álbumes de favoritos'])
+    migas.push([`/alabanza?category=favorites&collection=${encodeURIComponent(coleccion.albumId)}`, coleccion.titulo])
+  } else if (categoriaFavoritos) {
+    migas.push(['/alabanza?category=favorites', 'Álbumes de favoritos'])
+  } else if (album) {
+    migas.push([`/alabanza?album=${encodeURIComponent(album.albumId)}`, album.titulo])
+  }
+  if (cancion) migas.push([rutaDeReproduccion(cancion.songId, cancion.albumId, coleccion?.albumId), cancion.titulo])
+
+  useEffect(() => {
+    hidratarFavoritos()
+  }, [hidratarFavoritos])
 
   return (
-    <div className="min-h-screen bg-fondo">
+    <div className={cn(
+      'min-h-screen bg-fondo',
+      paginaVideos && 'videos-app-shell',
+      paginaMentor && 'mentor-app-shell',
+    )}>
       <Sidebar abierto={menuAbierto} onCerrar={cerrarMenu} oculto={cursoDetalle} />
 
       {/* Cabecera solo en móvil: bajo `cine` el sidebar es un cajón. */}
@@ -73,6 +113,7 @@ export function AppLayout() {
         </button>
         <Link
           to="/"
+          aria-label="Ir al inicio"
           className="min-w-0 overflow-hidden no-underline"
         >
           <BrandLogo layout="horizontal" tone="adaptive" size="sm" decorative />
@@ -97,7 +138,13 @@ export function AppLayout() {
           </div>
         )}
 
-        <main className="relative px-gutter pb-32 pt-[5.5rem] cine:pt-8">
+        <main className={cn(
+          'relative px-gutter pb-32 pt-[5.5rem] cine:pt-8',
+          paginaVideos && 'videos-shell',
+          paginaAlabanza && 'alabanza-shell',
+          vistaDeReproduccion && 'alabanza-shell--player',
+          paginaMentor && 'mentor-shell',
+        )}>
           <div className="theme-toggle-anchor flex items-center gap-aire-s">
             <ThemeToggle />
           </div>
@@ -120,10 +167,16 @@ export function AppLayout() {
             ))}
           </nav>
           {cursoDetalle ? (
-            /* El panel de lecciones usa position:fixed. Framer Motion deja un
-               transform en PageTransition y convertiría este wrapper en su
-               viewport, recortando la columna. El barrido CSS se conserva. */
+            /* El panel de lecciones usa position:fixed; se mantiene fuera del
+               wrapper animado para conservar el viewport de sus columnas. */
             <div key={location.pathname} className="course-interface-transition">
+              <Outlet />
+            </div>
+          ) : mosaicoTarjetas ? (
+            /* El mosaico ya prepara su posición antes de pintar. Evitamos la
+               máscara general de entrada porque durante ese barrido dejaba ver
+               una franja negra junto al sidebar. */
+            <div key={location.pathname} className="main-interface-static">
               <Outlet />
             </div>
           ) : (
@@ -135,7 +188,11 @@ export function AppLayout() {
       </div>
 
       {/* Persiste entre navegaciones: vive fuera del <Outlet /> (HU-2.1). */}
-      <PlayerBar />
+      {pistaActiva && (
+        <Suspense fallback={null}>
+          <PlayerBar />
+        </Suspense>
+      )}
     </div>
   )
 }

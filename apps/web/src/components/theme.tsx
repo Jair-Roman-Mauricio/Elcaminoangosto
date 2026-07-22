@@ -54,10 +54,18 @@ export function ThemeToggle({ className }: { className?: string }) {
     setAnimando(true)
     window.setTimeout(() => setAnimando(false), 950)
     const doc = document as Document & {
-      startViewTransition?: (update: () => void) => unknown
+      startViewTransition?: (update: () => void) => { finished: Promise<void> }
     }
-    if (doc.startViewTransition) doc.startViewTransition(alternar)
-    else alternar()
+    if (!doc.startViewTransition) {
+      alternar()
+      return
+    }
+
+    document.documentElement.dataset.themeTransition = 'active'
+    const transition = doc.startViewTransition(alternar)
+    void transition.finished.finally(() => {
+      delete document.documentElement.dataset.themeTransition
+    })
   }
 
   return (
@@ -76,8 +84,22 @@ export function ThemeToggle({ className }: { className?: string }) {
         <span className="theme-toggle__orb" />
         <span className="theme-toggle__stars" />
         <span className="theme-toggle__frames">
-          <img className="theme-toggle__frame-light" src="/brand/theme/jesus-light.png" alt="" />
-          <img className="theme-toggle__frame-dark" src="/brand/theme/jesus-dark.png" alt="" />
+          <img
+            className="theme-toggle__frame-light"
+            src="/brand/theme/jesus-light-280.webp"
+            width="280"
+            height="140"
+            alt=""
+            decoding="async"
+          />
+          <img
+            className="theme-toggle__frame-dark"
+            src="/brand/theme/jesus-dark-280.webp"
+            width="280"
+            height="140"
+            alt=""
+            decoding="async"
+          />
         </span>
       </span>
     </button>

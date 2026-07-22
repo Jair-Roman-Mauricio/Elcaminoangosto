@@ -24,6 +24,7 @@ export type Profile = z.infer<typeof ProfileSchema>
 
 export const UpdateProfileSchema = ProfileSchema.pick({
   displayName: true,
+  avatarUrl: true,
   bio: true,
 }).partial()
 export type UpdateProfile = z.infer<typeof UpdateProfileSchema>

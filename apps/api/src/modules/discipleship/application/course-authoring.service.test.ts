@@ -137,11 +137,13 @@ describe('autoría (HU-4.3)', () => {
     const c = await svc.crearBorrador(maestro, {
       title: 'La puerta angosta',
       description: null,
-      requiredLevelId: null,
+      requiredLevelId: 'nivel-1',
       isFree: true,
       plannedModules: 1,
     })
     expect(c.status).toBe('DRAFT')
+    expect(c.isFree).toBe(true)
+    expect(c.requiredLevelId).toBe('nivel-1')
   })
 
   it('un estudiante no puede crear cursos', async () => {
@@ -162,6 +164,24 @@ describe('autoría (HU-4.3)', () => {
     await expect(svc.editarBorrador(otroMaestro, c.id, { title: 'x' })).rejects.toThrow(
       ForbiddenException,
     )
+  })
+
+  it('la vista editable conserva las condiciones de acceso del borrador', async () => {
+    const c = cursos.seed(nuevoCurso({
+      requiredLevelId: 'nivel-2',
+      requiredLevelRank: 2,
+      isFree: true,
+      plannedModules: 3,
+    }))
+
+    const vista = await svc.vistaDeEstudiante(maestro, c.id)
+
+    expect(vista).toMatchObject({
+      requiredLevelId: 'nivel-2',
+      requiredLevelRank: 2,
+      isFree: true,
+      plannedModules: 3,
+    })
   })
 })
 

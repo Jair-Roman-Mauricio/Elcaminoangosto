@@ -2,6 +2,10 @@ import { create } from 'zustand'
 
 export interface PistaEnReproduccion {
   songId: string
+  /** Permite que el reproductor global regrese a la vista completa correcta. */
+  albumId?: string
+  /** Álbum personal desde el que se inició la reproducción, si existe. */
+  collectionId?: string
   titulo: string
   artista: string
   /** URL firmada del audio; caduca (~60 min). Se renueva al reanudar. */
@@ -23,6 +27,7 @@ interface EstadoDelReproductor {
   siguiente: () => void
   anterior: () => void
   buscar: (segundos: number) => void
+  actualizarProgreso: (segundos: number) => void
   ajustarVolumen: (v: number) => void
   detener: () => void
 }
@@ -69,6 +74,8 @@ export const usePlayerStore = create<EstadoDelReproductor>((set, get) => ({
   },
 
   buscar: (segundos) => set({ progreso: Math.max(0, segundos) }),
+
+  actualizarProgreso: (segundos) => set({ progreso: Math.max(0, segundos) }),
 
   ajustarVolumen: (v) => set({ volumen: Math.min(1, Math.max(0, v)) }),
 

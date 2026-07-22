@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { CHAPTERS, CIERRE, VIDEOS_INMEDIATOS } from './chapters'
 import { useEscena } from './use-escena'
 import { useSession } from '../auth/session'
-import { BrandLogo } from '@elcamino/ui'
+import { BrandLogo } from '@elcamino/ui/static'
 import './landing.css'
 
 /**
@@ -94,7 +94,7 @@ export function LandingPage() {
 
       {/* ══ NAV ══ */}
       <header className="nav">
-        <a className="nav__brand" href="#top">
+        <a className="nav__brand" href="#top" aria-label="Ir al inicio del recorrido">
           <BrandLogo layout="horizontal" tone="light" size="md" decorative />
         </a>
         <nav className="nav__links">

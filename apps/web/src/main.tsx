@@ -2,12 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MotionConfig } from 'framer-motion'
 import { SessionProvider } from './auth/session'
 import { ThemeProvider } from './components/theme'
 import { router } from './router'
 import { ApiError } from './lib/api-client'
-import { navegarConTransicion } from './components/page-transition'
+import { navegarConTransicion } from './components/view-transition'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -35,6 +34,9 @@ document.addEventListener('click', (event) => {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
   const target = event.target instanceof Element ? event.target.closest('a[href]') : null
   if (!(target instanceof HTMLAnchorElement) || target.target === '_blank' || target.hasAttribute('download')) return
+  // Recuperación y verificación conservan el mismo marco visual que el login;
+  // un barrido entre ellas hace que el contenido parezca saltar sin necesidad.
+  if (target.hasAttribute('data-sin-transicion')) return
   // Las opciones del sidebar tienen su propio barrido dentro del main; no
   // deben activar la transición de interfaz completa.
   if (target.closest('aside[aria-label="Navegación principal"]')) return
@@ -52,15 +54,11 @@ document.addEventListener('click', (event) => {
 createRoot(raiz).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      {/* `reducedMotion="user"` neutraliza el movimiento de Framer Motion para
-          quien lo pida en su sistema (RNF-6), en toda la app de una vez. */}
-      <MotionConfig reducedMotion="user">
-        <ThemeProvider>
-          <SessionProvider>
-            <RouterProvider router={router} />
-          </SessionProvider>
-        </ThemeProvider>
-      </MotionConfig>
+      <ThemeProvider>
+        <SessionProvider>
+          <RouterProvider router={router} />
+        </SessionProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

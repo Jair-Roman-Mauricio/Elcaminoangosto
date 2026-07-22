@@ -50,8 +50,10 @@
    respondía <html> y los contenedores forzados no tenían efecto. */
 :root,
 [data-theme="light"] {
-  --fondo: #f4f2ec; /* blanco cálido */
-  --superficie-0: #f4f2ec;
+  /* El lienzo claro comparte el blanco puro de navegación y paneles. Los
+     contrastes cálidos se reservan para `--superficie-2` y los controles. */
+  --fondo: #ffffff;
+  --superficie-0: #ffffff;
   --superficie-1: #ffffff;
   --superficie-2: #ebe8e0;
 

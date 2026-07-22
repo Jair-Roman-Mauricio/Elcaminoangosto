@@ -40,7 +40,6 @@ export function PlayPause({ reproduciendo, onToggle, size = 44, className }: Pla
         viewBox="0 0 24 24"
         fill="currentColor"
         aria-hidden
-        animate={{ rotate: reproduciendo ? 90 : 0 }}
         transition={transition}
       >
         {/* Izquierda: barra de pause ⇄ mitad superior del triángulo */}
