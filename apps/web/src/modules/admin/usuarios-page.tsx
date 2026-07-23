@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RoleSchema, type Role } from '@elcamino/shared-types'
-import { Boton, Eyebrow, Field, Input, Select } from '@elcamino/ui'
+import { Boton, Eyebrow, Field, Input, Modal, Select } from '@elcamino/ui'
 import { apiClient, ApiError } from '../../lib/api-client'
 
 interface UsuarioRow {
@@ -40,12 +40,20 @@ export function UsuariosPage() {
           <Eyebrow>Administración</Eyebrow>
           <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Usuarios y roles</h1>
         </div>
-        <Boton onClick={() => setCreando((v) => !v)}>
-          {creando ? 'Cancelar' : 'Crear cuenta'}
-        </Boton>
+        <Boton onClick={() => setCreando(true)}>Crear cuenta</Boton>
       </header>
 
-      {creando && <FormularioNuevaCuenta onHecho={() => setCreando(false)} />}
+      <Modal
+        abierto={creando}
+        onCerrar={() => setCreando(false)}
+        titulo="Nueva cuenta"
+        descripcion="Crea una cuenta con su rol. La persona entrará con este correo y contraseña."
+      >
+        <FormularioNuevaCuenta
+          onHecho={() => setCreando(false)}
+          onCancelar={() => setCreando(false)}
+        />
+      </Modal>
 
       {isPending && <p className="font-mono text-body text-texto-tenue">Cargando…</p>}
 
@@ -99,7 +107,13 @@ export function UsuariosPage() {
 }
 
 /** El ADMIN crea una cuenta (p. ej. un profesor) con la que esa persona entrará. */
-function FormularioNuevaCuenta({ onHecho }: { onHecho: () => void }) {
+function FormularioNuevaCuenta({
+  onHecho,
+  onCancelar,
+}: {
+  onHecho: () => void
+  onCancelar: () => void
+}) {
   const qc = useQueryClient()
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
@@ -127,11 +141,8 @@ function FormularioNuevaCuenta({ onHecho }: { onHecho: () => void }) {
         setError(null)
         if (valido) crear.mutate()
       }}
-      className="flex flex-col gap-aire-s rounded border border-linea bg-superficie-1 p-aire-m"
+      className="flex flex-col gap-aire-s"
     >
-      <p className="m-0 font-mono text-body-s text-texto-tenue">
-        Crea una cuenta con su rol. La persona entrará con este correo y contraseña.
-      </p>
       <div className="grid gap-aire-s sm:grid-cols-2">
         <Field label="Nombre" htmlFor="nc-nombre">
           <Input
@@ -183,9 +194,14 @@ function FormularioNuevaCuenta({ onHecho }: { onHecho: () => void }) {
         </p>
       )}
 
-      <Boton type="submit" disabled={!valido || crear.isPending} className="self-start">
-        {crear.isPending ? 'Creando…' : 'Crear cuenta'}
-      </Boton>
+      <div className="mt-aire-xs flex items-center gap-aire-s">
+        <Boton type="submit" disabled={!valido || crear.isPending}>
+          {crear.isPending ? 'Creando…' : 'Crear cuenta'}
+        </Boton>
+        <Boton type="button" variante="sutil" onClick={onCancelar}>
+          Cancelar
+        </Boton>
+      </div>
     </form>
   )
 }

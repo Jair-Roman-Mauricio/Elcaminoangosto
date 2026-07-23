@@ -157,12 +157,13 @@ La firma de movimiento es **una sola curva**, lenta y sin rebote. Cópiala liter
 **Derivados de la landing** (existen hoy, migrarlos fielmente):
 
 - **Eyebrow** — microlabel mono uppercase con regla `::after`.
+- **BrandLogo** — símbolo de puerta angosta + cruz + camino, con lockup horizontal `ElCaminoAngosto`; variantes `light`, `dark`, `wine` y `adaptive` para landing, login y plataforma.
 - **Boton** — variantes `primary` (borde `linea-fuerte`, fondo `rgba(negro,.2)`; hover → fondo `vino`) y `sutil` (sin borde, subrayado con `text-underline-offset: .45em`; hover → subrayado `marino`).
 - **Nav** — fija arriba, `padding: clamp(1.1rem,2.4vw,2rem) var(--gutter)` respetando `env(safe-area-inset-top)`. Marca + enlaces + CTA. **No tiene altura fija de 8 rem.**
 - **Counter** — contador vertical de capítulos (lateral izquierdo; oculto ≤820px).
 - **ScrollHint** — indicador inferior con línea en degradado.
 - **Overlay** — bloque de texto sobre video, con `scrim` (degradado local, nunca un velo sobre todo el video) y posiciones `top-center | top-left | bottom-left | center | split`.
-- **Verse** — versículo en Newsreader 300 + su referencia en eyebrow.
+- **Verse** — versículo en Newsreader 300 + su referencia en eyebrow. En superficies fotográficas puede usar la variante `login`, que fija el texto en hueso y añade subrayado vino para preservar contraste.
 - **Stage** — capas de video fijas con viñeta (`stage-vignette`) y `--video-scale: 1.04` (1.06 en móvil) para ocultar barras negras quemadas en los archivos fuente.
 
 **Nuevos, para los módulos de la plataforma** (heredan los tokens de arriba):
@@ -173,7 +174,7 @@ La firma de movimiento es **una sola curva**, lenta y sin rebote. Cópiala liter
 - **FeedViewport** (TikTok-like) — contenedor vertical con `scroll-snap`, controles laterales (like/comentar/compartir), overlay de autor y caption.
 - **CourseShell** (Udemy-like) — sidebar de módulos/lecciones + área de contenido + barra de progreso.
 - **ChatPanel** — lista de conversaciones + hilo + composer + botón "Solicitar subir de nivel".
-- **FormControls** — inputs con borde `--linea`, foco `--hueso` (outline, no glow); `textarea { resize: none }`.
+- **FormControls** — inputs con borde `--linea`, foco `--hueso` (outline, no glow); `textarea { resize: none }`. En el login, los campos se expresan como líneas inferiores y el CTA como cápsula rellena en `vino`, de color fijo incluso en hover; `IBM Plex Sans` se usa en título y controles para reforzar legibilidad, mientras los eyebrows conservan Space Mono.
 - **PanelCurvo** — banda oscura con borde en S para el login. La curva se midió píxel a píxel sobre la obra original y se reproduce con un `path` SVG normalizado (`viewBox 100×100` + `preserveAspectRatio="none"`), no con una imagen: así se estira a cualquier ancho y el formulario nunca se queda sin sitio. Su amplitud se reduce al 70% de la original por esa razón.
 
 ### Preset de Tailwind

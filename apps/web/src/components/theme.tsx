@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import './theme-toggle.css'
 
 export type Tema = 'light' | 'dark'
 
@@ -47,38 +48,60 @@ export function useTema(): ContextoTema {
 export function ThemeToggle({ className }: { className?: string }) {
   const { tema, alternar } = useTema()
   const aOscuro = tema === 'light'
+  const [animando, setAnimando] = useState(false)
+
+  const cambiarTema = () => {
+    setAnimando(true)
+    window.setTimeout(() => setAnimando(false), 950)
+    const doc = document as Document & {
+      startViewTransition?: (update: () => void) => { finished: Promise<void> }
+    }
+    if (!doc.startViewTransition) {
+      alternar()
+      return
+    }
+
+    document.documentElement.dataset.themeTransition = 'active'
+    const transition = doc.startViewTransition(alternar)
+    void transition.finished.finally(() => {
+      delete document.documentElement.dataset.themeTransition
+    })
+  }
 
   return (
     <button
       type="button"
-      onClick={alternar}
+      onClick={cambiarTema}
       aria-label={aOscuro ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
       title={aOscuro ? 'Tema oscuro' : 'Tema claro'}
-      className={[
-        'grid size-9 place-items-center rounded-full border border-linea',
-        'text-texto-tenue transition-colors duration-fade ease-camino',
-        'hover:border-vino hover:text-contenido',
-        className ?? '',
-      ].join(' ')}
+      aria-pressed={!aOscuro}
+      data-theme-toggle
+      data-theme={tema}
+      data-animating={animando ? 'true' : 'false'}
+      className={className}
     >
-      {aOscuro ? <IconoLuna /> : <IconoSol />}
+      <span className="theme-toggle__stage" aria-hidden="true">
+        <span className="theme-toggle__orb" />
+        <span className="theme-toggle__stars" />
+        <span className="theme-toggle__frames">
+          <img
+            className="theme-toggle__frame-light"
+            src="/brand/theme/jesus-light-280.webp"
+            width="280"
+            height="140"
+            alt=""
+            decoding="async"
+          />
+          <img
+            className="theme-toggle__frame-dark"
+            src="/brand/theme/jesus-dark-280.webp"
+            width="280"
+            height="140"
+            alt=""
+            decoding="async"
+          />
+        </span>
+      </span>
     </button>
-  )
-}
-
-function IconoSol() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function IconoLuna() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" strokeLinejoin="round" />
-    </svg>
   )
 }

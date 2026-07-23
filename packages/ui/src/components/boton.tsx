@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { cn } from '../lib/cn'
 
-export type BotonVariante = 'primary' | 'sutil' | 'nav'
+export type BotonVariante = 'primary' | 'sutil' | 'nav' | 'formulario'
 
 export interface BotonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variante?: BotonVariante
@@ -38,6 +38,10 @@ const variantes: Record<BotonVariante, string> = {
     'px-[1.1rem] py-[0.6rem] rounded',
     'border border-linea bg-transparent',
     'hover:border-vino hover:bg-vino/10',
+  ),
+  formulario: cn(
+    'rounded-full border-vino bg-vino px-[2.4rem] py-[1.05rem]',
+    'font-ui text-body-s font-medium tracking-boton text-hueso',
   ),
 }
 

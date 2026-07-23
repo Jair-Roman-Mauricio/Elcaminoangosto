@@ -1,0 +1,260 @@
+.student-profile {
+  width: min(100%, 88rem);
+  margin-inline: auto;
+  padding-block: 1rem 3rem;
+  color: var(--contenido);
+}
+
+.student-profile__hero {
+  display: grid;
+  min-height: 24rem;
+  grid-template-columns: minmax(13rem, 0.72fr) minmax(20rem, 1.65fr) minmax(12rem, 0.63fr);
+  align-items: center;
+  gap: clamp(2rem, 4vw, 5rem);
+  padding-block: clamp(2rem, 5vw, 4.5rem);
+}
+
+.student-profile__portrait-column {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 0.75rem;
+}
+
+.student-profile__portrait {
+  position: relative;
+  display: grid;
+  width: min(100%, 15rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid var(--linea-fuerte);
+  border-radius: 50% 50% 46% 46%;
+  color: var(--hueso);
+  background:
+    radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--vino) 64%, transparent), transparent 45%),
+    linear-gradient(145deg, var(--marino), var(--superficie-2));
+  box-shadow: 0 2rem 5rem rgb(0 0 0 / 18%);
+  isolation: isolate;
+}
+
+.student-profile__portrait::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(120deg, rgb(255 255 255 / 12%), transparent 30% 70%, rgb(0 0 0 / 14%));
+  pointer-events: none;
+}
+
+.student-profile__portrait img { width: 100%; height: 100%; object-fit: cover; }
+.student-profile__portrait > span { font: 500 clamp(2.4rem, 5vw, 4.5rem)/1 var(--ui); letter-spacing: -0.06em; }
+.student-profile__portrait > i {
+  position: absolute;
+  z-index: 3;
+  right: 9%;
+  bottom: 12%;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 3px solid var(--fondo);
+  border-radius: 50%;
+  background: var(--exito);
+}
+
+.student-profile__avatar-actions { display: flex; align-items: center; justify-content: center; gap: 1rem; }
+.student-profile__avatar-actions button { font-size: 0.54rem; }
+.student-profile__avatar-error {
+  max-width: 18rem;
+  margin: 0;
+  color: var(--vino);
+  font: 0.62rem/1.4 var(--mono);
+  text-align: center;
+}
+
+.student-profile__identity { min-width: 0; }
+.student-profile__eyebrow,
+.student-profile__level > span,
+.student-profile__section-heading > div > span {
+  color: var(--vino);
+  font: 0.58rem/1 var(--mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.student-profile__identity h1 {
+  max-width: 15ch;
+  margin: 1rem 0 1.25rem;
+  font: 400 clamp(2.75rem, 4.2vw, 5.8rem)/0.9 var(--mono);
+  letter-spacing: -0.07em;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.student-profile__identity > p {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--texto-tenue);
+  font: clamp(0.82rem, 1.15vw, 1.05rem)/1.55 var(--ui);
+  text-wrap: balance;
+}
+
+.student-profile__identity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.3rem;
+  margin-top: 1.8rem;
+  color: var(--texto-tenue);
+  font: 0.56rem/1.3 var(--mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.student-profile__identity-meta span { position: relative; }
+.student-profile__identity-meta span:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -0.72rem;
+  width: 0.22rem;
+  height: 0.22rem;
+  border-radius: 50%;
+  background: var(--vino);
+  transform: translateY(-50%);
+}
+
+.student-profile__level {
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+  padding-left: clamp(1.4rem, 2.4vw, 2.5rem);
+  border-left: 1px solid var(--linea);
+}
+.student-profile__level strong { font: 400 clamp(4rem, 7vw, 7.5rem)/0.8 var(--mono); letter-spacing: -0.08em; }
+.student-profile__level p { margin: 0; color: var(--texto-tenue); font: 0.7rem/1.5 var(--ui); }
+
+.student-profile__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2.5rem, 4vw, 4.5rem);
+  padding-block: clamp(1.25rem, 2.5vw, 2.5rem);
+}
+
+.student-profile__section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.student-profile__section-heading > div { display: grid; gap: 0.65rem; }
+.student-profile__section-heading h2 { margin: 0; font: 400 clamp(1.5rem, 2.4vw, 2.4rem)/1 var(--mono); letter-spacing: -0.04em; }
+.student-profile__section-heading > a {
+  flex: none;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--linea-fuerte);
+  color: var(--texto-tenue);
+  font: 0.55rem/1 var(--mono);
+  letter-spacing: 0.09em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 220ms var(--ease), border-color 220ms var(--ease);
+}
+.student-profile__section-heading > a:hover { border-color: var(--vino); color: var(--vino); }
+
+.student-profile__course {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(1rem, 2vw, 1.7rem);
+  padding-block: 1.45rem;
+  border-top: 1px solid var(--linea);
+  color: var(--contenido);
+  text-decoration: none;
+}
+.student-profile__course:last-child { border-bottom: 1px solid var(--linea); }
+.student-profile__course-index,
+.student-profile__course-percent { color: var(--texto-tenue); font: 0.58rem/1 var(--mono); letter-spacing: 0.08em; }
+.student-profile__course-percent { text-transform: uppercase; }
+.student-profile__course-copy { display: grid; min-width: 0; gap: 0.38rem; }
+.student-profile__course-copy strong { overflow: hidden; font: 500 0.94rem/1.25 var(--ui); text-overflow: ellipsis; white-space: nowrap; transition: color 220ms var(--ease); }
+.student-profile__course-copy small { color: var(--texto-tenue); font: 0.52rem/1.3 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; }
+.student-profile__course:hover strong { color: var(--vino); }
+.student-profile__empty {
+  margin: 0;
+  padding: 1.5rem 0;
+  color: var(--texto-tenue);
+  font: 0.7rem/1.6 var(--mono);
+}
+
+.student-profile__editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.5rem;
+}
+.student-profile__editor > .student-profile__section-heading { align-self: start; margin-bottom: 0; }
+.student-profile__section-heading > .student-profile__editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+.student-profile__editor-actions > span {
+  max-width: 15rem;
+  color: var(--texto-tenue);
+  font: 0.58rem/1.4 var(--mono);
+}
+.student-profile__save-button { flex: none; min-width: 15.5rem; }
+.student-profile__editor form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 2.2rem;
+}
+.student-profile__editor input,
+.student-profile__editor textarea { border-width: 0 0 1px; border-radius: 0; padding-inline: 0; }
+
+.student-profile__status {
+  display: grid;
+  min-height: 55svh;
+  margin: 0;
+  place-items: center;
+  color: var(--texto-tenue);
+  font: 0.72rem/1.5 var(--mono);
+}
+
+@media (max-width: 1080px) {
+  .student-profile__hero { grid-template-columns: minmax(11rem, 0.55fr) minmax(0, 1.45fr); }
+  .student-profile__level { grid-column: 1 / -1; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; padding: 1.5rem 0 0; border-top: 1px solid var(--linea); border-left: 0; }
+  .student-profile__level strong { font-size: 3.5rem; }
+  .student-profile__level p { max-width: 30rem; }
+}
+
+@media (max-width: 760px) {
+  .student-profile { padding-top: 0; }
+  .student-profile__hero { grid-template-columns: 1fr; justify-items: start; gap: 2rem; }
+  .student-profile__portrait-column { width: 100%; justify-items: start; }
+  .student-profile__portrait { width: min(62vw, 13rem); }
+  .student-profile__avatar-actions { justify-content: flex-start; }
+  .student-profile__avatar-error { text-align: left; }
+  .student-profile__identity h1 { font-size: clamp(2.6rem, 14vw, 4.8rem); }
+  .student-profile__level { grid-template-columns: auto minmax(0, 1fr); }
+  .student-profile__level p { grid-column: 1 / -1; }
+  .student-profile__editor { grid-template-columns: 1fr; gap: 1.5rem; }
+  .student-profile__editor form { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .student-profile__identity-meta { display: grid; }
+  .student-profile__identity-meta span::after { display: none; }
+  .student-profile__section-heading { align-items: start; flex-direction: column; }
+  .student-profile__course { grid-template-columns: 1.8rem minmax(0, 1fr); }
+  .student-profile__course-percent { grid-column: 2; }
+  .student-profile__section-heading > .student-profile__editor-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+    margin-left: 0;
+  }
+  .student-profile__save-button { width: 100%; }
+}

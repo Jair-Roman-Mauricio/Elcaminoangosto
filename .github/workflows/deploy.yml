@@ -33,6 +33,60 @@ jobs:
           supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
           supabase db push
 
+      - name: Exigir correo verificado y configurar Brevo
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
+          BREVO_SMTP_USER: ${{ secrets.BREVO_SMTP_USER }}
+          BREVO_SMTP_KEY: ${{ secrets.BREVO_SMTP_KEY }}
+        run: |
+          umask 077
+          trap 'rm -f /tmp/elcamino-supabase-auth.json' EXIT
+          auth_url="https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth"
+          current_allow_list=$(curl --fail --silent --show-error "$auth_url" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.uri_allow_list // ""')
+          required_allow_list="http://localhost:5173/**,https://web-production-551e4.up.railway.app/**,https://web-staging-4f40.up.railway.app/**"
+          merged_allow_list=$(printf '%s,%s' "$current_allow_list" "$required_allow_list" | \
+            tr ',' '\n' | sed '/^$/d' | sort -u | paste -sd, -)
+          jq -n \
+            --arg uri_allow_list "$merged_allow_list" \
+            '{mailer_autoconfirm: false, mailer_allow_unverified_email_sign_ins: false, uri_allow_list: $uri_allow_list}' \
+            > /tmp/elcamino-supabase-auth.json
+
+          brevo_values="$BREVO_SENDER_EMAIL$BREVO_SMTP_USER$BREVO_SMTP_KEY"
+          if [ -n "$brevo_values" ]; then
+            for variable in BREVO_SENDER_EMAIL BREVO_SMTP_USER BREVO_SMTP_KEY; do
+              if [ -z "$(printenv "$variable")" ]; then
+                echo "::error::La configuración de Brevo está incompleta: falta $variable."
+                exit 1
+              fi
+            done
+
+            jq \
+              --arg smtp_admin_email "$BREVO_SENDER_EMAIL" \
+              --arg smtp_user "$BREVO_SMTP_USER" \
+              --arg smtp_pass "$BREVO_SMTP_KEY" \
+              '. + {
+                external_email_enabled: true,
+                mailer_secure_email_change_enabled: true,
+                smtp_admin_email: $smtp_admin_email,
+                smtp_host: "smtp-relay.brevo.com",
+                smtp_port: 587,
+                smtp_user: $smtp_user,
+                smtp_pass: $smtp_pass,
+                smtp_sender_name: "El Camino Angosto"
+              }' /tmp/elcamino-supabase-auth.json > /tmp/elcamino-supabase-auth.next.json
+            mv /tmp/elcamino-supabase-auth.next.json /tmp/elcamino-supabase-auth.json
+          else
+            echo "::warning::Brevo no configurado. Supabase solo entregará correos a miembros de la organización y aplicará su límite de demostración."
+          fi
+
+          curl --fail --silent --show-error -X PATCH "$auth_url" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/elcamino-supabase-auth.json
+
       # ── 2. Railway ───────────────────────────────────────────────────────
       - uses: pnpm/action-setup@v4
         with:

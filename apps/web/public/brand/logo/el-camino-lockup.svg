@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 96" fill="none">
+  <title>El Camino Angosto</title>
+  <g stroke="#f7f6f2" stroke-width="2.2" stroke-linecap="round">
+    <path d="M16 80V32a24 24 0 0 1 48 0v48"/>
+    <path d="M40 14v48M26 34h28M40 62 16 80M40 62l24 18"/>
+  </g>
+  <text x="88" y="57" fill="#f7f6f2" font-family="Space Mono, ui-monospace, monospace" font-size="24" letter-spacing="3">ElCaminoAngosto</text>
+</svg>

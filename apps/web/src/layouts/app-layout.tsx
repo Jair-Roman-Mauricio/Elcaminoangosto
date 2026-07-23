@@ -1,173 +1,198 @@
-import { Link, NavLink as RouterNavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import type { Role } from '@elcamino/shared-types'
-import { Nav, Boton } from '@elcamino/ui'
-import { supabase } from '../lib/supabase'
-import { PlayerBar } from '../modules/music/player-bar'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { buscarAlbumDeAlabanza, buscarCancionDeAlabanza, rutaDeReproduccion } from '../modules/music/alabanza-catalog'
+import { useFavoriteSongsStore } from '../stores/favorite-songs.store'
+import { usePlayerStore } from '../stores/player.store'
 import { PageTransition } from '../components/page-transition'
-import { ThemeToggle } from '../components/theme'
+import { Sidebar } from '../components/sidebar'
 import { useVistaComo } from '../components/vista-como'
+import { BrandLogo, cn } from '@elcamino/ui/static'
+import { ThemeToggle } from '../components/theme'
 
-interface EnlaceDeNav {
-  to: string
-  label: string
+const PlayerBar = lazy(() => import('../modules/music/player-bar').then((modulo) => ({ default: modulo.PlayerBar })))
+
+const RUTAS_BASE = [
+  { prefijo: '/maestro/cursos', etiqueta: 'Principal' },
+  { prefijo: '/maestro/chat', etiqueta: 'Chat con estudiantes' },
+  { prefijo: '/maestro/estudiantes', etiqueta: 'Mis estudiantes' },
+  { prefijo: '/discipulado', etiqueta: 'Discipulado' },
+  { prefijo: '/tarjetas', etiqueta: 'Tarjetas de fe' },
+  { prefijo: '/videos', etiqueta: 'Videos cristianos' },
+  { prefijo: '/alabanza', etiqueta: 'Alabanzas' },
+  { prefijo: '/chat', etiqueta: 'Mentor' },
+  { prefijo: '/perfil', etiqueta: 'Mi perfil' },
+] as const
+
+function etiquetaDeSegmento(segmento: string): string {
+  return decodeURIComponent(segmento)
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letra) => letra.toUpperCase())
 }
 
-const ENLACES_ESTUDIANTE: EnlaceDeNav[] = [
-  { to: '/discipulado', label: 'Discipulado' },
-  { to: '/tarjetas', label: 'Tarjetas' },
-  { to: '/alabanza', label: 'Alabanza' },
-  { to: '/chat', label: 'Mentor' },
-]
+function construirMigas(pathname: string): Array<[string, string]> {
+  const ruta = RUTAS_BASE.find(({ prefijo }) => pathname === prefijo || pathname.startsWith(`${prefijo}/`))
+  if (!ruta) return []
 
-// El profesor ve la misma interfaz que el alumno, más «Mis cursos» para crear
-// y gestionar sus borradores.
-const ENLACES_MAESTRO: EnlaceDeNav[] = [
-  { to: '/discipulado', label: 'Discipulado' },
-  { to: '/tarjetas', label: 'Tarjetas' },
-  { to: '/alabanza', label: 'Alabanza' },
-  { to: '/maestro/cursos', label: 'Mis cursos' },
-  { to: '/maestro/estudiantes', label: 'Estudiantes' },
-]
+  const segmentos = pathname.split('/').filter(Boolean)
+  const segmentosBase = ruta.prefijo.split('/').filter(Boolean)
+  const migas: Array<[string, string]> = [[ruta.prefijo, ruta.etiqueta]]
 
-const ENLACES_ADMIN: EnlaceDeNav[] = [
-  { to: '/admin', label: 'Panel' },
-  { to: '/admin/revisiones', label: 'Revisiones' },
-  { to: '/admin/usuarios', label: 'Usuarios' },
-  { to: '/admin/moderacion', label: 'Moderación' },
-]
+  for (let indice = segmentosBase.length; indice < segmentos.length; indice += 1) {
+    const segmento = segmentos[indice]
+    if (!segmento) continue
+    const destino = `/${segmentos.slice(0, indice + 1).join('/')}`
+    migas.push([destino, etiquetaDeSegmento(segmento)])
+  }
 
-function enlacesPara(role: Role | undefined): EnlaceDeNav[] {
-  if (role === 'ADMIN') return ENLACES_ADMIN
-  if (role === 'MAESTRO') return ENLACES_MAESTRO
-  return ENLACES_ESTUDIANTE
+  return migas
 }
 
 /**
- * Layout de la app autenticada, común a los tres roles. La nav se deriva del
- * **rol efectivo** (el real, o el que el admin esté simulando con «Ver como»),
- * así el profesor ve la interfaz de alumno + «Mis cursos» sin layouts aparte.
+ * Layout de la app autenticada, común a los tres roles. La navegación vive en
+ * un sidebar y se deriva del rol efectivo (real o simulado por el admin).
  */
 export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { rolReal, rolEfectivo, viendoComo, verComo } = useVistaComo()
+  const { viendoComo, verComo } = useVistaComo()
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  const { albumesFavoritos, hidratarFavoritos } = useFavoriteSongsStore()
+  const pistaActiva = usePlayerStore((estado) => estado.pista)
+  const editorCursoMaestro = /^\/maestro\/cursos\/[^/]+\/?$/.test(location.pathname)
+  const cursoDetalle = location.pathname.startsWith('/discipulado/') || editorCursoMaestro
+  const mosaicoTarjetas = location.pathname === '/tarjetas'
+  const paginaVideos = location.pathname.startsWith('/videos')
+  const paginaAlabanza = location.pathname.startsWith('/alabanza')
+  const paginaMentor = location.pathname.startsWith('/chat')
 
-  const enlaces = enlacesPara(rolEfectivo)
-
-  const salir = async () => {
-    await supabase.auth.signOut()
-    navigate('/')
+  const cerrarMenu = useCallback(() => setMenuAbierto(false), [])
+  const migas = construirMigas(location.pathname)
+  const parametros = paginaAlabanza ? new URLSearchParams(location.search) : null
+  const songId = parametros?.get('song')
+  const cancion = buscarCancionDeAlabanza(songId)
+  const categoriaFavoritos = parametros?.get('category') === 'favorites'
+  const collectionId = parametros?.get('collection')
+  const coleccion = albumesFavoritos.find((albumFavorito) => albumFavorito.albumId === collectionId)
+  const albumId = parametros?.get('album') ?? cancion?.albumId
+  const album = buscarAlbumDeAlabanza(albumId)
+  const vistaDeReproduccion = Boolean(cancion)
+  if (coleccion) {
+    migas.push(['/alabanza?category=favorites', 'Álbumes de favoritos'])
+    migas.push([`/alabanza?category=favorites&collection=${encodeURIComponent(coleccion.albumId)}`, coleccion.titulo])
+  } else if (categoriaFavoritos) {
+    migas.push(['/alabanza?category=favorites', 'Álbumes de favoritos'])
+  } else if (album) {
+    migas.push([`/alabanza?album=${encodeURIComponent(album.albumId)}`, album.titulo])
   }
+  if (cancion) migas.push([rutaDeReproduccion(cancion.songId, cancion.albumId, coleccion?.albumId), cancion.titulo])
+
+  useEffect(() => {
+    hidratarFavoritos()
+  }, [hidratarFavoritos])
 
   return (
-    <div className="min-h-screen bg-fondo pb-24">
-      <Nav
-        marca={
-          <Link to="/" className="text-contenido no-underline">
-            El Camino Angosto
-          </Link>
-        }
-        acciones={
-          <>
-            {rolReal === 'ADMIN' && <VerComo activo={viendoComo} onVer={verComo} />}
+    <div className={cn(
+      'min-h-screen bg-fondo',
+      paginaVideos && 'videos-app-shell',
+      paginaMentor && 'mentor-app-shell',
+    )}>
+      <Sidebar abierto={menuAbierto} onCerrar={cerrarMenu} oculto={cursoDetalle} />
+
+      {/* Cabecera solo en móvil: bajo `cine` el sidebar es un cajón. */}
+      <header className={cn('fixed inset-x-0 top-0 z-30 flex items-center gap-aire-s border-b border-linea bg-fondo px-aire-s py-aire-xs cine:hidden', cursoDetalle && 'hidden')}>
+        <button
+          type="button"
+          onClick={() => setMenuAbierto(true)}
+          aria-label="Abrir el menú"
+          aria-expanded={menuAbierto}
+          className="rounded border border-linea p-2 text-contenido transition-colors duration-fade ease-camino hover:border-vino"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" strokeWidth="1.4" />
+          </svg>
+        </button>
+        <Link
+          to="/"
+          aria-label="Ir al inicio"
+          className="min-w-0 overflow-hidden no-underline"
+        >
+          <BrandLogo layout="horizontal" tone="adaptive" size="sm" decorative />
+        </Link>
+      </header>
+
+      <div className={cn(!cursoDetalle && 'cine:pl-[15.5rem]')}>
+        {/* Banner cuando el admin está simulando otro rol. */}
+        {viendoComo && (
+          <div className="sticky top-0 z-20 flex items-center justify-center gap-aire-s bg-vino px-gutter py-2 font-mono text-eyebrow uppercase tracking-label text-hueso">
+            Viendo como {viendoComo === 'MAESTRO' ? 'profesor' : 'estudiante'}
+            <button
+              type="button"
+              onClick={() => {
+                verComo(null)
+                navigate('/admin')
+              }}
+              className="underline decoration-hueso/60 underline-offset-4 hover:decoration-hueso"
+            >
+              Volver a admin
+            </button>
+          </div>
+        )}
+
+        <main className={cn(
+          'relative px-gutter pb-32 pt-[5.5rem] cine:pt-8',
+          paginaVideos && 'videos-shell',
+          paginaAlabanza && 'alabanza-shell',
+          vistaDeReproduccion && 'alabanza-shell--player',
+          paginaMentor && 'mentor-shell',
+        )}>
+          <div className="theme-toggle-anchor flex items-center gap-aire-s">
             <ThemeToggle />
-            <Boton variante="nav" onClick={() => void salir()}>
-              Salir
-            </Boton>
-          </>
-        }
-      >
-        {enlaces.map(({ to, label }) => (
-          <RouterNavLink
-            key={to}
-            to={to}
-            end={to === '/admin'}
-            className={({ isActive }) =>
-              [
-                'font-mono text-label uppercase tracking-label no-underline',
-                'transition-colors duration-fade ease-camino hover:text-contenido',
-                isActive ? 'text-contenido' : 'text-texto-tenue',
-              ].join(' ')
-            }
-          >
-            {label}
-          </RouterNavLink>
-        ))}
-      </Nav>
-
-      {/* Banner cuando el admin está simulando otro rol. */}
-      {viendoComo && (
-        <div className="fixed inset-x-0 top-[5.75rem] z-40 flex items-center justify-center gap-aire-s bg-vino px-gutter py-2 font-mono text-eyebrow uppercase tracking-label text-hueso">
-          Viendo como {viendoComo === 'MAESTRO' ? 'profesor' : 'estudiante'}
-          <button
-            type="button"
-            onClick={() => {
-              verComo(null)
-              navigate('/admin')
-            }}
-            className="underline decoration-hueso/60 underline-offset-4 hover:decoration-hueso"
-          >
-            Volver a admin
-          </button>
-        </div>
-      )}
-
-      <main className={`px-gutter ${viendoComo ? 'pt-40' : 'pt-32'}`}>
-        <PageTransition key={location.pathname}>
-          <Outlet />
-        </PageTransition>
-      </main>
+          </div>
+          <nav aria-label="Ruta actual" className="relative -top-1 mb-aire-xs hidden h-10 items-center gap-aire-xs md:flex">
+            {migas.map(([to, label], index) => (
+              <span key={`${to}-${label}`} className="flex items-center gap-aire-xs">
+                {index > 0 && <span className="font-mono text-eyebrow text-texto-debil">›</span>}
+                <NavLink
+                  to={to}
+                  className={cn(
+                    'font-mono text-[0.6rem] uppercase tracking-[0.12em] no-underline transition-colors duration-fade',
+                    index === migas.length - 1
+                      ? 'text-contenido underline decoration-vino decoration-2 underline-offset-8'
+                      : 'text-texto-tenue hover:text-contenido',
+                  )}
+                >
+                  {label}
+                </NavLink>
+              </span>
+            ))}
+          </nav>
+          {cursoDetalle ? (
+            /* El panel de lecciones usa position:fixed; se mantiene fuera del
+               wrapper animado para conservar el viewport de sus columnas. */
+            <div key={location.pathname} className="course-interface-transition">
+              <Outlet />
+            </div>
+          ) : mosaicoTarjetas ? (
+            /* El mosaico ya prepara su posición antes de pintar. Evitamos la
+               máscara general de entrada porque durante ese barrido dejaba ver
+               una franja negra junto al sidebar. */
+            <div key={location.pathname} className="main-interface-static">
+              <Outlet />
+            </div>
+          ) : (
+            <PageTransition key={location.pathname} className="main-interface-transition">
+              <Outlet />
+            </PageTransition>
+          )}
+        </main>
+      </div>
 
       {/* Persiste entre navegaciones: vive fuera del <Outlet /> (HU-2.1). */}
-      <PlayerBar />
+      {pistaActiva && (
+        <Suspense fallback={null}>
+          <PlayerBar />
+        </Suspense>
+      )}
     </div>
-  )
-}
-
-/** Control «Ver como» del admin (estudiante / profesor). */
-function VerComo({ activo, onVer }: { activo: Role | null; onVer: (r: Role | null) => void }) {
-  const navigate = useNavigate()
-  const ver = (role: Role, destino: string) => {
-    onVer(role)
-    navigate(destino)
-  }
-  return (
-    <div className="hidden items-center gap-1 cine:flex">
-      <span className="font-mono text-eyebrow uppercase tracking-label text-texto-debil">
-        Ver como
-      </span>
-      <BotonMini activo={activo === 'ESTUDIANTE'} onClick={() => ver('ESTUDIANTE', '/discipulado')}>
-        Alumno
-      </BotonMini>
-      <BotonMini activo={activo === 'MAESTRO'} onClick={() => ver('MAESTRO', '/maestro/cursos')}>
-        Profesor
-      </BotonMini>
-    </div>
-  )
-}
-
-function BotonMini({
-  activo,
-  onClick,
-  children,
-}: {
-  activo: boolean
-  onClick: () => void
-  children: string
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        'rounded border px-aire-xs py-1 font-mono text-eyebrow uppercase tracking-label',
-        'transition-colors duration-fade ease-camino',
-        activo
-          ? 'border-vino bg-vino/10 text-contenido'
-          : 'border-linea text-texto-tenue hover:border-vino hover:text-contenido',
-      ].join(' ')}
-    >
-      {children}
-    </button>
   )
 }

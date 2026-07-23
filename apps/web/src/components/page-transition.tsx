@@ -1,16 +1,8 @@
-import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
 
-/** Curva única del sistema: ease-out lento, sin rebote (DESIGN.md §5). */
-const EASE = [0.22, 0.61, 0.36, 1] as const
-
 /**
- * Anima la entrada de una pantalla al montarse: fade + leve translateY.
- * Da la sensación de transición al pasar de la landing al login y del login a
- * la plataforma.
- *
- * `MotionConfig reducedMotion="user"` (en main.tsx) neutraliza el movimiento
- * para quien lo pida (RNF-6): el contenido aparece sin desplazarse.
+ * Entrada compositada de una pantalla. Se limita a opacity + transform para no
+ * crear máscaras de pintura completa ni mantener Framer en el shell inicial.
  */
 export function PageTransition({
   children,
@@ -19,14 +11,5 @@ export function PageTransition({
   children: ReactNode
   className?: string
 }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE }}
-    >
-      {children}
-    </motion.div>
-  )
+  return <div className={['page-transition', className].filter(Boolean).join(' ')}>{children}</div>
 }

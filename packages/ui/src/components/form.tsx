@@ -20,6 +20,8 @@ export interface FieldProps {
   label?: string
   htmlFor?: string
   error?: string | undefined
+  /** ID que referencia `aria-describedby` en el control asociado. */
+  errorId?: string | undefined
   /** Texto de ayuda bajo la etiqueta. */
   hint?: string
   children: ReactNode
@@ -27,7 +29,7 @@ export interface FieldProps {
 }
 
 /** Envoltorio etiqueta + control + error. Estructura accesible consistente. */
-export function Field({ label, htmlFor, error, hint, children, className }: FieldProps) {
+export function Field({ label, htmlFor, error, errorId, hint, children, className }: FieldProps) {
   return (
     <div className={cn('flex flex-col gap-aire-xs', className)}>
       {label && (
@@ -38,10 +40,12 @@ export function Field({ label, htmlFor, error, hint, children, className }: Fiel
           {label}
         </label>
       )}
-      {hint && <p className="m-0 font-mono text-body-s text-texto-debil">{hint}</p>}
       {children}
+      {/* La ayuda va DEBAJO del control: encima descuadraría la altura de los
+          campos cuando varios comparten fila en una rejilla. */}
+      {hint && <p className="m-0 font-mono text-body-s text-texto-debil">{hint}</p>}
       {error && (
-        <p role="alert" className="m-0 font-mono text-body-s text-vino">
+        <p id={errorId} role="alert" className="m-0 font-mono text-body-s text-vino">
           {error}
         </p>
       )}

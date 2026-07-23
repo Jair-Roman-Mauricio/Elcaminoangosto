@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
 import type { AuthError } from '@supabase/supabase-js'
-import { Boton, Eyebrow, Verse } from '@elcamino/ui'
+import { BrandLogo, Boton, Eyebrow, Field, Input, Verse } from '@elcamino/ui'
 import { supabase } from '../lib/supabase'
 import { useSession, usePerfil } from '../auth/session'
 import { PageTransition } from '../components/page-transition'
-import { PanelCurvo, FONDO_PANEL } from './panel-curvo'
+import { navegarConTransicion } from '../components/view-transition'
+import { PasswordField } from '../components/password-field'
+import { PanelCurvo } from './panel-curvo'
 
 /** Curva del sistema (DESIGN.md §5). */
 const EASE = [0.22, 0.61, 0.36, 1] as const
@@ -28,7 +30,7 @@ type Modo = 'entrar' | 'registrarse'
  * `crear_perfil_al_registrarse` inserta la fila en `profiles` con rol
  * ESTUDIANTE. El front nunca decide el rol.
  *
- * El fondo es la fotografía limpia (`/brand/paisaje.jpg`). La banda oscura y
+ * El fondo es la fotografía limpia (`/brand/paisaje.webp`). La banda oscura y
  * su curva **no vienen en la imagen**: se dibujan con `PanelCurvo`, así se
  * adaptan a cualquier ancho y el formulario nunca se queda sin sitio.
  *
@@ -50,6 +52,9 @@ function esCorreoExistente(error: AuthError): boolean {
 /** Traduce los errores de Supabase Auth a mensajes claros en español. */
 function mensajeDeError(error: AuthError): string {
   const code = error.code ?? ''
+  if (code === 'email_address_not_authorized') {
+    return 'No pudimos enviar el correo de verificación. El servicio de correo aún no está habilitado para esta dirección.'
+  }
   if (code === 'invalid_credentials' || /invalid login credentials/i.test(error.message)) {
     return 'Correo o contraseña incorrectos. Revisa tus datos.'
   }
@@ -65,15 +70,24 @@ function mensajeDeError(error: AuthError): string {
   return 'No se pudo completar. Inténtalo de nuevo en un momento.'
 }
 
+function esCorreoNoConfirmado(error: AuthError): boolean {
+  return error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)
+}
+
 export function EntrarPage() {
   // La landing enlaza a `/entrar?registro=1` desde su CTA de cierre.
   const [params] = useSearchParams()
   const [modo, setModo] = useState<Modo>(params.has('registro') ? 'registrarse' : 'entrar')
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
-  const [aviso, setAviso] = useState<Aviso>(null)
+  const [aviso, setAviso] = useState<Aviso>(
+    params.get('clave') === 'actualizada'
+      ? { tipo: 'exito', texto: 'Contraseña actualizada. Ya puedes iniciar sesión.' }
+      : null,
+  )
   const { session } = useSession()
   const { data: perfil } = usePerfil()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const {
     register,
@@ -81,14 +95,29 @@ export function EntrarPage() {
     formState: { errors, isSubmitting },
   } = useForm<Credenciales>({ resolver: zodResolver(CredencialesSchema) })
 
-  if (session) {
+  const transiciónEnCurso = useRef(false)
+  useEffect(() => {
+    // Una sesión solo puede disparar la entrada desde el formulario de login.
+    // Si Auth estuviera mal configurado y `signUp` devolviera sesión inmediata,
+    // el modo registro debe permanecer bloqueado mientras la cerramos.
+    if (modo !== 'entrar' || !session || transiciónEnCurso.current) return
     const desde = (location.state as { desde?: string } | null)?.desde
-    if (desde) return <Navigate to={desde} replace />
-    // Sin destino previo, el inicio depende del rol: el admin va a su panel;
-    // el profesor y el estudiante, al discipulado. Se espera al perfil.
-    if (perfil) {
-      return <Navigate to={perfil.role === 'ADMIN' ? '/admin' : '/discipulado'} replace />
-    }
+    const destino = desde ?? (perfil
+      ? perfil.role === 'ADMIN'
+        ? '/admin'
+        : perfil.role === 'MAESTRO'
+          ? '/maestro/cursos'
+          : '/discipulado'
+      : null)
+    if (!destino) return
+    transiciónEnCurso.current = true
+    navegarConTransicion(() => navigate(destino, { replace: true }))
+  }, [location.state, modo, navigate, perfil, session])
+
+  // Tras iniciar sesión se conserva el fondo oscuro mientras el perfil termina
+  // de cargar y la transición hacia la plataforma puede comenzar. El registro
+  // usa su propia transición directa y no pasa por este estado.
+  if (session && modo === 'entrar') {
     return <div className="min-h-screen bg-negro" />
   }
 
@@ -99,14 +128,24 @@ export function EntrarPage() {
 
     if (modo === 'entrar') {
       const { error } = await supabase.auth.signInWithPassword({ email: correo, password })
-      if (error) setErrorServidor(mensajeDeError(error))
+      if (error) {
+        if (esCorreoNoConfirmado(error)) {
+          navigate('/verificar-correo', { state: { correo } })
+        } else {
+          setErrorServidor(mensajeDeError(error))
+        }
+      }
       return
     }
 
+    const emailRedirectTo = new URL('/verificar-correo', window.location.origin).toString()
     const { data, error } = await supabase.auth.signUp({
       email: correo,
       password,
-      options: { data: { display_name: displayName ?? correo.split('@')[0] } },
+      options: {
+        data: { display_name: displayName ?? correo.split('@')[0] },
+        emailRedirectTo,
+      },
     })
     if (error) {
       // Si el correo ya existe, no es un fallo: se lleva al usuario a iniciar
@@ -123,17 +162,18 @@ export function EntrarPage() {
       return
     }
 
-    // Con auto-confirmación, `signUp` devuelve sesión y el SessionProvider
-    // redirige solo; mostramos un éxito breve por si la redirección tarda.
-    // Sin sesión, la confirmación por correo está activa: hay que avisar.
+    // Este flujo es deliberadamente fail-closed: una sesión inmediata significa
+    // que Supabase tiene la confirmación desactivada. Nunca dejamos entrar esa
+    // cuenta desde el registro, porque todavía no demostró acceso al correo.
     if (data.session) {
-      setAviso({ tipo: 'exito', texto: '¡Cuenta creada! Entrando…' })
-    } else {
-      setAviso({
-        tipo: 'confirmar',
-        texto: `Te enviamos un correo a ${correo}. Confírmalo para entrar.`,
-      })
+      await supabase.auth.signOut({ scope: 'local' })
+      setErrorServidor('El registro seguro no está disponible en este momento. Inténtalo más tarde.')
+      return
     }
+
+    // La pantalla comparte composición con el registro, por eso el cambio es
+    // inmediato y sin la transición de interfaz completa.
+    navigate('/verificar-correo', { replace: true, state: { correo } })
   }
 
   const esRegistro = modo === 'registrarse'
@@ -146,9 +186,11 @@ export function EntrarPage() {
       {/* Fotografía limpia, sin textos ni banda quemada. En móvil se encuadra
           sobre el sendero; en escritorio, sobre el valle. */}
       <img
-        src="/brand/paisaje.jpg"
+        src="/brand/paisaje.webp"
         alt=""
         aria-hidden
+        width={1535}
+        height={1024}
         className="absolute inset-0 h-full w-full object-cover object-[47%_42%] md:object-center"
         fetchPriority="high"
       />
@@ -176,14 +218,7 @@ export function EntrarPage() {
             el documento. En móvil encabeza la columna; en escritorio ocupa su
             propia columna sobre el paisaje. */}
         <div className="flex flex-col items-center justify-center gap-aire-s px-gutter pt-aire-l text-center md:min-h-screen md:gap-aire-m md:pt-0">
-          <MarcaCruz className="h-10 w-10 text-texto-tenue md:h-14 md:w-14" />
-
-          <h1 className="m-0 font-mono text-h-m font-normal uppercase leading-tight tracking-label text-hueso md:text-h-l">
-            {/* El salto solo existe en escritorio; el espacio que lo precede
-                mantiene «El Camino Angosto» en una línea cuando se oculta. */}
-            El Camino <br className="hidden md:block" />
-            Angosto
-          </h1>
+          <BrandLogo layout="horizontal" tone="light" size="lg" />
 
           <span aria-hidden className="h-px w-12 bg-vino md:w-16" />
 
@@ -194,7 +229,9 @@ export function EntrarPage() {
           </p>
 
           <div className="mt-aire-m hidden max-w-xs md:block">
-            <Verse referencia="Juan 14:6">«Yo soy el camino, la verdad y la vida.»</Verse>
+            <Verse variante="login" referencia="Juan 14:6">
+              «Yo soy el camino, la verdad y la vida.»
+            </Verse>
           </div>
         </div>
 
@@ -212,7 +249,7 @@ export function EntrarPage() {
                   transition={{ duration: 0.3, ease: EASE }}
                 >
                   <Eyebrow>{esRegistro ? 'Crear cuenta' : 'Iniciar sesión'}</Eyebrow>
-                  <h2 className="m-0 font-mono text-h-m font-normal text-hueso">
+                  <h2 className="m-0 font-ui text-h-l font-medium tracking-titulo text-hueso">
                     {esRegistro ? 'Comienza tu camino' : 'Continúa tu camino'}
                   </h2>
                 </motion.div>
@@ -254,10 +291,9 @@ export function EntrarPage() {
                 {...register('email')}
               />
 
-              <Campo
+              <PasswordField
                 id="password"
                 label="Contraseña"
-                type="password"
                 autoComplete={esRegistro ? 'new-password' : 'current-password'}
                 placeholder={esRegistro ? 'Mínimo 8 caracteres' : '••••••••'}
                 error={errors.password?.message}
@@ -267,14 +303,15 @@ export function EntrarPage() {
               {!esRegistro && (
                 <Link
                   to="/recuperar"
-                  className="self-end font-mono text-eyebrow uppercase tracking-label text-texto-tenue no-underline underline-offset-[0.45em] transition-colors duration-fade ease-camino hover:text-hueso hover:underline hover:decoration-marino"
+                  data-sin-transicion
+                  className="relative self-end font-mono text-eyebrow uppercase tracking-label text-texto-tenue no-underline transition-colors duration-fade ease-camino hover:text-hueso after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-vino after:transition-[width] after:duration-fade after:ease-camino hover:after:w-full focus-visible:after:w-full"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
               )}
 
               {errorServidor && (
-                <p role="alert" className="m-0 font-mono text-body-s text-vino">
+                <p role="alert" className="m-0 font-ui text-body-s text-vino">
                   {errorServidor}
                 </p>
               )}
@@ -283,7 +320,7 @@ export function EntrarPage() {
                 <p
                   role="status"
                   className={[
-                    'm-0 rounded border px-aire-s py-aire-xs font-mono text-body-s',
+                    'm-0 rounded border px-aire-s py-aire-xs font-ui text-body-s',
                     aviso.tipo === 'exito'
                       ? 'border-exito/40 text-exito'
                       : 'border-linea text-texto-tenue',
@@ -294,8 +331,13 @@ export function EntrarPage() {
                 </p>
               )}
 
-              <Boton type="submit" disabled={isSubmitting} className="mt-aire-xs w-full">
-                {isSubmitting ? 'Un momento…' : esRegistro ? 'Registrarme' : 'Entrar'}
+              <Boton
+                variante="formulario"
+                type="submit"
+                disabled={isSubmitting || Boolean(session)}
+                className="mt-aire-xs w-full"
+              >
+                {isSubmitting || session ? 'Un momento…' : esRegistro ? 'Registrarme' : 'Entrar'}
               </Boton>
             </form>
 
@@ -305,6 +347,7 @@ export function EntrarPage() {
               </p>
               <Boton
                 variante="sutil"
+                className="relative no-underline after:absolute after:bottom-[0.35rem] after:left-0 after:h-[2px] after:w-0 after:bg-vino after:transition-[width] after:duration-fade after:ease-camino hover:after:w-full focus-visible:after:w-full"
                 onClick={() => {
                   setModo(esRegistro ? 'entrar' : 'registrarse')
                   setErrorServidor(null)
@@ -317,7 +360,7 @@ export function EntrarPage() {
 
             <Link
               to="/"
-              className="self-center font-mono text-eyebrow uppercase tracking-label text-texto-debil no-underline transition-colors duration-fade ease-camino hover:text-texto-tenue"
+              className="relative self-center font-mono text-eyebrow uppercase tracking-label text-texto-debil no-underline transition-colors duration-fade ease-camino hover:text-texto-tenue after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-vino after:transition-[width] after:duration-fade after:ease-camino hover:after:w-full focus-visible:after:w-full"
             >
               ← Volver al recorrido
             </Link>
@@ -328,52 +371,27 @@ export function EntrarPage() {
   )
 }
 
-/** Cruz bajo un arco. Trazo, no relleno: hereda `currentColor`. */
-function MarcaCruz({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 48 48" fill="none" aria-hidden focusable="false" className={className}>
-      <path
-        d="M10 46V20a14 14 0 0 1 28 0v26"
-        stroke="currentColor"
-        strokeWidth={1.4}
-        strokeLinecap="round"
-      />
-      <path d="M24 12v26M16 21h16" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
-    </svg>
-  )
-}
-
 // `ComponentPropsWithRef` (no `InputHTMLAttributes`): react-hook-form pasa un
 // `ref` en el objeto de `register()`. React 19 lo acepta como prop normal.
-interface CampoProps extends React.ComponentPropsWithRef<'input'> {
+interface CampoProps extends React.ComponentPropsWithRef<typeof Input> {
   id: string
   label: string
   error?: string | undefined
 }
 
 const Campo = ({ id, label, error, ...props }: CampoProps) => (
-  <div className="flex flex-col gap-aire-xs">
-    <label htmlFor={id} className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
-      {label}
-    </label>
-    <input
+  <Field label={label} htmlFor={id} error={error} errorId={error ? `${id}-error` : undefined}>
+    <Input
       id={id}
       aria-invalid={Boolean(error)}
       aria-describedby={error ? `${id}-error` : undefined}
-      style={{ backgroundColor: `${FONDO_PANEL}b3` }}
       className={[
-        'rounded border px-aire-s py-aire-xs',
-        'font-mono text-body text-hueso placeholder:text-texto-debil',
-        'transition-colors duration-fade ease-camino',
-        // Foco: outline hueso, nunca glow (DESIGN.md §2).
-        error ? 'border-vino' : 'border-linea hover:border-linea-fuerte',
+        'rounded-none border-0 border-b px-0 py-aire-xs',
+        'font-ui text-body text-hueso placeholder:text-texto-debil',
+        'hover:border-linea-fuerte focus:border-hueso',
+        error ? 'border-vino' : 'border-linea',
       ].join(' ')}
       {...props}
     />
-    {error && (
-      <p id={`${id}-error`} role="alert" className="m-0 font-mono text-body-s text-vino">
-        {error}
-      </p>
-    )}
-  </div>
+  </Field>
 )

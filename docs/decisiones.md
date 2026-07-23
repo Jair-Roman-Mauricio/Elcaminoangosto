@@ -100,7 +100,7 @@ La **landing real manda**. Se reescribió `DESIGN.md` por completo, token por to
 
 ## ADR-005 — Registro sin confirmación de correo en el MVP
 
-**Fecha:** 2026-07-10 · **Estado:** Aceptada (decidida por el responsable humano)
+**Fecha:** 2026-07-10 · **Estado:** Reemplazada por ADR-009
 
 **Contexto.** El proyecto Supabase remoto nacía con la confirmación de correo **activada** (`mailer_autoconfirm: false`). Un usuario recién registrado quedaba `Waiting for verification` y no podía iniciar sesión (`Email not confirmed`). Además, no hay proveedor de correo (SMTP) configurado, así que el correo de confirmación nunca llegaba: el registro era una vía muerta.
 
@@ -154,6 +154,32 @@ La abstracción `MediaProvider` (Strategy) y la generación de derivados quedan 
 - **ADR-001 queda revisado** en su punto "no hay tema claro"; el resto (paleta, tipografía, easing) sigue vigente. `DESIGN.md` §2 se actualiza.
 
 ---
+
+## ADR-008 — La marca adopta un lockup de símbolo + wordmark
+
+**Fecha:** 2026-07-14 · **Estado:** Aceptada
+
+**Contexto.** La landing y el login usaban texto y una cruz aislada como marca. Eso no daba un identificador único ni una versión consistente para la plataforma, el favicon y los tamaños pequeños.
+
+**Decisión.** La identidad usa un símbolo SVG de puerta angosta, cruz y camino convergente, acompañado por el wordmark `ElCaminoAngosto`. El sistema se entrega en variantes de color claro, oscuro y vino, además de un lockup horizontal y un mark independiente. El componente `BrandLogo` vive en `packages/ui` y se reutiliza en landing, login, cabecera móvil y sidebar.
+
+**Consecuencias.** La marca es legible y escalable sin depender de una imagen raster. La exploración raster queda documentada en `apps/web/public/brand/logo/el-camino-logo-exploraciones.png`; los SVG son los assets de producción.
+
+---
+
+## ADR-009 — El correo debe confirmarse antes de iniciar una sesión
+
+**Fecha:** 2026-07-21 · **Estado:** Aceptada
+
+**Contexto.** La recuperación de contraseña depende de que el usuario controle una dirección real. El registro sin confirmación permitía crear cuentas con correos inexistentes o ajenos y dejaba a esas personas sin una vía de recuperación.
+
+**Decisión.** Reactivar la confirmación de Supabase (`mailer_autoconfirm: false`), enviar cada registro a `/verificar-correo` y considerar inválida en el cliente cualquier sesión que no tenga `email_confirmed_at`. El despliegue aplica la configuración de Auth y conserva en la lista permitida las rutas de verificación y recuperación de todos los entornos conocidos.
+
+**Consecuencias.**
+- El registro solo se completa cuando el usuario abre el enlace recibido.
+- Los correos inexistentes no pueden activar una cuenta ni recuperar su contraseña.
+- Producción necesita SMTP propio para una entrega fiable y límites adecuados.
+- Las cuentas creadas anteriormente con confirmación automática conservan su estado de Supabase; deben auditarse o corregirse administrativamente si se sospecha que usan correos falsos.
 
 ## Preguntas abiertas
 

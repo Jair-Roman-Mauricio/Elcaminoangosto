@@ -19,13 +19,13 @@ port = 54323
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173"]
+additional_redirect_urls = ["http://localhost:5173", "http://localhost:5173/restablecer-contrasena", "http://localhost:5173/verificar-correo"]
 jwt_expiry = 3600
 enable_signup = true
 
 [auth.email]
 enable_signup = true
-enable_confirmations = false
+enable_confirmations = true
 
 [storage]
 enabled = true

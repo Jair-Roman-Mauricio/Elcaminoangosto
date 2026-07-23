@@ -13,20 +13,26 @@ interface ContextoDeSesion {
 
 const SesionContext = createContext<ContextoDeSesion>({ session: null, cargando: true })
 
+/** Una cuenta por correo no entra a la app hasta demostrar acceso a él. */
+function sesionConCorreoVerificado(session: Session | null): Session | null {
+  if (!session) return null
+  return session.user.email_confirmed_at ? session : null
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
+      setSession(sesionConCorreoVerificado(data.session))
       setCargando(false)
     })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_evento, nuevaSesion) => {
-      setSession(nuevaSesion)
+      setSession(sesionConCorreoVerificado(nuevaSesion))
     })
 
     return () => subscription.unsubscribe()
