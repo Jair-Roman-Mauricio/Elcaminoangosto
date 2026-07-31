@@ -34,6 +34,18 @@ export function Modal({
   const origen = useRef<HTMLElement | null>(null)
   const reduced = useReducedMotion()
 
+  /**
+   * `onCerrar` casi siempre llega como función anónima, así que cambia de
+   * identidad en cada render del padre. Guardarla en una ref permite que el
+   * efecto de apertura dependa SOLO de `abierto`: si dependiera también de
+   * `onCerrar`, cada pulsación de tecla lo volvería a ejecutar y el foco
+   * saltaría al primer control del diálogo — imposible escribir en un campo.
+   */
+  const alCerrar = useRef(onCerrar)
+  useEffect(() => {
+    alCerrar.current = onCerrar
+  }, [onCerrar])
+
   useEffect(() => {
     if (!abierto) return
 
@@ -44,7 +56,7 @@ export function Modal({
     document.body.style.overflow = 'hidden'
 
     const alPulsar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCerrar()
+      if (e.key === 'Escape') alCerrar.current()
     }
     document.addEventListener('keydown', alPulsar)
 
@@ -60,7 +72,7 @@ export function Modal({
       document.body.style.overflow = overflowPrevio
       origen.current?.focus()
     }
-  }, [abierto, onCerrar])
+  }, [abierto])
 
   const duracion = reduced ? 0.01 : 0.25
 
