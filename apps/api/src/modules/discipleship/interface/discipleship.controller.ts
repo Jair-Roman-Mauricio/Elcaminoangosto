@@ -10,6 +10,7 @@ import {
 } from '../../shared'
 
 const InscribirseSchema = z.object({ courseId: z.string().uuid() })
+const CalificarSchema = z.object({ respuestas: z.array(z.number().int()).max(20) })
 
 const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank: u.levelRank })
 
@@ -45,6 +46,16 @@ export class DiscipleshipController {
   @ApiOperation({ summary: 'Marcar una lección como completada (HU-4.2)' })
   async completar(@CurrentUser() user: CurrentUserContext, @Param('id') lessonId: string) {
     return this.discipleship.completarLeccion(actorDe(user), lessonId)
+  }
+
+  @Post('lessons/:id/grade')
+  @ApiOperation({ summary: 'Calificar una evaluación en el servidor' })
+  async calificar(
+    @CurrentUser() user: CurrentUserContext,
+    @Param('id') lessonId: string,
+    @Body(new ZodValidationPipe(CalificarSchema)) body: { respuestas: number[] },
+  ) {
+    return this.discipleship.calificarEvaluacion(actorDe(user), lessonId, body.respuestas)
   }
 
   @Get('courses/:id/roster')

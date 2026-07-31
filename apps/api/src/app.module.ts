@@ -12,6 +12,7 @@ import { AuthModule, SupabaseAuthGuard } from './modules/auth'
 import { UsersModule } from './modules/users'
 import { MusicModule } from './modules/music'
 import { FeedModule } from './modules/feed'
+import { VideosModule } from './modules/videos'
 import { DiscipleshipModule } from './modules/discipleship'
 import { ChatModule } from './modules/chat'
 import { MediaModule } from './modules/media'
@@ -51,6 +52,7 @@ import { NotificationsModule } from './modules/notifications'
     MusicModule,
     MediaModule,
     FeedModule,
+    VideosModule,
     DiscipleshipModule,
     ChatModule,
     AdminModule,

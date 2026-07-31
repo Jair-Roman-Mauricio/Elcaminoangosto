@@ -122,7 +122,9 @@ function CursoCard({ curso }: { curso: CatalogItem }) {
     <Card
       titulo={curso.title}
       meta={`${curso.teacherName} · ${curso.lessonCount} lecciones`}
-      media={<CursoMedia bloqueado={!curso.unlocked} />}
+      {...(curso.coverImageUrl
+        ? { thumbnailUrl: curso.coverImageUrl, thumbnailAlt: `Portada de ${curso.title}` }
+        : { media: <CursoMedia bloqueado={!curso.unlocked} /> })}
       className={`course-catalog-card !border-0 !rounded-none${curso.unlocked ? ' is-unlocked' : ' opacity-80'}`}
     >
       <div className="flex flex-wrap gap-2">

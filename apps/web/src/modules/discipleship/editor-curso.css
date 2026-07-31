@@ -129,6 +129,16 @@
   text-align: center;
 }
 
+/* Vista «Añadir contenido»: usa todo el ancho, no la columna de lectura de 68rem. */
+.teacher-course-editor__content-form {
+  display: flex;
+  width: 100%;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: clamp(2rem, 5vh, 3.5rem) clamp(1.5rem, 4vw, 4rem);
+}
+
 .teacher-course-editor__eyebrow,
 .teacher-course-editor__overview-label,
 .teacher-course-editor__purpose > span {
@@ -347,13 +357,32 @@
   line-height: 1.65;
 }
 
-.teacher-course-editor__learning li > span {
+/* Viñeta de cada objetivo (clase propia: nunca afecta al texto). */
+.teacher-course-editor__bullet {
   width: 0.55rem;
   height: 0.55rem;
   margin-top: 0.45rem;
   flex: 0 0 auto;
   border: 1px solid var(--vino);
   background: color-mix(in srgb, var(--vino) 15%, transparent);
+}
+
+.teacher-course-editor__obj-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.teacher-course-editor__obj-quitar {
+  flex: 0 0 auto;
+  margin-left: 0.5rem;
+  color: var(--texto-tenue);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+.teacher-course-editor__obj-quitar:hover {
+  color: var(--vino);
 }
 
 .teacher-course-editor__learning > p,
@@ -367,15 +396,17 @@
 .teacher-course-editor__metrics {
   display: grid;
   margin: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
   padding-bottom: 2.5rem;
   border-bottom: 1px solid var(--linea);
+  text-align: center;
 }
 
 .teacher-course-editor__metrics div {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.45rem;
 }
 
@@ -527,36 +558,47 @@
   border-bottom: 1px solid var(--linea);
 }
 
-.teacher-course-editor__module > header {
+.teacher-course-editor__module-header {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 1.35rem 1.5rem;
+  border: none;
   background: var(--superficie-2);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 180ms ease;
 }
 
-.teacher-course-editor__module > header > span {
+.teacher-course-editor__module-header:hover {
+  background: var(--superficie-1);
+}
+
+.teacher-course-editor__module-header > span {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 0.3rem;
 }
 
-.teacher-course-editor__module header strong {
+.teacher-course-editor__module-header strong {
   font-family: var(--ui);
   font-size: 0.95rem;
+  color: var(--contenido);
 }
 
-.teacher-course-editor__module header small {
+.teacher-course-editor__module-header small {
   color: var(--texto-tenue);
   font-family: var(--mono);
   font-size: 0.72rem;
 }
 
-.teacher-course-editor__module header svg {
+.teacher-course-editor__module-header svg {
   width: 1rem;
   flex: 0 0 auto;
+  color: var(--contenido);
 }
 
 .teacher-course-editor__module ol {
@@ -573,7 +615,8 @@
   display: grid;
   width: 100%;
   min-height: 3.8rem;
-  grid-template-columns: 1.35rem 1.35rem minmax(0, 1fr);
+  /* 4ª columna: la marca de moderación, ausente cuando el contenido está aprobado. */
+  grid-template-columns: 1.35rem 1.35rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
   padding: 0.9rem 1.5rem;
@@ -592,6 +635,32 @@
   width: 1.35rem;
   height: 1.35rem;
   border: 2px solid currentColor;
+}
+
+/* Marca de moderación del contenido (HU-7.2): hereda el color del ítem para
+   seguir legible sobre el estado activo/hover y en tema claro u oscuro. */
+.teacher-course-editor__lesson-flag {
+  padding: 0.2rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: inherit;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  /* Caja normal, igual que el `Chip` mini: en mayúsculas la marca se ensancha
+     y compite con el título de la lección. */
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+
+.teacher-course-editor__lesson-flag.is-blocked {
+  border-color: var(--vino);
+  color: var(--vino);
+}
+
+.teacher-course-editor__module li button:hover .teacher-course-editor__lesson-flag.is-blocked,
+.teacher-course-editor__module li button.is-active .teacher-course-editor__lesson-flag.is-blocked {
+  border-color: currentColor;
+  color: inherit;
 }
 
 .teacher-course-editor__lesson-icon {
@@ -628,6 +697,7 @@
 
 .teacher-course-editor__form-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.75rem;
 }

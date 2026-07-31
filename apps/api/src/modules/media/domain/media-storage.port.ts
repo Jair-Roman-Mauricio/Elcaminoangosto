@@ -5,6 +5,9 @@
 export abstract class MediaStoragePort {
   /** URL firmada de corta vida para leer un objeto privado. */
   abstract signedUrl(bucket: string, path: string, ttlSeconds: number): Promise<string>
+
+  /** Borra uno o varios objetos de un bucket (idempotente). */
+  abstract remove(bucket: string, paths: string[]): Promise<void>
 }
 
 /**

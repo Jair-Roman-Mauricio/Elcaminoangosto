@@ -6,6 +6,15 @@ export interface FeedCard {
   authorName: string
   type: 'VIDEO' | 'IMAGE'
   caption: string | null
+  /** Ficha del lienzo. Nula en tarjetas sin rellenar: el cliente la completa. */
+  title: string | null
+  manifesto: string | null
+  /** Relato; los párrafos vienen separados por una línea en blanco. */
+  story: string | null
+  origin: string | null
+  reference: string | null
+  /** URL firmada del relato hablado, si lo tiene. */
+  audioUrl: string | null
   mediaUrl: string
   posterUrl: string | null
   publishedAt: string | null

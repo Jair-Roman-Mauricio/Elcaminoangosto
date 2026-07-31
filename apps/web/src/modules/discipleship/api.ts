@@ -11,6 +11,7 @@ export interface CatalogItem {
   thumbnailAssetId: string | null
   requiredLevelRank: number | null
   isFree: boolean
+  coverImageUrl: string | null
   teacherName: string
   moduleCount: number
   lessonCount: number
@@ -24,12 +25,25 @@ export interface Lesson {
   id: string
   moduleId: string
   title: string
-  type: 'VIDEO' | 'TEXT' | 'EXAM'
+  type: 'VIDEO' | 'TEXT' | 'EXAM' | 'IMAGE'
   content: string | null
   mediaAssetId: string | null
+  /** URL firmada de reproducción (video ya procesado); null si aún no está listo. */
+  videoUrl?: string | null
+  /** Preguntas de la evaluación. `correcta` solo llega en el preview del maestro. */
+  questions?: PreguntaLeccion[]
   orderIndex: number
   durationSeconds: number | null
   resources?: LessonResource[]
+  /** Estado de moderación (HU-7.2): APPROVED | PENDING | BLOCKED. */
+  moderationStatus?: 'APPROVED' | 'PENDING' | 'BLOCKED'
+}
+
+export interface PreguntaLeccion {
+  enunciado: string
+  opciones: string[]
+  /** Índice correcto; presente solo para el maestro (nunca para el alumno). */
+  correcta?: number
 }
 
 export interface LessonResource {
@@ -56,6 +70,9 @@ export interface CourseDetail {
   enrolled: boolean
   progressPct: number
   completedLessonIds: string[]
+  learningObjectives: string[]
+  purpose: string | null
+  coverImageUrl: string | null
   modules: CourseModule[]
 }
 
@@ -98,6 +115,29 @@ export function useCompleteLesson(slug: string) {
     onSuccess: () => {
       // La ficha ya trae `completedLessonIds` y `progressPct`: refrescarla
       // actualiza los checks y la barra sin un endpoint de progreso aparte.
+      void qc.invalidateQueries({ queryKey: ['course', slug] })
+      void qc.invalidateQueries({ queryKey: ['catalog'] })
+    },
+  })
+}
+
+export interface ResultadoExamen {
+  resultados: boolean[]
+  aciertos: number
+  total: number
+  aprobado: boolean
+  progressPct: number | null
+}
+
+/** Califica una evaluación en el servidor (las respuestas correctas no salen al cliente). */
+export function useGradeExam(slug: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { lessonId: string; respuestas: number[] }) =>
+      apiClient.post<ResultadoExamen>(`/discipleship/lessons/${input.lessonId}/grade`, {
+        respuestas: input.respuestas,
+      }),
+    onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['course', slug] })
       void qc.invalidateQueries({ queryKey: ['catalog'] })
     },

@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common'
 import {
   BucketSchema,
   MediaKindSchema,
@@ -13,6 +18,9 @@ import type { Actor } from '../../shared'
 
 /** Extensiones aceptadas por tipo. La ruta la construye el API, no el cliente. */
 const EXT: Record<MediaKind, string> = { VIDEO: 'mp4', AUDIO: 'mp3', IMAGE: 'jpg' }
+
+/** Margen para encolar antes de dar la cola por caída. */
+const ENQUEUE_TIMEOUT_MS = 5_000
 
 /**
  * API pública del bounded context `media`. Ingesta (subida reanudable),
@@ -51,17 +59,52 @@ export class MediaService {
   }
 
   /**
-   * HU-8.2 — el cliente avisa de que terminó la subida; se encola la
-   * transcodificación. Solo el dueño puede disparar el proceso de su asset.
+   * HU-8.2 — el cliente avisa de que terminó la subida. Solo el dueño puede
+   * disparar el proceso de su asset.
+   *
+   * Ni una IMAGEN ni un AUDIO se transcodifican: para la imagen el worker se
+   * limitaba a usarla como su propio póster, y del audio no saca derivados. Se
+   * marcan READY aquí mismo, así una tarjeta o una canción se publican sin
+   * depender de la cola ni del worker. Solo el VIDEO pasa por ffmpeg.
    */
   async encolarProcesamiento(actor: Actor, assetId: string): Promise<void> {
     const asset = await this.propioAsset(actor, assetId)
-    await this.queue.enqueueTranscode({
+
+    if (asset.kind === 'IMAGE' || asset.kind === 'AUDIO') {
+      await this.assets.markReady(asset.id, {
+        posterPath: asset.kind === 'IMAGE' ? asset.path : null,
+        durationSeconds: null,
+      })
+      return
+    }
+
+    await this.encolarConLimite({
       assetId: asset.id,
       bucket: asset.bucket,
       path: asset.path,
       kind: asset.kind,
     })
+  }
+
+  /**
+   * Encola con un límite de espera. `ioredis` reintenta la conexión sin fin, así
+   * que con Redis caído `enqueueTranscode` no resuelve nunca y la petición se
+   * quedaba colgada hasta que el cliente cortaba por timeout. Mejor fallar
+   * pronto y decir qué pasa.
+   */
+  private async encolarConLimite(trabajo: {
+    assetId: string
+    bucket: string
+    path: string
+    kind: MediaKind
+  }): Promise<void> {
+    const limite = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new ServiceUnavailableException('La cola de procesamiento no responde')),
+        ENQUEUE_TIMEOUT_MS,
+      ),
+    )
+    await Promise.race([this.queue.enqueueTranscode(trabajo), limite])
   }
 
   /**
@@ -77,6 +120,27 @@ export class MediaService {
 
     // Preferir el póster/derivado listo; el MP4 normalizado vive en `path`.
     return this.storage.signedUrl(asset.bucket, asset.path, SIGNED_URL_TTL_SECONDS)
+  }
+
+  /**
+   * URL firmada del archivo ORIGINAL subido, sin exigir que esté transcodificado.
+   * Sirve para que el dueño (maestro) previsualice su video en cuanto lo sube,
+   * antes de que el worker lo procese.
+   */
+  async urlDeOrigen(assetId: string, autorizado: boolean): Promise<string | null> {
+    if (!autorizado) throw new ForbiddenException('No tienes acceso a este medio')
+    const asset = await this.assets.findById(assetId)
+    if (!asset) return null
+    return this.storage.signedUrl(asset.bucket, asset.path, SIGNED_URL_TTL_SECONDS)
+  }
+
+  /** Borra un medio: el objeto (y su póster) del storage y su registro. */
+  async eliminar(assetId: string): Promise<void> {
+    const asset = await this.assets.findById(assetId)
+    if (!asset) return
+    const rutas = [asset.path, ...(asset.posterPath ? [asset.posterPath] : [])]
+    await this.storage.remove(asset.bucket, rutas)
+    await this.assets.delete(assetId)
   }
 
   /** URL firmada del póster (imagen de portada del video). */

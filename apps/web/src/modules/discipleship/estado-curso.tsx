@@ -10,12 +10,15 @@ const ETIQUETAS: Record<CourseStatus, { texto: string; clase: string }> = {
   ARCHIVED: { texto: 'Archivado', clase: 'text-texto-debil border-linea' },
 }
 
+/**
+ * Estado del ciclo de vida del curso. No usa `Chip` porque su color codifica el
+ * estado (aviso, marino, éxito…) y no los tres tonos de la píldora genérica;
+ * sí comparte su caja normal, para que convivan en la misma tarjeta.
+ */
 export function EstadoBadge({ status }: { status: CourseStatus }) {
   const { texto, clase } = ETIQUETAS[status]
   return (
-    <span
-      className={`inline-block rounded border px-aire-xs py-1 font-mono text-eyebrow uppercase tracking-label ${clase}`}
-    >
+    <span className={`inline-block rounded border px-aire-xs py-1 font-mono text-eyebrow ${clase}`}>
       {texto}
     </span>
   )

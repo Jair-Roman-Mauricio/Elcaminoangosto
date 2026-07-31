@@ -9,7 +9,12 @@ import { CourseReviewRepository } from './domain/course-review.repository'
 import { DrizzleCourseRepository } from './infrastructure/drizzle-course.repository'
 import { DrizzleEnrollmentRepository } from './infrastructure/drizzle-enrollment.repository'
 import { DrizzleCourseReviewRepository } from './infrastructure/drizzle-course-review.repository'
+import { PublishKeyRepository } from './domain/publish-key.repository'
+import { DrizzlePublishKeyRepository } from './infrastructure/drizzle-publish-key.repository'
+import { ModerationActionRepository } from './domain/moderation-action.repository'
+import { DrizzleModerationActionRepository } from './infrastructure/drizzle-moderation-action.repository'
 import { PolicyRegistry } from '../shared'
+import { MediaModule } from '../media'
 
 /**
  * Bounded context `discipleship`: cursos, módulos, lecciones, inscripciones,
@@ -20,6 +25,7 @@ import { PolicyRegistry } from '../shared'
  * este repositorio (AGENTS.md §4).
  */
 @Module({
+  imports: [MediaModule],
   controllers: [DiscipleshipController, CourseAuthoringController],
   providers: [
     DiscipleshipService,
@@ -27,6 +33,8 @@ import { PolicyRegistry } from '../shared'
     { provide: CourseRepository, useClass: DrizzleCourseRepository },
     { provide: EnrollmentRepository, useClass: DrizzleEnrollmentRepository },
     { provide: CourseReviewRepository, useClass: DrizzleCourseReviewRepository },
+    { provide: PublishKeyRepository, useClass: DrizzlePublishKeyRepository },
+    { provide: ModerationActionRepository, useClass: DrizzleModerationActionRepository },
   ],
   exports: [DiscipleshipService, CourseAuthoringService],
 })

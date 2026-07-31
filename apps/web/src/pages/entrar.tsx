@@ -103,11 +103,9 @@ export function EntrarPage() {
     if (modo !== 'entrar' || !session || transiciónEnCurso.current) return
     const desde = (location.state as { desde?: string } | null)?.desde
     const destino = desde ?? (perfil
-      ? perfil.role === 'ADMIN'
-        ? '/admin'
-        : perfil.role === 'MAESTRO'
-          ? '/maestro/cursos'
-          : '/discipulado'
+      ? perfil.role === 'ADMIN' || perfil.role === 'MAESTRO'
+        ? '/dashboard'
+        : '/discipulado'
       : null)
     if (!destino) return
     transiciónEnCurso.current = true

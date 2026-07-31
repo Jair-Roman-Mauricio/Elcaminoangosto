@@ -130,7 +130,7 @@ codegraph status          # debe reportar Backend: native y symbols > 0
 - No añadir dependencias pesadas sin justificar (peso, mantenimiento, licencia).
 - No maquetar a mano botones, campos ni diálogos en una página: usar los componentes compartidos (§4.1). Si el que existe no encaja, se le añade una variante; no se duplica.
 - No dejar `TODO` silenciosos: si algo queda pendiente, crear una historia/nota en `BACKLOG.md`.
-- No autopublicar cursos de maestros: **siempre** pasan por aprobación del admin.
+- No autopublicar cursos de maestros: pasan por aprobación del admin. **Única excepción** (ADR-010): un maestro publica directo con una **llave de un solo uso que genera el admin** — sigue siendo autorización del admin, y no se abre DRAFT→PUBLISHED en `canTransition`.
 
 ## 9. Comandos frecuentes
 

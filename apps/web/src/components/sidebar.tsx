@@ -34,10 +34,13 @@ export function gruposPara(role: Role | undefined): GrupoDeNav[] {
       {
         titulo: 'Administración',
         enlaces: [
-          { to: '/admin', label: 'Panel', exacto: true },
+          { to: '/dashboard', label: 'Dashboard', exacto: true },
+          // Gobernanza del contenido primero (antes y después de publicar), y
+          // luego las cuentas.
           { to: '/admin/revisiones', label: 'Revisiones' },
-          { to: '/admin/usuarios', label: 'Usuarios' },
           { to: '/admin/moderacion', label: 'Moderación' },
+          { to: '/admin/contenido', label: 'Contenido' },
+          { to: '/admin/usuarios', label: 'Usuarios' },
         ],
       },
     ]
@@ -48,7 +51,8 @@ export function gruposPara(role: Role | undefined): GrupoDeNav[] {
       {
         titulo: 'Profesor',
         enlaces: [
-          { to: '/maestro/cursos', label: 'Principal' },
+          { to: '/dashboard', label: 'Dashboard', exacto: true },
+          { to: '/maestro/cursos', label: 'Mis cursos' },
           { to: '/maestro/chat', label: 'Chat con estudiantes' },
           { to: '/maestro/estudiantes', label: 'Mis estudiantes' },
         ],
@@ -215,15 +219,14 @@ function VerComo({ activo, onVer }: { activo: Role | null; onVer: (r: Role | nul
       <span className="px-aire-xs font-mono text-eyebrow uppercase tracking-label text-texto-debil">
         Ver como
       </span>
-      {/* En columna: en una fila, «Profesor» no cabe en el ancho del sidebar. */}
-      <div className="flex flex-col gap-aire-xs">
+      <div className="flex flex-row flex-wrap justify-center gap-aire-xs">
         <BotonMini
           activo={activo === 'ESTUDIANTE'}
           onClick={() => ver('ESTUDIANTE', '/discipulado')}
         >
           Alumno
         </BotonMini>
-        <BotonMini activo={activo === 'MAESTRO'} onClick={() => ver('MAESTRO', '/maestro/cursos')}>
+        <BotonMini activo={activo === 'MAESTRO'} onClick={() => ver('MAESTRO', '/dashboard')}>
           Profesor
         </BotonMini>
       </div>
@@ -246,11 +249,9 @@ function BotonMini({
       onClick={onClick}
       aria-pressed={activo}
       className={cn(
-        'rounded border px-aire-xs py-2 text-left font-mono text-eyebrow uppercase tracking-label',
-        'transition-colors duration-fade ease-camino',
-        activo
-          ? 'border-vino bg-vino/10 text-contenido'
-          : 'border-linea text-texto-tenue hover:border-vino hover:text-contenido',
+        'w-fit rounded-full border border-vino bg-vino px-[0.85rem] py-[0.4rem] text-center font-mono text-[0.55rem] uppercase tracking-label text-hueso',
+        'transition-[opacity,box-shadow] duration-fade ease-camino hover:opacity-90',
+        activo && 'ring-1 ring-hueso/60',
       )}
     >
       {children}

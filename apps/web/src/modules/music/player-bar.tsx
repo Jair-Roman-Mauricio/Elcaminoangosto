@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { PlayPause, ProgressBar, formatTime, Eyebrow } from '@elcamino/ui'
 import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
 import { usePlayerStore } from '../../stores/player.store'
-import { buscarAlbumDeAlabanza, rutaDeReproduccion } from './alabanza-catalog'
+import { buscarAlbum, rutaDeReproduccion, useCatalogoDeAlabanza } from './alabanza-catalog'
 
 /**
  * Barra inferior de Alabanza. Se monta una sola vez, fuera del <Outlet />,
@@ -46,7 +46,8 @@ export function PlayerBar() {
     cancionesFavoritas.includes(pista.songId)
     || albumesFavoritos.some((album) => album.songIds.includes(pista.songId))
   ))
-  const albumOriginal = buscarAlbumDeAlabanza(pista?.albumId)
+  const { catalogo } = useCatalogoDeAlabanza()
+  const albumOriginal = buscarAlbum(catalogo.albumes, pista?.albumId)
 
   useEffect(() => {
     hidratarFavoritos()
