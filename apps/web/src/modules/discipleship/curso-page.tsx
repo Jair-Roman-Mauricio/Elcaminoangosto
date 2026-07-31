@@ -3,10 +3,15 @@ import { createPortal, flushSync } from 'react-dom'
 import { useParams } from 'react-router-dom'
 import { Boton, Eyebrow } from '@elcamino/ui'
 import { ApiError } from '../../lib/api-client'
+import { EditorLectura } from '../../components/editor-lectura'
+import { IconoLeccion } from './lesson-icon'
+import { GaleriaImagenes, parseGaleria } from './galeria-imagenes'
 import {
   useCourse,
   useEnroll,
   useCompleteLesson,
+  useGradeExam,
+  type ResultadoExamen,
   type CourseDetail,
   type Lesson,
 } from './api'
@@ -32,21 +37,7 @@ export function CursoPage() {
 }
 
 function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
-  const leccionesOriginales = curso.modules.flatMap((m) => m.lessons)
-  const demoVideoId = leccionesOriginales.some((l) => l.type === 'VIDEO')
-    ? null
-    : leccionesOriginales[1]?.id ?? leccionesOriginales[0]?.id ?? null
-  const demoExamId = leccionesOriginales.some((l) => l.type === 'EXAM')
-    ? null
-    : [...leccionesOriginales].reverse().find((leccion) => leccion.id !== demoVideoId)?.id ?? null
-  const modulosVisuales = curso.modules.map((modulo) => ({
-    ...modulo,
-    lessons: modulo.lessons.map((leccion) => {
-      if (leccion.id === demoVideoId) return { ...leccion, type: 'VIDEO' as const, content: null }
-      if (leccion.id === demoExamId) return { ...leccion, type: 'EXAM' as const, content: null }
-      return leccion
-    }),
-  }))
+  const modulosVisuales = curso.modules
   const lecciones = modulosVisuales.flatMap((m) => m.lessons)
   const completadas = new Set(curso.completedLessonIds)
   const duracionTotal = lecciones.reduce((total, leccion) => total + (leccion.durationSeconds ?? 0), 0)
@@ -70,9 +61,6 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
   const moduloActivo = modulosVisuales.find((modulo) =>
     modulo.lessons.some((leccion) => leccion.id === activa?.id),
   )
-  const indiceActivo = activa ? lecciones.findIndex((leccion) => leccion.id === activa.id) : -1
-  const siguienteLeccion = indiceActivo >= 0 ? lecciones[indiceActivo + 1] : undefined
-
   const completar = useCompleteLesson(slug)
   const completarAutomaticamente = () => {
     if (!activa || completadas.has(activa.id) || completar.isPending) return
@@ -200,16 +188,6 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
     }
   }
 
-  const cerrarPantallaCompleta = async () => {
-    if (document.fullscreenElement === escenarioRef.current) {
-      try {
-        await document.exitFullscreen()
-      } catch {
-        // Escape sigue disponible si el navegador rechaza el cierre programático.
-      }
-    }
-  }
-
   return (
     <div className="course-learning-main flex w-full max-w-none flex-col gap-aire-m py-aire-m">
       <div className="grid gap-aire-l cine:items-start">
@@ -249,13 +227,10 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
 
               <LeccionCuerpo
                 key={activa.id}
+                slug={slug}
                 leccion={activa}
                 completada={completadas.has(activa.id)}
                 onTerminar={completarAutomaticamente}
-                onSiguiente={siguienteLeccion ? () => seleccionarLeccion(siguienteLeccion.id) : undefined}
-                onAbrirFormulario={alternarPantallaCompleta}
-                onCerrarFormulario={cerrarPantallaCompleta}
-                enPantallaCompleta={pantallaCompleta}
               />
             </article>
           )}
@@ -285,7 +260,8 @@ function Contenido({ curso, slug }: { curso: CourseDetail; slug: string }) {
               <aside className="flex flex-col justify-center gap-2 border-l-2 border-vino pl-aire-s">
                 <span className="font-mono text-eyebrow uppercase tracking-label text-vino">Propósito</span>
                 <p className="m-0 font-serif text-body leading-relaxed text-contenido/[0.88]">
-                  Comprender el llamado de Jesús, examinar su significado y convertirlo en decisiones concretas para la vida cotidiana.
+                  {curso.purpose ??
+                    'Comprender el llamado de Jesús, examinar su significado y convertirlo en decisiones concretas para la vida cotidiana.'}
                 </p>
               </aside>
             </div>
@@ -481,6 +457,9 @@ function DatoCurso({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 }
 
 function construirObjetivos(curso: CourseDetail): string[] {
+  // Los que redactó el maestro tienen prioridad; si no hay, un respaldo genérico.
+  if (curso.learningObjectives.length > 0) return curso.learningObjectives
+
   const objetivosBase = [
     `Interpretar el mensaje central de ${curso.title.toLocaleLowerCase('es')}.`,
     'Relacionar la enseñanza bíblica con decisiones y situaciones de la vida cotidiana.',
@@ -508,236 +487,132 @@ function PortalEnEscritorio({ children }: { children: ReactNode }) {
 }
 
 function LeccionCuerpo({
+  slug,
   leccion,
   completada,
   onTerminar,
-  onSiguiente,
-  onAbrirFormulario,
-  onCerrarFormulario,
-  enPantallaCompleta,
 }: {
+  slug: string
   leccion: Lesson
   completada: boolean
   onTerminar: () => void
-  onSiguiente?: (() => void) | undefined
-  onAbrirFormulario: () => Promise<void>
-  onCerrarFormulario: () => Promise<void>
-  enPantallaCompleta: boolean
 }) {
   if (leccion.type === 'EXAM') {
-    return (
-      <ExamenDemostracion
-        completadoInicial={completada}
-        onTerminar={onTerminar}
-        onSiguiente={onSiguiente}
-        onAbrir={onAbrirFormulario}
-        onCerrar={onCerrarFormulario}
-        enPantallaCompleta={enPantallaCompleta}
-      />
-    )
+    return <ExamenLeccion key={leccion.id} slug={slug} leccion={leccion} completada={completada} />
   }
 
   if (leccion.type === 'TEXT') {
-    return (
-      <div className="font-serif text-body-l leading-relaxed text-contenido/[0.9]">
-        {leccion.content?.split('\n').map((p, i) => (
-          <p key={i} className="mb-aire-s">
-            {p}
-          </p>
-        ))}
-      </div>
-    )
+    return <EditorLectura key={leccion.id} value={leccion.content ?? ''} editable={false} />
+  }
+
+  if (leccion.type === 'IMAGE') {
+    return <GaleriaImagenes urls={parseGaleria(leccion.content)} />
   }
 
   return <VideoLeccion leccion={leccion} onTerminar={onTerminar} />
 }
 
-const PREGUNTAS_EXAMEN = [
-  {
-    pregunta: '¿Qué representa entrar por la puerta angosta?',
-    opciones: [
-      'Tomar una decisión consciente de seguir a Jesús.',
-      'Elegir siempre el camino más sencillo.',
-      'Evitar cualquier responsabilidad personal.',
-    ],
-  },
-  {
-    pregunta: '¿Qué actitud requiere permanecer en el camino?',
-    opciones: ['Perseverancia y obediencia.', 'Indiferencia ante las decisiones.', 'Depender únicamente de las circunstancias.'],
-  },
-  {
-    pregunta: '¿Cómo se aplica esta enseñanza a la vida cotidiana?',
-    opciones: [
-      'Convirtiendo la fe en decisiones concretas.',
-      'Limitándola únicamente al conocimiento.',
-      'Evitando examinar nuestras acciones.',
-    ],
-  },
-]
-
-function ExamenDemostracion({
-  completadoInicial,
-  onTerminar,
-  onSiguiente,
-  onAbrir,
-  onCerrar,
-  enPantallaCompleta,
+/** Evaluación real del alumno: responde y el servidor califica (HU de evaluación). */
+function ExamenLeccion({
+  slug,
+  leccion,
+  completada,
 }: {
-  completadoInicial: boolean
-  onTerminar: () => void
-  onSiguiente?: (() => void) | undefined
-  onAbrir: () => Promise<void>
-  onCerrar: () => Promise<void>
-  enPantallaCompleta: boolean
+  slug: string
+  leccion: Lesson
+  completada: boolean
 }) {
-  const [fase, setFase] = useState<'vista-previa' | 'resolviendo' | 'resuelto'>(
-    completadoInicial ? 'resuelto' : 'vista-previa',
-  )
-  const [respuestas, setRespuestas] = useState<Record<number, string>>({})
-  const respondidas = Object.keys(respuestas).length
-  const completo = respondidas === PREGUNTAS_EXAMEN.length
+  const preguntas = leccion.questions ?? []
+  const calificar = useGradeExam(slug)
+  const [respuestas, setRespuestas] = useState<Record<number, number>>({})
+  const [resultado, setResultado] = useState<ResultadoExamen | null>(null)
 
-  const comenzar = () => {
+  const todasRespondidas =
+    preguntas.length > 0 && preguntas.every((_, i) => respuestas[i] !== undefined)
+
+  const enviar = () => {
+    const arr = preguntas.map((_, i) => respuestas[i] ?? -1)
+    calificar.mutate({ lessonId: leccion.id, respuestas: arr }, { onSuccess: setResultado })
+  }
+
+  const reintentar = () => {
+    setResultado(null)
     setRespuestas({})
-    setFase('resolviendo')
-    void onAbrir()
-  }
-
-  if (fase !== 'resolviendo') {
-    const resuelto = fase === 'resuelto'
-
-    return (
-      <section className="flex flex-1 flex-col justify-center gap-aire-s">
-        <div className="grid gap-aire-s border-y border-linea bg-superficie-1 px-aire-m py-aire-m cine:grid-cols-[minmax(0,1fr)_auto] cine:items-center">
-          <div className="flex max-w-2xl flex-col gap-2">
-            <span className="font-mono text-eyebrow uppercase tracking-label text-vino">
-              {resuelto ? 'Formulario completado' : 'Antes de comenzar'}
-            </span>
-            <h3 className="m-0 font-mono text-h-s font-normal leading-tight text-contenido">
-              Comprueba lo aprendido en este tramo
-            </h3>
-            <p className="m-0 font-ui text-body leading-relaxed text-texto-tenue">
-              Responde {PREGUNTAS_EXAMEN.length} preguntas de selección única. Revisa cada alternativa y envía el formulario cuando todas estén contestadas; al completarlo, tu avance se guardará automáticamente.
-            </p>
-          </div>
-
-          <dl className="m-0 grid min-w-[13rem] grid-cols-2 gap-px border border-linea bg-linea">
-            <div className="bg-fondo px-aire-s py-aire-xs">
-              <dt className="font-mono text-eyebrow uppercase tracking-label text-texto-debil">Preguntas</dt>
-              <dd className="m-0 mt-1 font-ui text-body font-semibold text-contenido">{PREGUNTAS_EXAMEN.length}</dd>
-            </div>
-            <div className="bg-fondo px-aire-s py-aire-xs">
-              <dt className="font-mono text-eyebrow uppercase tracking-label text-texto-debil">Intentos</dt>
-              <dd className="m-0 mt-1 font-ui text-body font-semibold text-contenido">Sin límite</dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-aire-s">
-          <button
-            type="button"
-            onClick={comenzar}
-            className="border-0 bg-vino px-aire-m py-aire-xs font-mono text-eyebrow uppercase tracking-label text-hueso transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vino"
-          >
-            {resuelto ? 'Repetir formulario' : 'Resolver el formulario'}
-          </button>
-
-          {resuelto && onSiguiente && (
-            <button
-              type="button"
-              onClick={onSiguiente}
-              className="border border-linea-fuerte bg-transparent px-aire-m py-aire-xs font-mono text-eyebrow uppercase tracking-label text-contenido transition-colors hover:border-vino hover:text-vino focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vino"
-            >
-              Pasar a la siguiente lección
-            </button>
-          )}
-        </div>
-      </section>
-    )
-  }
-
-  if (!enPantallaCompleta) {
-    return (
-      <section className="flex flex-1 flex-col justify-center gap-aire-s">
-        <div className="flex flex-col gap-aire-s border-y border-linea bg-superficie-1 px-aire-m py-aire-m">
-          <span className="font-mono text-eyebrow uppercase tracking-label text-vino">Formulario en curso</span>
-          <h3 className="m-0 font-mono text-h-s font-normal text-contenido">Continúa donde lo dejaste</h3>
-          <p className="m-0 max-w-2xl font-ui text-body leading-relaxed text-texto-tenue">
-            Conservamos tus {respondidas} de {PREGUNTAS_EXAMEN.length} respuestas. Abre nuevamente la vista completa para terminar la evaluación con comodidad.
-          </p>
-          <button
-            type="button"
-            onClick={() => void onAbrir()}
-            className="self-start border-0 bg-vino px-aire-m py-aire-xs font-mono text-eyebrow uppercase tracking-label text-hueso transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vino"
-          >
-            Abrir formulario en pantalla completa
-          </button>
-        </div>
-      </section>
-    )
   }
 
   return (
-    <form
-      className="flex flex-col gap-aire-m"
-      onSubmit={(evento) => {
-        evento.preventDefault()
-        if (!completo) return
-        onTerminar()
-        setFase('resuelto')
-        void onCerrar()
-      }}
-    >
-      <div className="grid gap-aire-s border-y border-linea bg-superficie-1 px-aire-m py-aire-m sm:grid-cols-[1fr_auto] sm:items-end">
-        <div className="flex flex-col gap-2">
-          <span className="font-mono text-eyebrow uppercase tracking-label text-vino">Evaluación del módulo</span>
-          <p className="m-0 font-ui text-body leading-relaxed text-contenido">
-            Comprueba lo aprendido antes de continuar con el siguiente tramo del recorrido.
+    <div className="flex w-full max-w-3xl flex-col gap-aire-l">
+      <header className="flex flex-col gap-aire-xs">
+        <span className="font-mono text-eyebrow uppercase tracking-label text-vino">Evaluación</span>
+        <p className="m-0 font-ui text-body-s text-texto-tenue">
+          {preguntas.length} pregunta{preguntas.length === 1 ? '' : 's'} de selección única. Necesitas
+          acertar al menos el 60% para aprobar.
+          {completada && ' Ya la completaste; puedes repasarla.'}
+        </p>
+      </header>
+
+      {preguntas.map((pregunta, i) => (
+        <fieldset key={i} className="m-0 flex flex-col gap-aire-s border-0 p-0">
+          <legend className="m-0 mb-aire-xs p-0 font-mono text-body font-semibold text-contenido">
+            {i + 1}. {pregunta.enunciado}
+          </legend>
+          {pregunta.opciones.map((opcion, j) => {
+            const elegida = respuestas[i] === j
+            const esCorrecta = resultado?.resultados[i] && elegida
+            const esFallo = resultado && elegida && !resultado.resultados[i]
+            return (
+              <label
+                key={j}
+                className={[
+                  'flex cursor-pointer items-center gap-aire-s rounded border px-aire-s py-aire-xs font-ui text-body-s transition-colors',
+                  esCorrecta
+                    ? 'border-exito text-exito'
+                    : esFallo
+                      ? 'border-vino text-vino'
+                      : elegida
+                        ? 'border-contenido text-contenido'
+                        : 'border-linea text-texto-tenue hover:border-contenido',
+                ].join(' ')}
+              >
+                <input
+                  type="radio"
+                  name={`pregunta-${i}`}
+                  checked={elegida}
+                  disabled={Boolean(resultado)}
+                  onChange={() => setRespuestas((r) => ({ ...r, [i]: j }))}
+                />
+                <span className="flex-1">{opcion}</span>
+                {esCorrecta && <span aria-hidden="true">✓</span>}
+                {esFallo && <span aria-hidden="true">✗</span>}
+              </label>
+            )
+          })}
+        </fieldset>
+      ))}
+
+      {resultado ? (
+        <div className="flex flex-col gap-aire-s rounded border border-linea bg-superficie-1 p-aire-m">
+          <p className="m-0 font-mono text-body font-semibold text-contenido">
+            {resultado.aprobado ? '¡Aprobado!' : 'Aún no alcanzas el mínimo'} — {resultado.aciertos} de{' '}
+            {resultado.total} correctas
           </p>
+          {!resultado.aprobado && (
+            <Boton variante="formulario" onClick={reintentar} className="self-start">
+              Reintentar
+            </Boton>
+          )}
         </div>
-        <span className="font-mono text-eyebrow tabular-nums text-texto-tenue">
-          {respondidas} / {PREGUNTAS_EXAMEN.length} respondidas
-        </span>
-      </div>
-
-      <div className="flex flex-col border border-linea">
-        {PREGUNTAS_EXAMEN.map((item, indice) => (
-          <fieldset key={item.pregunta} className="m-0 flex flex-col gap-aire-s border-0 border-b border-linea px-aire-m pb-aire-l pt-aire-m last:border-b-0">
-            <legend className="sr-only">{item.pregunta}</legend>
-            <div className="flex w-full items-start gap-aire-s pb-aire-xs font-ui text-body font-semibold leading-relaxed text-contenido">
-              <span className="font-mono text-body-s text-vino">{String(indice + 1).padStart(2, '0')}</span>
-              <span>{item.pregunta}</span>
-            </div>
-            <div className="flex flex-col gap-2 pl-[2.35rem]">
-              {item.opciones.map((opcion) => (
-                <label
-                  key={opcion}
-                  className="group flex cursor-pointer items-start gap-3 border border-linea px-aire-s py-aire-xs font-ui text-body-s leading-relaxed text-texto-tenue transition-colors hover:border-vino hover:text-contenido"
-                >
-                  <input
-                    type="radio"
-                    name={`pregunta-${indice}`}
-                    value={opcion}
-                    checked={respuestas[indice] === opcion}
-                    onChange={() => setRespuestas((actuales) => ({ ...actuales, [indice]: opcion }))}
-                    className="mt-1 accent-[var(--vino)]"
-                  />
-                  <span>{opcion}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        ))}
-      </div>
-
-      <button
-        type="submit"
-        disabled={!completo}
-        className="self-start border-0 bg-vino px-aire-m py-aire-xs font-mono text-eyebrow uppercase tracking-label text-hueso transition-opacity disabled:cursor-not-allowed disabled:opacity-35"
-      >
-        Enviar respuestas
-      </button>
-    </form>
+      ) : (
+        <Boton
+          variante="formulario"
+          onClick={enviar}
+          disabled={!todasRespondidas || calificar.isPending}
+          className="self-start"
+        >
+          {calificar.isPending ? 'Calificando…' : 'Enviar respuestas'}
+        </Boton>
+      )}
+    </div>
   )
 }
 
@@ -763,6 +638,7 @@ function VideoLeccion({ leccion, onTerminar }: { leccion: Lesson; onTerminar: ()
 function tipoLeccion(tipo: Lesson['type']): string {
   if (tipo === 'VIDEO') return 'Video'
   if (tipo === 'EXAM') return 'Examen'
+  if (tipo === 'IMAGE') return 'Imágenes'
   return 'Lectura'
 }
 
@@ -844,7 +720,11 @@ function DetallePublico({
       <section className="flex flex-col gap-aire-m">
         <div
           className="relative isolate flex min-h-[18rem] flex-col justify-end overflow-hidden bg-negro px-aire-m py-aire-l cine:min-h-[22rem]"
-          style={{ backgroundImage: "url('/brand/paisaje.webp')", backgroundPosition: 'center', backgroundSize: 'cover' }}
+          style={{
+            backgroundImage: `url('${curso.coverImageUrl ?? '/brand/paisaje.webp'}')`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+          }}
         >
           <div className="absolute inset-0 -z-10 bg-gradient-to-t from-negro via-negro/75 to-negro/10" />
           <div className="relative flex flex-wrap items-center gap-2 font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
@@ -979,33 +859,6 @@ function IndicadorCompletado({ completado, activo }: { completado: boolean; acti
   )
 }
 
-function IconoLeccion({ tipo }: { tipo: Lesson['type'] }) {
-  if (tipo === 'VIDEO') {
-    return (
-      <svg aria-hidden="true" className="size-5 shrink-0 text-vino" viewBox="0 0 24 24" fill="none">
-        <rect x="3.5" y="5" width="17" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-        <path d="m10 9 4.5 2.5L10 14V9Z" fill="currentColor" />
-        <path d="M8 21h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    )
-  }
-
-  if (tipo === 'EXAM') {
-    return (
-      <svg aria-hidden="true" className="size-5 shrink-0 text-vino" viewBox="0 0 24 24" fill="none">
-        <path d="M7 3.5h10v17H7v-17Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-        <path d="m9.5 9 1.5 1.5L14.5 7M9.5 15h5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    )
-  }
-
-  return (
-    <svg aria-hidden="true" className="size-5 shrink-0 text-vino" viewBox="0 0 24 24" fill="none">
-      <path d="M6 3.5h8l4 4V20.5H6V3.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-      <path d="M14 3.5v4h4M9 12h6M9 15.5h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 function IconoCarpeta() {
   return (

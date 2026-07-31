@@ -1,23 +1,40 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Chip, Eyebrow } from '@elcamino/ui'
-import { useReviewQueue, type AuthoringCourse } from '../discipleship/authoring-api'
-import { EstadoBadge } from '../discipleship/estado-curso'
+import { Eyebrow } from '@elcamino/ui'
 import { BotonEnlace } from '../../components/boton-enlace'
+import { useModerationQueue, type ModerationCourse } from '../discipleship/authoring-api'
+import { MarcaCursoBloqueado, MarcaRecuento } from '../discipleship/marca-moderacion'
 
-type Filtro = 'TODOS' | 'SUBMITTED' | 'UNDER_REVIEW'
+type Filtro = 'TODOS' | 'PENDIENTES' | 'BLOQUEADOS'
 const FILTROS: { valor: Filtro; label: string }[] = [
   { valor: 'TODOS', label: 'Todos' },
-  { valor: 'SUBMITTED', label: 'Por tomar' },
-  { valor: 'UNDER_REVIEW', label: 'En revisión' },
+  { valor: 'PENDIENTES', label: 'Con pendientes' },
+  { valor: 'BLOQUEADOS', label: 'Bloqueados' },
 ]
 
-/** Cola de revisión de cursos (HU-5.2, ADMIN): buscador, filtros y grid de cards. */
-export function RevisionesPage() {
-  const { data: cola, isPending } = useReviewQueue()
+/**
+ * Moderación (HU-7.2, ADMIN): monitoreo de cursos ya publicados. Verifica el
+ * contenido nuevo o cambiado antes de que lo vean los estudiantes.
+ */
+export function ModeracionPage() {
+  const { data: cola, isPending } = useModerationQueue()
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('TODOS')
 
-  // Subrayado deslizante sobre el filtro activo, como en el catálogo.
+  const cursos = useMemo(() => cola ?? [], [cola])
+  const q = busqueda.trim().toLowerCase()
+  const visibles = cursos.filter((c) => {
+    if (!c.title.toLowerCase().includes(q)) return false
+    if (filtro === 'PENDIENTES') return c.pendientes > 0
+    if (filtro === 'BLOQUEADOS') return c.blocked || c.bloqueados > 0
+    return true
+  })
+  const cuenta = (f: Filtro) =>
+    f === 'TODOS'
+      ? cursos.length
+      : f === 'PENDIENTES'
+        ? cursos.filter((c) => c.pendientes > 0).length
+        : cursos.filter((c) => c.blocked || c.bloqueados > 0).length
+
   const filtrosRef = useRef<HTMLElement>(null)
   const [indicador, setIndicador] = useState({ left: 0, width: 0 })
   useLayoutEffect(() => {
@@ -32,30 +49,18 @@ export function RevisionesPage() {
     return () => window.removeEventListener('resize', mover)
   }, [filtro, cola])
 
-  const cursos = useMemo(() => cola ?? [], [cola])
-  const q = busqueda.trim().toLowerCase()
-  const visibles = cursos.filter(
-    (c) =>
-      (filtro === 'TODOS' || c.status === filtro) &&
-      (c.title.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q)),
-  )
-  const cuenta = (f: Filtro) => (f === 'TODOS' ? cursos.length : cursos.filter((c) => c.status === f).length)
-
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-aire-m py-aire-m">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Administración</Eyebrow>
-        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Cursos por revisar</h1>
-        {cursos.length > 0 && (
-          <p className="m-0 font-mono text-body-s text-texto-tenue">
-            {cursos.length} borrador(es) en la cola.
-          </p>
-        )}
+        <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Moderación</h1>
+        <p className="m-0 font-mono text-body-s text-texto-tenue">
+          Verifica los contenidos nuevos o cambiados de los cursos ya publicados.
+        </p>
       </header>
 
-      {/* Buscador con lupa (formato del catálogo) */}
       <label className="relative block w-full">
-        <span className="sr-only">Buscar borrador</span>
+        <span className="sr-only">Buscar curso</span>
         <svg
           className="pointer-events-none absolute left-aire-s top-1/2 size-5 -translate-y-1/2 text-texto-tenue"
           viewBox="0 0 24 24"
@@ -69,13 +74,12 @@ export function RevisionesPage() {
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar un borrador por nombre o descripción"
+          placeholder="Buscar un curso publicado"
           className="h-14 w-full rounded-full border border-linea-fuerte bg-superficie-1 pl-12 pr-aire-s font-ui text-body text-contenido shadow-[inset_0_0_0_1px_var(--linea)] outline-none transition-[border-color,box-shadow] placeholder:text-texto-tenue focus:border-vino focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--vino)_12%,transparent)]"
         />
       </label>
 
-      {/* Filtros por estado: tabs con subrayado deslizante */}
-      <nav ref={filtrosRef} aria-label="Filtrar por estado" className="relative flex gap-aire-m">
+      <nav ref={filtrosRef} aria-label="Filtrar" className="relative flex gap-aire-m">
         <span
           aria-hidden="true"
           className="pointer-events-none absolute bottom-0 left-0 h-0.5 bg-vino transition-[width,transform] duration-[600ms] ease-camino"
@@ -99,19 +103,15 @@ export function RevisionesPage() {
       </nav>
 
       {isPending && <p className="font-mono text-body text-texto-tenue">Cargando…</p>}
-      {!isPending && cursos.length === 0 && (
-        <p className="font-mono text-body text-texto-tenue">No hay cursos esperando revisión.</p>
-      )}
-      {!isPending && cursos.length > 0 && visibles.length === 0 && (
-        <p className="font-ui text-body-s text-texto-tenue">Ningún borrador coincide con el filtro.</p>
+      {!isPending && visibles.length === 0 && (
+        <p className="font-ui text-body-s text-texto-tenue">No hay cursos que coincidan.</p>
       )}
 
-      {/* Grid responsive de borradores */}
       {visibles.length > 0 && (
         <ul className="m-0 grid list-none grid-cols-1 gap-aire-m p-0 sm:grid-cols-2 lg:grid-cols-3">
           {visibles.map((c) => (
             <li key={c.id}>
-              <TarjetaBorrador curso={c} />
+              <TarjetaCurso curso={c} />
             </li>
           ))}
         </ul>
@@ -120,24 +120,24 @@ export function RevisionesPage() {
   )
 }
 
-function TarjetaBorrador({ curso }: { curso: AuthoringCourse }) {
-  const nivel = curso.requiredLevelRank ? `Nivel ${curso.requiredLevelRank}` : 'Abierto'
+function TarjetaCurso({ curso }: { curso: ModerationCourse }) {
   return (
     <article className="flex h-full flex-col gap-aire-s bg-superficie-1 p-aire-m shadow-[0_0.9rem_2.2rem_-0.5rem_rgba(20,17,15,0.22)]">
-      {/* Etiquetas de estado, arriba a la derecha */}
       <div className="flex flex-wrap items-center justify-end gap-aire-xs">
-        <EstadoBadge status={curso.status} />
-        <Chip>{nivel}</Chip>
+        {curso.blocked && <MarcaCursoBloqueado />}
+        <MarcaRecuento estado="PENDING" cantidad={curso.pendientes} />
+        <MarcaRecuento estado="BLOCKED" cantidad={curso.bloqueados} />
       </div>
 
       <h2 className="m-0 font-mono text-h-s font-normal text-contenido">{curso.title}</h2>
-      {curso.description && (
-        <p className="m-0 line-clamp-3 font-ui text-body-s text-texto-tenue">{curso.description}</p>
-      )}
+      <p className="m-0 font-ui text-body-s text-texto-tenue">
+        {curso.pendientes > 0 || curso.bloqueados > 0
+          ? 'Tiene contenido por verificar.'
+          : 'Sin cambios pendientes.'}
+      </p>
 
-      {/* Botón para abrir el canvas de revisión */}
-      <BotonEnlace variante="tarjeta" to={`/admin/revisiones/${curso.id}`} className="mt-auto">
-        Abrir revisión →
+      <BotonEnlace variante="tarjeta" to={`/admin/moderacion/${curso.id}`} className="mt-auto">
+        Monitorear
       </BotonEnlace>
     </article>
   )

@@ -13,9 +13,23 @@ const formatoFecha = new Intl.DateTimeFormat('es-PE', {
 
 type Punto = { x: number; y: number }
 
+/**
+ * Tarjetas de muestra: solo se ven cuando el feed real está vacío. No traen
+ * ficha porque su contenido vive en `fichasMuestra`, más abajo.
+ */
+const SIN_FICHA = {
+  title: null,
+  manifesto: null,
+  story: null,
+  origin: null,
+  reference: null,
+  audioUrl: null,
+} satisfies Partial<FeedCard>
+
 const tarjetasMuestra: FeedCard[] = [
   {
     id: 'muestra-templo-luz',
+    ...SIN_FICHA,
     authorName: 'Annie Spratt',
     type: 'IMAGE',
     caption: 'La luz encuentra caminos incluso entre las columnas más antiguas.',
@@ -25,6 +39,7 @@ const tarjetasMuestra: FeedCard[] = [
   },
   {
     id: 'muestra-siguiente-paso',
+    ...SIN_FICHA,
     authorName: 'El Camino Angosto',
     type: 'IMAGE',
     caption: 'No necesitas ver todo el camino para dar el siguiente paso.',
@@ -34,6 +49,7 @@ const tarjetasMuestra: FeedCard[] = [
   },
   {
     id: 'muestra-biblia-sol',
+    ...SIN_FICHA,
     authorName: 'Aaron Burden',
     type: 'IMAGE',
     caption: 'Una palabra abierta puede iluminar el siguiente paso.',
@@ -43,6 +59,7 @@ const tarjetasMuestra: FeedCard[] = [
   },
   {
     id: 'muestra-puerta',
+    ...SIN_FICHA,
     authorName: 'CHUTTERSNAP',
     type: 'IMAGE',
     caption: 'Toda puerta recuerda que la fe también es una decisión.',
@@ -52,6 +69,7 @@ const tarjetasMuestra: FeedCard[] = [
   },
   {
     id: 'muestra-santuario',
+    ...SIN_FICHA,
     authorName: 'Garrett Anderson',
     type: 'IMAGE',
     caption: 'Hay espacios que invitan al corazón a guardar silencio.',
@@ -61,6 +79,7 @@ const tarjetasMuestra: FeedCard[] = [
   },
   {
     id: 'muestra-vitral',
+    ...SIN_FICHA,
     authorName: 'JF Martin',
     type: 'IMAGE',
     caption: 'La gracia transforma el vidrio quebrado en una historia de color.',
@@ -70,6 +89,7 @@ const tarjetasMuestra: FeedCard[] = [
   },
   {
     id: 'muestra-palabra',
+    ...SIN_FICHA,
     authorName: 'Christopher Stites',
     type: 'IMAGE',
     caption: 'Vuelve a la Palabra hasta que el camino se haga visible.',
@@ -79,6 +99,7 @@ const tarjetasMuestra: FeedCard[] = [
   },
   {
     id: 'muestra-biblia-manos',
+    ...SIN_FICHA,
     authorName: 'Christopher Stites',
     type: 'IMAGE',
     caption: 'Recibir la verdad también es aprender a sostenerla con cuidado.',
@@ -547,7 +568,7 @@ function EstudiarTarjeta({
   const [audioActivo, setAudioActivo] = useState(false)
   const [audioProgreso, setAudioProgreso] = useState(0)
   const [audioDuracion, setAudioDuracion] = useState(0)
-  const audioUrl = (card as FeedCard & { audioUrl?: string | null }).audioUrl ?? null
+  const audioUrl = card.audioUrl
   const ficha = fichaDe(card)
 
   useEffect(() => {
@@ -687,7 +708,26 @@ function EstudiarTarjeta({
   )
 }
 
+/**
+ * Ficha que se pinta en el lienzo. Prioridad: lo que el admin escribió al
+ * publicar; si la tarjeta no trae ficha (las de muestra o las antiguas, que
+ * solo tenían `caption`), se completa como antes para no dejar huecos.
+ */
 function fichaDe(card: FeedCard): FichaTarjeta {
+  if (card.title || card.manifesto || card.story) {
+    const parrafos = (card.story ?? '')
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+    return {
+      titulo: (card.title ?? '').toLocaleUpperCase('es-PE') || 'MEMORIA DE FE',
+      manifiesto: card.manifesto ?? card.caption ?? '',
+      relato: [parrafos[0] ?? '', parrafos.slice(1).join('\n\n')],
+      origen: card.origin ?? card.authorName,
+      referencia: card.reference ?? '',
+    }
+  }
+
   const guardada = fichasMuestra[card.id]
   if (guardada) return guardada
   const texto = card.caption?.trim() || 'Una pausa para contemplar el camino.'

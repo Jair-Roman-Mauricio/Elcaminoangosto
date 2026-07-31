@@ -18,6 +18,11 @@ export function MaestroRoute({ children }: { children: ReactNode }) {
   return <RequireRole roles={['MAESTRO']}>{children}</RequireRole>
 }
 
+/** Base de la navegación (dashboard) compartida por MAESTRO y ADMIN. */
+export function PanelRoute({ children }: { children: ReactNode }) {
+  return <RequireRole roles={['MAESTRO', 'ADMIN']}>{children}</RequireRole>
+}
+
 export function AdminRoute({ children }: { children: ReactNode }) {
   return <RequireRole roles={['ADMIN']}>{children}</RequireRole>
 }

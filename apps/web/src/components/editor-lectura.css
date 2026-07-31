@@ -1,0 +1,191 @@
+/* Editor de lectura (TipTap) — tokens de DESIGN.md, temático claro/oscuro. */
+
+.editor-lectura {
+  display: flex;
+  flex-direction: column;
+  /* Alto de documento: llena el espacio del panel en vez de dejarlo vacío. */
+  height: min(68vh, 44rem);
+  border: 1px solid var(--linea);
+  border-radius: var(--radius);
+  background: var(--superficie-1);
+  overflow: hidden;
+}
+
+.editor-lectura--solo-lectura {
+  height: auto;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* ── Barra de herramientas (pegada arriba, tipo Word) ── */
+.editor-lectura__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--linea);
+  background: var(--superficie-2);
+}
+
+.editor-lectura__btn-lg {
+  font-size: 1.05rem;
+}
+.editor-lectura__btn-sm {
+  font-size: 0.8rem;
+}
+
+.editor-lectura__sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.15rem 0.25rem;
+  background: var(--linea);
+}
+
+.editor-lectura__btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--texto-tenue);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.editor-lectura__btn:hover {
+  color: var(--contenido);
+  border-color: var(--linea);
+}
+
+.editor-lectura__btn--activo {
+  color: var(--contenido);
+  border-color: var(--vino);
+  background: color-mix(in srgb, var(--vino) 10%, transparent);
+}
+
+.editor-lectura__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Área editable / lectura (lienzo tipo documento) ── */
+.editor-lectura__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: clamp(1.5rem, 4vh, 3rem) var(--aire-s);
+}
+
+/* El hijo directo es el envoltorio de EditorContent: columna flexible que llena
+   el alto y todo el ancho disponible del editor. */
+.editor-lectura__scroll > * {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+}
+
+.editor-lectura .ProseMirror {
+  flex: 1;
+  color: var(--contenido);
+  font-family: var(--serif);
+  font-size: 1.08rem;
+  line-height: 1.8;
+  outline: none;
+}
+
+.editor-lectura--solo-lectura .editor-lectura__scroll {
+  padding: 0;
+  overflow: visible;
+}
+.editor-lectura--solo-lectura .editor-lectura__scroll > * {
+  display: block;
+  max-width: none;
+  min-height: 0;
+}
+.editor-lectura--solo-lectura .ProseMirror {
+  flex: none;
+}
+
+.editor-lectura .ProseMirror:focus {
+  outline: none;
+}
+
+.editor-lectura .ProseMirror > * + * {
+  margin-top: 0.9em;
+}
+
+.editor-lectura .ProseMirror h2 {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.editor-lectura .ProseMirror h3 {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.editor-lectura .ProseMirror p {
+  margin: 0;
+}
+
+.editor-lectura .ProseMirror strong {
+  font-weight: 700;
+}
+
+.editor-lectura .ProseMirror em {
+  font-style: italic;
+}
+
+.editor-lectura .ProseMirror ul,
+.editor-lectura .ProseMirror ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.editor-lectura .ProseMirror li > * + * {
+  margin-top: 0.4em;
+}
+
+.editor-lectura .ProseMirror blockquote {
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--vino);
+  color: var(--texto-tenue);
+  font-style: italic;
+}
+
+.editor-lectura .ProseMirror a {
+  color: var(--vino);
+  text-underline-offset: 3px;
+}
+
+.editor-lectura .ProseMirror img,
+.editor-lectura__img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+
+/* Imagen seleccionada en edición. */
+.editor-lectura .ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid var(--vino);
+  outline-offset: 2px;
+}

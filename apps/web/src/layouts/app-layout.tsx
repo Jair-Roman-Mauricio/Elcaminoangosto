@@ -1,18 +1,25 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { buscarAlbumDeAlabanza, buscarCancionDeAlabanza, rutaDeReproduccion } from '../modules/music/alabanza-catalog'
+import {
+  buscarAlbum,
+  buscarCancion,
+  rutaDeReproduccion,
+  useCatalogoDeAlabanza,
+} from '../modules/music/alabanza-catalog'
 import { useFavoriteSongsStore } from '../stores/favorite-songs.store'
 import { usePlayerStore } from '../stores/player.store'
 import { PageTransition } from '../components/page-transition'
 import { Sidebar } from '../components/sidebar'
 import { useVistaComo } from '../components/vista-como'
+import { useStudentView } from '../modules/discipleship/authoring-api'
 import { BrandLogo, cn } from '@elcamino/ui/static'
 import { ThemeToggle } from '../components/theme'
 
 const PlayerBar = lazy(() => import('../modules/music/player-bar').then((modulo) => ({ default: modulo.PlayerBar })))
 
 const RUTAS_BASE = [
-  { prefijo: '/maestro/cursos', etiqueta: 'Principal' },
+  { prefijo: '/dashboard', etiqueta: 'Dashboard' },
+  { prefijo: '/maestro/cursos', etiqueta: 'Mis cursos' },
   { prefijo: '/maestro/chat', etiqueta: 'Chat con estudiantes' },
   { prefijo: '/maestro/estudiantes', etiqueta: 'Mis estudiantes' },
   { prefijo: '/discipulado', etiqueta: 'Discipulado' },
@@ -21,6 +28,10 @@ const RUTAS_BASE = [
   { prefijo: '/alabanza', etiqueta: 'Alabanzas' },
   { prefijo: '/chat', etiqueta: 'Mentor' },
   { prefijo: '/perfil', etiqueta: 'Mi perfil' },
+  { prefijo: '/admin/revisiones', etiqueta: 'Revisiones' },
+  { prefijo: '/admin/usuarios', etiqueta: 'Usuarios' },
+  { prefijo: '/admin/moderacion', etiqueta: 'Moderación' },
+  { prefijo: '/admin/contenido', etiqueta: 'Contenido' },
 ] as const
 
 function etiquetaDeSegmento(segmento: string): string {
@@ -54,11 +65,13 @@ function construirMigas(pathname: string): Array<[string, string]> {
 export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { viendoComo, verComo } = useVistaComo()
+  const { viendoComo, verComo, rolEfectivo } = useVistaComo()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const { albumesFavoritos, hidratarFavoritos } = useFavoriteSongsStore()
   const pistaActiva = usePlayerStore((estado) => estado.pista)
   const editorCursoMaestro = /^\/maestro\/cursos\/[^/]+\/?$/.test(location.pathname)
+  const revisionDetalle = /^\/admin\/revisiones\/[^/]+\/?$/.test(location.pathname)
+  const moderacionDetalle = /^\/admin\/moderacion\/[^/]+\/?$/.test(location.pathname)
   const cursoDetalle = location.pathname.startsWith('/discipulado/') || editorCursoMaestro
   const mosaicoTarjetas = location.pathname === '/tarjetas'
   const paginaVideos = location.pathname.startsWith('/videos')
@@ -67,14 +80,40 @@ export function AppLayout() {
 
   const cerrarMenu = useCallback(() => setMenuAbierto(false), [])
   const migas = construirMigas(location.pathname)
+
+  // Para MAESTRO y ADMIN el Dashboard es la base de la navegación: encabeza el
+  // breadcrumb en todas sus páginas (salvo en el propio Dashboard).
+  const tieneDashboard = rolEfectivo === 'MAESTRO' || rolEfectivo === 'ADMIN'
+  if (tieneDashboard && migas.length > 0 && migas[0]?.[0] !== '/dashboard') {
+    migas.unshift(['/dashboard', 'Dashboard'])
+  }
+
+  // En el editor del maestro y en los detalles del admin (revisión y moderación)
+  // la última miga es el id del curso: lo cambiamos por el título real. Reutiliza
+  // la misma consulta que ya hacen esas páginas (deduplica).
+  const detalleDeCurso = editorCursoMaestro || revisionDetalle || moderacionDetalle
+  const cursoIdConTitulo = detalleDeCurso ? (location.pathname.split('/')[3] ?? '') : ''
+  const { data: cursoConTitulo } = useStudentView(cursoIdConTitulo, Boolean(cursoIdConTitulo))
+  const ultimaMiga = migas.at(-1)
+  if (detalleDeCurso && cursoConTitulo?.title && ultimaMiga) {
+    ultimaMiga[1] = cursoConTitulo.title
+  }
+  // El panel «Añadir contenido» del editor se refleja en ?contenido=: añade su
+  // miga. La miga del curso (sin query) sirve de «volver» al editor.
+  if (editorCursoMaestro && new URLSearchParams(location.search).has('contenido')) {
+    migas.push([`${location.pathname}${location.search}`, 'Contenido'])
+  }
+  // El breadcrumb de Alabanza nombra el álbum y la canción, así que necesita el
+  // catálogo. Es la misma consulta que hace la pantalla: TanStack la deduplica.
+  const { catalogo: catalogoDeAlabanza } = useCatalogoDeAlabanza()
   const parametros = paginaAlabanza ? new URLSearchParams(location.search) : null
   const songId = parametros?.get('song')
-  const cancion = buscarCancionDeAlabanza(songId)
+  const cancion = buscarCancion(catalogoDeAlabanza.canciones, songId)
   const categoriaFavoritos = parametros?.get('category') === 'favorites'
   const collectionId = parametros?.get('collection')
   const coleccion = albumesFavoritos.find((albumFavorito) => albumFavorito.albumId === collectionId)
   const albumId = parametros?.get('album') ?? cancion?.albumId
-  const album = buscarAlbumDeAlabanza(albumId)
+  const album = buscarAlbum(catalogoDeAlabanza.albumes, albumId)
   const vistaDeReproduccion = Boolean(cancion)
   if (coleccion) {
     migas.push(['/alabanza?category=favorites', 'Álbumes de favoritos'])
@@ -123,15 +162,18 @@ export function AppLayout() {
       <div className={cn(!cursoDetalle && 'cine:pl-[15.5rem]')}>
         {/* Banner cuando el admin está simulando otro rol. */}
         {viendoComo && (
-          <div className="sticky top-0 z-20 flex items-center justify-center gap-aire-s bg-vino px-gutter py-2 font-mono text-eyebrow uppercase tracking-label text-hueso">
-            Viendo como {viendoComo === 'MAESTRO' ? 'profesor' : 'estudiante'}
+          <div className="sticky top-0 z-20 flex flex-wrap items-center justify-center gap-x-aire-s gap-y-1 bg-vino px-gutter py-2 text-center font-mono text-eyebrow uppercase tracking-label text-hueso">
+            <span>
+              Vista previa como {viendoComo === 'MAESTRO' ? 'profesor' : 'estudiante'} · no se guarda
+              ningún cambio
+            </span>
             <button
               type="button"
               onClick={() => {
                 verComo(null)
-                navigate('/admin')
+                navigate('/dashboard')
               }}
-              className="underline decoration-hueso/60 underline-offset-4 hover:decoration-hueso"
+              className="rounded-full border border-hueso/70 px-[0.9rem] py-[0.15rem] transition-colors hover:bg-hueso hover:text-vino"
             >
               Volver a admin
             </button>

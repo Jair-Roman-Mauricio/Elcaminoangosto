@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Boton, Eyebrow, Field, Textarea } from '@elcamino/ui'
-import { subirMedioReanudable, esperarProcesado } from './media-upload'
+import { subirMedioReanudable, esperarProcesado } from '../../lib/media-upload'
 import { usePublicarTarjeta } from './feed-api'
 
 type Fase = 'elegir' | 'subiendo' | 'procesando' | 'publicando' | 'error'
@@ -27,7 +27,7 @@ export function PublicarTarjetaPage() {
     try {
       const kind = file.type.startsWith('image/') ? 'IMAGE' : 'VIDEO'
       setFase('subiendo')
-      const assetId = await subirMedioReanudable(file, kind, setPct)
+      const assetId = await subirMedioReanudable(file, kind, 'feed-media', setPct)
 
       setFase('procesando')
       const estado = await esperarProcesado(assetId)

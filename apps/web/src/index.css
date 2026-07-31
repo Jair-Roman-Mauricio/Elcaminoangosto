@@ -1791,6 +1791,21 @@
   object-fit: cover;
 }
 
+/* Catálogo vacío o cargando: el carril sigue ocupando la pantalla, así que el
+   mensaje se centra en él. */
+.short-video__empty {
+  display: grid;
+  height: 100%;
+  min-height: 60vh;
+  margin: 0;
+  place-items: center;
+  padding: 0 var(--gutter);
+  color: var(--texto-tenue);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .short-video__shade {
   position: absolute;
   z-index: 2;
@@ -5188,6 +5203,18 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Alabanza sin catálogo (cargando o sin canciones publicadas). */
+.praise-empty {
+  display: grid;
+  min-height: 60vh;
+  place-items: center;
+  padding: 0 var(--gutter);
+  color: var(--texto-tenue);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 .praise-player-view {
