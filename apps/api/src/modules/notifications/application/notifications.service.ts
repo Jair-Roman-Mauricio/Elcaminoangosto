@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import {
   DOMAIN_EVENTS,
+  type ContentModeratedEvent,
   type CourseSubmittedEvent,
   type CourseReviewedEvent,
 } from '@elcamino/shared-types'
@@ -60,5 +61,21 @@ export class NotificationsService {
       decision: evento.decision,
     })
     this.logger.log(`Curso ${evento.courseId} ${evento.decision}: maestro notificado`)
+  }
+
+  /**
+   * HU-7.2 — moderación de un curso ya publicado. Solo se avisa al maestro de lo
+   * que le exige actuar o le devuelve visibilidad; que un contenido entre en cola
+   * (PENDING) no es noticia para él.
+   */
+  @OnEvent(DOMAIN_EVENTS.CONTENT_MODERATED)
+  async alModerarContenido(evento: ContentModeratedEvent): Promise<void> {
+    if (evento.action === 'LESSON_PENDING') return
+    await this.notifications.create(evento.teacherId, 'CONTENT_MODERATED', {
+      courseId: evento.courseId,
+      lessonId: evento.lessonId,
+      action: evento.action,
+    })
+    this.logger.log(`Curso ${evento.courseId} ${evento.action}: maestro notificado`)
   }
 }

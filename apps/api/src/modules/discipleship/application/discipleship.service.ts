@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { DOMAIN_EVENTS, type LessonCompletedEvent } from '@elcamino/shared-types'
 import { cumpleNivel, motivoDeBloqueo, type Actor } from '../../shared'
-import { CourseRepository, type CourseModuleEntity } from '../domain/course.repository'
+import { CourseRepository } from '../domain/course.repository'
 import {
   EnrollmentRepository,
   type EnrollmentEntity,
@@ -18,6 +18,7 @@ export interface CatalogItem {
   thumbnailAssetId: string | null
   requiredLevelRank: number | null
   isFree: boolean
+  coverImageUrl: string | null
   teacherName: string
   moduleCount: number
   lessonCount: number
@@ -63,6 +64,7 @@ export class DiscipleshipService {
         thumbnailAssetId: c.thumbnailAssetId,
         requiredLevelRank: c.requiredLevelRank,
         isFree: c.isFree,
+        coverImageUrl: c.coverImageUrl,
         teacherName: c.teacherName,
         moduleCount: c.moduleCount,
         lessonCount: c.lessonCount,
@@ -76,23 +78,9 @@ export class DiscipleshipService {
   }
 
   /** Ficha de un curso por slug, con su estructura y las lecciones completadas. */
-  async fichaPorSlug(
-    actor: Actor,
-    slug: string,
-  ): Promise<{
-    id: string
-    title: string
-    description: string | null
-    requiredLevelRank: number | null
-    isFree: boolean
-    unlocked: boolean
-    enrolled: boolean
-    progressPct: number
-    completedLessonIds: string[]
-    modules: CourseModuleEntity[]
-  }> {
+  async fichaPorSlug(actor: Actor, slug: string) {
     const curso = await this.courses.findBySlug(slug)
-    if (!curso || curso.status !== 'PUBLISHED') {
+    if (!curso || curso.status !== 'PUBLISHED' || curso.blocked) {
       throw new NotFoundException('Curso no encontrado')
     }
 
@@ -114,8 +102,61 @@ export class DiscipleshipService {
       enrolled: enrollment !== null,
       progressPct: enrollment?.progressPct ?? 0,
       completedLessonIds: progreso?.completedLessonIds ?? [],
-      modules: await this.courses.findStructure(curso.id),
+      learningObjectives: curso.learningObjectives,
+      purpose: curso.purpose,
+      coverImageUrl: curso.coverImageUrl,
+      // Al alumno NO se le revela la respuesta correcta de las evaluaciones, y
+      // solo ve contenido aprobado (los pendientes/bloqueados quedan ocultos).
+      modules: (await this.courses.findStructure(curso.id, { soloAprobadas: true })).map((m) => ({
+        ...m,
+        lessons: m.lessons.map((l) => ({
+          ...l,
+          questions: l.questions.map(({ correcta: _correcta, ...resto }) => resto),
+        })),
+      })),
     }
+  }
+
+  /**
+   * Califica una evaluación en el servidor (las respuestas correctas nunca salen
+   * al cliente). Si el alumno aprueba (≥ 60%), marca la lección como completada.
+   */
+  async calificarEvaluacion(
+    actor: Actor,
+    lessonId: string,
+    respuestas: number[],
+  ): Promise<{
+    resultados: boolean[]
+    aciertos: number
+    total: number
+    aprobado: boolean
+    progressPct: number | null
+  }> {
+    const leccion = await this.courses.findLessonById(lessonId)
+    if (!leccion || leccion.type !== 'EXAM' || leccion.moderationStatus !== 'APPROVED') {
+      throw new NotFoundException('Evaluación no encontrada')
+    }
+    const resultados = leccion.questions.map((p, i) => respuestas[i] === p.correcta)
+    const aciertos = resultados.filter(Boolean).length
+    const total = leccion.questions.length
+    const aprobado = total > 0 && aciertos / total >= 0.6
+
+    let progressPct: number | null = null
+    if (aprobado) {
+      const enrollment = await this.enrollmentDeLaLeccion(actor.id, lessonId)
+      const totalLecciones = await this.courses.countLessons(enrollment.courseId, {
+        soloAprobadas: true,
+      })
+      const actualizado = await this.enrollments.completeLesson(enrollment.id, lessonId, totalLecciones)
+      progressPct = actualizado.progressPct
+      this.events.emit(DOMAIN_EVENTS.LESSON_COMPLETED, {
+        enrollmentId: enrollment.id,
+        lessonId,
+        studentId: actor.id,
+      } satisfies LessonCompletedEvent)
+    }
+
+    return { resultados, aciertos, total, aprobado, progressPct }
   }
 
   /**
@@ -125,7 +166,8 @@ export class DiscipleshipService {
    */
   async inscribirse(actor: Actor, courseId: string): Promise<EnrollmentEntity> {
     const curso = await this.courses.findById(courseId)
-    if (!curso || curso.status !== 'PUBLISHED') {
+    // Un curso bloqueado por moderación no existe para el estudiante (HU-7.2).
+    if (!curso || curso.status !== 'PUBLISHED' || curso.blocked) {
       throw new NotFoundException('Curso no encontrado')
     }
 
@@ -149,8 +191,12 @@ export class DiscipleshipService {
     actor: Actor,
     lessonId: string,
   ): Promise<{ progressPct: number; courseCompleted: boolean }> {
+    const leccion = await this.courses.findLessonById(lessonId)
+    if (!leccion || leccion.moderationStatus !== 'APPROVED') {
+      throw new NotFoundException('Lección no encontrada')
+    }
     const enrollment = await this.enrollmentDeLaLeccion(actor.id, lessonId)
-    const total = await this.courses.countLessons(enrollment.courseId)
+    const total = await this.courses.countLessons(enrollment.courseId, { soloAprobadas: true })
 
     const actualizado = await this.enrollments.completeLesson(enrollment.id, lessonId, total)
 
@@ -176,8 +222,12 @@ export class DiscipleshipService {
     if (!leccion) throw new NotFoundException('Lección no encontrada')
     if (!leccion.mediaAssetId) throw new NotFoundException('La lección no tiene medio')
 
-    // El admin no necesita inscripción; el resto sí.
+    // El admin no necesita inscripción; el resto sí. Y solo el admin (que
+    // modera) accede al medio de un contenido sin aprobar (HU-7.2).
     if (actor.role === 'ADMIN') return leccion.mediaAssetId
+    if (leccion.moderationStatus !== 'APPROVED') {
+      throw new NotFoundException('Lección no encontrada')
+    }
 
     await this.enrollmentDeLaLeccion(actor.id, lessonId)
     return leccion.mediaAssetId

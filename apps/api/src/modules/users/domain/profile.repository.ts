@@ -19,6 +19,12 @@ export interface MenteeEntity {
   avatarUrl: string | null
   levelName: string | null
   levelRank: number
+  /** Última consulta por chat (null si solo está inscrito en un curso). */
+  lastActivityAt: Date | null
+  /** true si consultó por chat; false si solo está inscrito en un curso. */
+  haConsultado: boolean
+  /** Cursos del maestro en los que este estudiante está inscrito. */
+  courses: { id: string; title: string }[]
 }
 
 export interface LevelEntity {
@@ -26,6 +32,18 @@ export interface LevelEntity {
   name: string
   rank: number
   description: string | null
+}
+
+/** Métricas de la plataforma para el dashboard del ADMIN (HU-7.1). */
+export interface PlatformStats {
+  total: number
+  /** Altas por semana (últimas 8), para ver cuánta gente entró a la plataforma. */
+  signups: { periodo: string; nuevos: number }[]
+  /** Usuarios con acceso en los últimos 7 / 30 días (auth.users.last_sign_in_at). */
+  activos7: number
+  activos30: number
+  /** Composición por rol. */
+  porRol: { rol: Role; total: number }[]
 }
 
 /**
@@ -52,4 +70,7 @@ export abstract class ProfileRepository {
 
   /** Ids de los administradores, para notificarles eventos de gobernanza. */
   abstract findAdminIds(): Promise<string[]>
+
+  /** Métricas de crecimiento y actividad de la plataforma (ADMIN). */
+  abstract platformStats(): Promise<PlatformStats>
 }

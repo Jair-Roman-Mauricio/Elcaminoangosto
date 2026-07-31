@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { DOMAIN_EVENTS, type Role, type UserLevelChangedEvent } from '@elcamino/shared-types'
 import {
@@ -83,6 +88,11 @@ export class UsersService {
     return this.profiles.findAll()
   }
 
+  /** HU-7.1 — métricas de crecimiento y actividad para el dashboard del ADMIN. */
+  async estadisticasDePlataforma() {
+    return this.profiles.platformStats()
+  }
+
   /** Ids de los administradores, para notificarles eventos de gobernanza. */
   async idsDeAdmins(): Promise<string[]> {
     return this.profiles.findAdminIds()
@@ -91,6 +101,29 @@ export class UsersService {
   /** Catálogo de niveles (para el catálogo del estudiante y el panel admin). */
   async niveles(): Promise<LevelEntity[]> {
     return this.profiles.findLevels()
+  }
+
+  /**
+   * HU-1.2 — el admin asigna el nivel de un estudiante a mano, sin pasar por la
+   * solicitud al mentor (HU-6.2). Es la misma operación: reutiliza
+   * `cambiarNivel`, así que también emite `UserLevelChanged` y el catálogo del
+   * alumno se recalcula igual.
+   *
+   * El nivel solo tiene sentido en un ESTUDIANTE: es lo que abre o cierra
+   * cursos. En un maestro o un admin sería un dato muerto que confunde.
+   */
+  async asignarNivel(perfilId: string, levelId: string): Promise<ProfileEntity> {
+    const perfil = await this.obtenerPerfil(perfilId)
+    if (perfil.role !== 'ESTUDIANTE') {
+      throw new BadRequestException('Solo los estudiantes tienen nivel')
+    }
+    const niveles = await this.profiles.findLevels()
+    if (!niveles.some((nivel) => nivel.id === levelId)) {
+      throw new NotFoundException('Nivel no encontrado')
+    }
+    if (perfil.currentLevelId === levelId) return perfil
+
+    return this.cambiarNivel(perfilId, levelId)
   }
 
   /**

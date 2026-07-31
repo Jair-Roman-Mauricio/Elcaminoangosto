@@ -181,6 +181,47 @@ La abstracción `MediaProvider` (Strategy) y la generación de derivados quedan 
 - Producción necesita SMTP propio para una entrega fiable y límites adecuados.
 - Las cuentas creadas anteriormente con confirmación automática conservan su estado de Supabase; deben auditarse o corregirse administrativamente si se sospecha que usan correos falsos.
 
+## ADR-010 — Llaves de publicación: excepción autorizada a "los cursos siempre pasan por revisión"
+
+**Fecha:** 2026-07-24 · **Estado:** Aceptada
+
+**Contexto.** La regla de oro (`contexto.md`, AGENTS.md) es que **un curso de maestro nunca se autopublica**: pasa por DRAFT→SUBMITTED→…→APPROVED→PUBLISHED con aprobación del admin. El responsable humano pidió una vía para que **maestros de confianza** publiquen sin esperar revisión, mediante un **código que genera el admin**.
+
+**Decisión.** Introducir **llaves de publicación** (`public.publish_keys`): el admin genera un código de **un solo uso** y se lo entrega a un maestro. Con ese código, el maestro publica su borrador **directo a PUBLISHED**, saltándose SUBMITTED/UNDER_REVIEW/APPROVED. Sigue disponible la vía normal (enviar a revisión) para quien no tenga código.
+
+La transición DRAFT→PUBLISHED por llave **no pasa por `canTransition`**: es un camino aparte, explícito, que solo se abre con una llave válida y no usada. El curso aún exige ≥1 lección. La tabla tiene RLS forzada: solo el admin la gestiona; la validación del maestro ocurre en el API (nunca leyendo la tabla desde el cliente).
+
+**Por qué no viola el espíritu de la regla.** La autorización **sigue siendo del admin**: en vez de revisar cada curso, **pre-autoriza** a ciertos maestros generando llaves. El maestro no puede autopublicar por su cuenta; necesita una llave que solo el admin crea. La máquina de estados de la vía normal queda intacta.
+
+**Consecuencias.**
+- El maestro con llave publica al instante; el resto pasa por revisión como antes.
+- Cada llave es de un solo uso y queda auditada (`used_by`, `used_course_id`, `used_at`).
+- La invariante "no hay DRAFT→PUBLISHED en `canTransition`" se conserva; el bypass es un método dedicado y auditable, no un hueco en la máquina de estados.
+- Riesgo aceptado: una llave filtrada permite publicar sin revisión. Mitigación: un solo uso, trazabilidad y que solo el admin las genera.
+
+## ADR-011 — Moderación de cursos ya publicados: lo nuevo nace oculto
+
+**Fecha:** 2026-07-29 · **Estado:** Aceptada
+
+**Contexto.** Un curso publicado sigue vivo: el maestro añade contenido después de la aprobación. Sin control, ese contenido llegaría al alumno sin que nadie lo revise — justo lo que evita el flujo de E5 antes de publicar. La revisión previa (HU-5.2) no sirve aquí: no se puede devolver el curso entero a borrador cada vez que se añade una lección.
+
+**Decisión.** Moderación por **contenido**, no por curso (HU-7.2):
+
+- Toda lección añadida a un curso `PUBLISHED` nace con `moderation_status = 'PENDING'` y **no la ve el alumno** hasta que el admin la apruebe. En borrador/rechazado nace `APPROVED`: allí manda el flujo de revisión.
+- El admin aprueba (`APPROVED`) o retira (`BLOCKED`) cada contenido desde Moderación, y puede **bloquear el curso completo** (`courses.blocked`) si el maestro no corrige.
+- Un curso bloqueado no aparece en el catálogo, no abre su ficha y no admite inscripciones nuevas. El maestro dueño y el admin sí lo ven: el maestro necesita corregirlo.
+- El **denominador del progreso** cuenta solo contenido aprobado; si no, el alumno no podría llegar al 100% mientras algo esté pendiente.
+- Cada decisión se registra en `moderation_actions` (bitácora inmutable) y emite `content.moderated`, que `notifications` traduce en aviso al maestro. `LESSON_PENDING` no notifica: entrar en la cola no le exige nada.
+- La autorización primaria vive en los guards (solo ADMIN modera); RLS repite el cerrojo: el estudiante no lee cursos bloqueados ni lecciones sin aprobar.
+
+**Por qué no es otra máquina de estados.** `moderation_status` es **ortogonal** a `CourseStatus`: no toca `canTransition` ni la invariante de que un maestro no autopublica. Un curso publicado sigue publicado; lo que se controla es la visibilidad de cada pieza de contenido.
+
+**Consecuencias.**
+- El maestro puede seguir enriqueciendo un curso vivo sin pedir permiso para editar, y el alumno nunca ve contenido sin verificar.
+- El editor del maestro muestra qué está pendiente y qué está bloqueado; sin eso, el bloqueo sería un mensaje que nadie recibe.
+- La bitácora conserva el título de la lección (`lesson_title`) y no tiene FK a `lessons`: la auditoría sobrevive al borrado del contenido.
+- Coste: una segunda dimensión de estado sobre las lecciones. Se acepta porque la alternativa —devolver el curso a revisión completa por cada cambio— paraliza cursos publicados.
+
 ## Preguntas abiertas
 
 | ID | Pregunta | Estado | Propuesta por defecto |
