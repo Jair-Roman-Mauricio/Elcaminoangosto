@@ -2,29 +2,41 @@
 \set QUIET on
 set client_min_messages = notice;
 
+-- El ADMIN y el MAESTRO los crea la migración `20260802000100` con id generado,
+-- así que se resuelven por correo en vez de darlos por sabidos.
+select
+  (select id from auth.users where email = 'admin@elcaminoangosto.test')   as admin_id,
+  (select id from auth.users where email = 'maestro@elcaminoangosto.test') as maestro_id
+\gset
+
+-- El bloque `do` de más abajo no los puede leer como :'variable': psql no
+-- interpola dentro de $$…$$. Se pasan por ajuste de sesión.
+select set_config('prueba.admin_id',   :'admin_id',   false),
+       set_config('prueba.maestro_id', :'maestro_id', false);
+
 -- Fixtures extra (como postgres, que tiene BYPASSRLS).
 insert into public.courses (id, teacher_id, title, slug, required_level_id, status, published_at)
-values ('99999999-9999-4999-8999-000000000009','22222222-2222-4222-8222-000000000002',
+values ('99999999-9999-4999-8999-000000000009',:'maestro_id',
         'Curso avanzado','curso-avanzado','11111111-1111-4111-8111-000000000003','PUBLISHED', now())
 on conflict do nothing;
 
 insert into public.courses (id, teacher_id, title, slug, status)
-values ('99999999-9999-4999-8999-000000000010','22222222-2222-4222-8222-000000000002',
+values ('99999999-9999-4999-8999-000000000010',:'maestro_id',
         'Borrador propio','borrador-propio','DRAFT')
 on conflict do nothing;
 
 insert into public.conversations (id, mentor_id, student_id)
-values ('88888888-8888-4888-8888-000000000001','22222222-2222-4222-8222-000000000002',
+values ('88888888-8888-4888-8888-000000000001',:'maestro_id',
         '22222222-2222-4222-8222-000000000003') on conflict do nothing;
 insert into public.messages (conversation_id, sender_id, body)
 values ('88888888-8888-4888-8888-000000000001','22222222-2222-4222-8222-000000000003','Hola mentor')
 on conflict do nothing;
 
 insert into public.media_assets (id, owner_id, bucket, path, kind, status)
-values ('77777777-7777-4777-8777-000000000001','22222222-2222-4222-8222-000000000002',
-        'feed-media','22222222-2222-4222-8222-000000000002/a.mp4','VIDEO','READY') on conflict do nothing;
+values ('77777777-7777-4777-8777-000000000001',:'maestro_id',
+        'feed-media',concat(:'maestro_id', '/a.mp4'),'VIDEO','READY') on conflict do nothing;
 insert into public.posts (id, author_id, type, media_asset_id, caption, status, published_at)
-values ('66666666-6666-4666-8666-000000000001','22222222-2222-4222-8222-000000000002',
+values ('66666666-6666-4666-8666-000000000001',:'maestro_id',
         'VIDEO','77777777-7777-4777-8777-000000000001','Tarjeta','HIDDEN', now()) on conflict do nothing;
 
 -- Helpers de aserción y de suplantación de usuario.
@@ -60,8 +72,8 @@ $$;
 
 do $$
 declare
-  ADMIN   constant text := '22222222-2222-4222-8222-000000000001';
-  MAESTRO constant text := '22222222-2222-4222-8222-000000000002';
+  ADMIN   constant text := current_setting('prueba.admin_id');
+  MAESTRO constant text := current_setting('prueba.maestro_id');
   ESTER   constant text := '22222222-2222-4222-8222-000000000003';
   ESTEBAN constant text := '22222222-2222-4222-8222-000000000004';
   CURSO_DRAFT constant uuid := '99999999-9999-4999-8999-000000000010';
