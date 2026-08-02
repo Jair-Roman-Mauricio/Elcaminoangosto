@@ -1,5 +1,19 @@
 @import '@elcamino/ui/tokens.css';
 
+.public-access-modal { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: clamp(1rem, 4vw, 2rem); }
+.public-access-modal__backdrop { position: absolute; inset: 0; border: 0; background: rgba(10, 10, 10, .72); backdrop-filter: saturate(.75); }
+.public-access-modal__content { position: relative; width: min(100%, 31rem); border: 1px solid var(--linea-fuerte); padding: clamp(1.5rem, 4vw, 2.5rem); background: var(--superficie-1); box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .32), 0 .2rem .75rem rgba(0, 0, 0, .14); }
+.public-access-modal__eyebrow { margin: 0 0 .9rem; color: var(--texto-tenue); font-family: var(--font-mono, ui-monospace, monospace); font-size: .65rem; letter-spacing: .14em; text-transform: uppercase; }
+.public-access-modal__content h2 { max-width: 18ch; margin: 0; color: var(--contenido); font-family: var(--font-ui, sans-serif); font-size: clamp(1.55rem, 4vw, 2.15rem); font-weight: 500; line-height: 1.08; }
+.public-access-modal__copy { max-width: 38ch; margin: 1rem 0 1.75rem; color: var(--texto-tenue); font-family: var(--font-mono, ui-monospace, monospace); font-size: .8rem; line-height: 1.55; }
+.public-access-modal__actions { display: flex; flex-wrap: wrap; gap: .65rem; }
+.public-access-modal__actions a { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; padding: .8rem 1.1rem; border: 1px solid var(--vino); background: var(--vino); color: var(--hueso); font-family: var(--font-mono, ui-monospace, monospace); font-size: .66rem; font-weight: 600; letter-spacing: .1em; text-decoration: none; transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease; }
+.public-access-modal__actions a + a { border-color: var(--linea-fuerte); background: transparent; color: var(--contenido); }
+.public-access-modal__actions a:hover { border-color: var(--vino); background: color-mix(in srgb, var(--vino) 88%, black); }
+.public-access-modal__actions a + a:hover { background: var(--superficie-2); color: var(--contenido); }
+.public-access-modal__actions a:focus-visible, .public-access-modal__backdrop:focus-visible { outline: 2px solid var(--vino); outline-offset: 3px; }
+@media (max-width: 28rem) { .public-access-modal__actions { display: grid; grid-template-columns: 1fr; } }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -44,7 +58,7 @@
 .faith-study {
   position: relative;
   isolation: isolate;
-  min-height: calc(100svh - 8.5rem);
+  min-height: calc(100svh - 4.75rem);
   margin-inline: calc(var(--gutter) * -1);
   margin-block: -0.5rem -8rem;
   overflow: hidden;
@@ -940,7 +954,9 @@
   }
   .faith-study__media {
     width: min(88vw, 28rem);
+    touch-action: none;
   }
+  .faith-study__card-face > span { inset: .7rem; }
   .faith-study__story {
     gap: 2rem;
   }
@@ -4023,8 +4039,8 @@
   display: grid;
   place-items: center;
   padding: var(--gutter);
-  background: rgb(0 0 0 / 56%);
-  backdrop-filter: blur(7px);
+  background: rgb(10 10 10 / 44%);
+  backdrop-filter: blur(10px) saturate(.8);
   animation: favorite-confirmation-backdrop 220ms ease-out both;
 }
 
@@ -5324,6 +5340,11 @@
 }
 
 @media (max-width: 819px) {
+  /* La funda y el disco caben dentro de la silueta del botón: en teléfonos la
+     traslación del vinilo deja de rebasar el borde derecho. */
+  .album-sleeve { --sleeve-size: 72%; }
+  .album-sleeve__vinyl { left: 17%; transform: translateX(15%); }
+  .album-sleeve.is-opening .album-sleeve__vinyl { transform: translateX(38%); }
   .praise-albums--sleeves,
   .praise-discs-grid {
     grid-template-columns: 1fr;
@@ -5350,6 +5371,15 @@
     min-height: calc(100svh - 12rem);
     padding-top: 3rem;
   }
+}
+
+@media (max-width: 819px) {
+  /* El telón conserva sus tres líneas verticales, pero da al eje central el
+     ancho suficiente para que logo y recorrido no se corten en 320–414px. */
+  .faith-curtain { grid-template-columns: minmax(0, .75fr) minmax(0, 1.5fr) minmax(0, .75fr); }
+  .faith-curtain__logo { gap: .75rem; max-width:100%; }
+  .faith-curtain__logo svg { width: clamp(4.25rem, 22vw, 5.5rem); }
+  .faith-curtain__logo > span { max-width:100%; font-size:clamp(.62rem, 3.5vw, .92rem); letter-spacing:.07em; overflow-wrap:anywhere; white-space:normal; text-align:center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

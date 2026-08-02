@@ -14,12 +14,14 @@ import { useVistaComo } from '../components/vista-como'
 import { useStudentView } from '../modules/discipleship/authoring-api'
 import { BrandLogo, cn } from '@elcamino/ui/static'
 import { ThemeToggle } from '../components/theme'
+import { useSession } from '../auth/session'
 
 const PlayerBar = lazy(() => import('../modules/music/player-bar').then((modulo) => ({ default: modulo.PlayerBar })))
 
 const RUTAS_BASE = [
   { prefijo: '/dashboard', etiqueta: 'Dashboard' },
   { prefijo: '/maestro/cursos', etiqueta: 'Mis cursos' },
+  { prefijo: '/maestro/chat/administradores', etiqueta: 'Chat con administradores' },
   { prefijo: '/maestro/chat', etiqueta: 'Chat con estudiantes' },
   { prefijo: '/maestro/estudiantes', etiqueta: 'Mis estudiantes' },
   { prefijo: '/discipulado', etiqueta: 'Discipulado' },
@@ -66,6 +68,7 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { viendoComo, verComo, rolEfectivo } = useVistaComo()
+  const { session } = useSession()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const { albumesFavoritos, hidratarFavoritos } = useFavoriteSongsStore()
   const pistaActiva = usePlayerStore((estado) => estado.pista)
@@ -135,7 +138,7 @@ export function AppLayout() {
       paginaVideos && 'videos-app-shell',
       paginaMentor && 'mentor-app-shell',
     )}>
-      <Sidebar abierto={menuAbierto} onCerrar={cerrarMenu} oculto={cursoDetalle} />
+      <Sidebar abierto={menuAbierto} onCerrar={cerrarMenu} oculto={cursoDetalle} invitado={!session} />
 
       {/* Cabecera solo en móvil: bajo `cine` el sidebar es un cajón. */}
       <header className={cn('fixed inset-x-0 top-0 z-30 flex items-center gap-aire-s border-b border-linea bg-fondo px-aire-s py-aire-xs cine:hidden', cursoDetalle && 'hidden')}>
