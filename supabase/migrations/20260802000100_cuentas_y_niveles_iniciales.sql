@@ -42,7 +42,9 @@ create or replace function public.crear_cuenta_inicial(
 returns boolean
 language plpgsql
 security definer
-set search_path = public, auth
+-- `extensions` es obligatorio: ahí instala Supabase pgcrypto, y sin él
+-- `crypt`/`gen_salt` no se resuelven (42883) por más que la extensión exista.
+set search_path = public, auth, extensions
 as $$
 declare
   nuevo_id uuid;
@@ -93,6 +95,11 @@ declare
   al_azar boolean := clave_admin is null or clave_maestro is null;
   creadas int := 0;
 begin
+  -- Un bloque DO no hereda el `search_path` de la función: usa el de la sesión,
+  -- que al aplicar migraciones no incluye `extensions`. Sin esto, pgcrypto está
+  -- instalado pero `gen_random_bytes` no se encuentra.
+  set local search_path = public, auth, extensions;
+
   -- Sin ajuste no se inventa una contraseña conocida: una fija en el
   -- repositorio sería la misma en todos los entornos y para siempre.
   clave_admin   := coalesce(clave_admin,   encode(gen_random_bytes(24), 'base64'));
