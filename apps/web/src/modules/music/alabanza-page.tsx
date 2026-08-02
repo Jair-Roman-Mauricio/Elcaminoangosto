@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlbumSleeve } from '../../components/album-sleeve'
 import { VinylDisc } from '../../components/vinyl-disc'
 import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
+import { useRegistrarVisita } from '../../lib/analitica'
 import { usePlayerStore } from '../../stores/player.store'
 import {
   useCatalogoDeAlabanza,
@@ -67,6 +68,7 @@ export function AlabanzaPage() {
   const { session } = useSession()
   const navigate = useNavigate()
   const { catalogo, cargando } = useCatalogoDeAlabanza()
+  useRegistrarVisita('alabanza')
   const ALBUMES_DE_ALABANZA = catalogo.albumes
   const CANCIONES_DE_ALABANZA = catalogo.canciones
   const { pista, reproduciendo, progreso, reproducir } = usePlayerStore()

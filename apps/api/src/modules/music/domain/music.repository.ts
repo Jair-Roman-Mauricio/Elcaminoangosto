@@ -105,3 +105,40 @@ export abstract class MusicRepository {
   abstract setSongPublished(id: string, isPublished: boolean): Promise<SongEntity>
   abstract removeSong(id: string): Promise<void>
 }
+
+/* ── Favoritos de una persona (HU-2.3) ─────────────────────────────────── */
+
+/** Álbum personal: una colección que arma quien escucha, no el catálogo. */
+export interface AlbumPersonalEntity {
+  albumId: string
+  titulo: string
+  coverUrl: string | null
+  songIds: string[]
+}
+
+export interface FavoritosEntity {
+  /** Canciones marcadas sueltas. */
+  cancionesFavoritas: string[]
+  albumesPersonales: AlbumPersonalEntity[]
+}
+
+export abstract class FavoritesRepository {
+  abstract favoritosDe(userId: string): Promise<FavoritosEntity>
+
+  /** Marca o desmarca una canción. Idempotente. */
+  abstract marcarCancion(userId: string, songId: string, favorita: boolean): Promise<void>
+
+  abstract crearAlbumPersonal(userId: string, titulo: string): Promise<AlbumPersonalEntity>
+
+  /** Sustituye título, portada y contenido del álbum personal. */
+  abstract actualizarAlbumPersonal(
+    userId: string,
+    albumId: string,
+    cambios: { titulo: string; coverUrl: string | null; songIds: string[] },
+  ): Promise<AlbumPersonalEntity>
+
+  abstract eliminarAlbumPersonal(userId: string, albumId: string): Promise<void>
+
+  /** El álbum existe y es de esa persona. */
+  abstract esDe(userId: string, albumId: string): Promise<boolean>
+}

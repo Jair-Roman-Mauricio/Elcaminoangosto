@@ -13,6 +13,7 @@ import { UsersModule } from './modules/users'
 import { MusicModule } from './modules/music'
 import { FeedModule } from './modules/feed'
 import { VideosModule } from './modules/videos'
+import { AnalyticsModule } from './modules/analytics'
 import { DiscipleshipModule } from './modules/discipleship'
 import { ChatModule } from './modules/chat'
 import { MediaModule } from './modules/media'
@@ -53,6 +54,7 @@ import { NotificationsModule } from './modules/notifications'
     MediaModule,
     FeedModule,
     VideosModule,
+    AnalyticsModule,
     DiscipleshipModule,
     ChatModule,
     AdminModule,

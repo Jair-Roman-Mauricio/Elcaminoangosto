@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEven
 import { useNavigate } from 'react-router-dom'
 import { usePerfil, useSession } from '../../auth/session'
 import { useVideos, type VideoCatalogo } from './videos-api'
+import { useRegistrarVista, useRegistrarVisita } from '../../lib/analitica'
 
 /**
  * Video tal como lo pinta esta pantalla. Se construye desde el catálogo del
@@ -73,6 +74,7 @@ export function VideosCristianosPage() {
   const { session } = useSession()
   const { data: perfil } = usePerfil()
   const { data: catalogo, isPending } = useVideos()
+  useRegistrarVisita('videos')
   const VIDEOS = useMemo(() => (catalogo ?? []).map(aVideoCristiano), [catalogo])
   const [videoActivoId, setVideoActivoId] = useState('')
   const [silenciado, setSilenciado] = useState(true)
@@ -88,6 +90,9 @@ export function VideosCristianosPage() {
     if (videoActivoId || VIDEOS.length === 0) return
     setVideoActivoId(VIDEOS[0]?.id ?? '')
   }, [VIDEOS, videoActivoId])
+
+  // Cambiar de video cuenta como una vista; repintar, no.
+  useRegistrarVista('VIDEO', videoActivoId || null)
 
   const indiceActivo = Math.max(0, VIDEOS.findIndex(({ id }) => id === videoActivoId))
   const videoDeComentarios = VIDEOS.find(({ id }) => id === comentariosAbiertosPara) ?? VIDEOS[indiceActivo]

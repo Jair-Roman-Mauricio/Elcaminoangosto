@@ -1,3 +1,4 @@
+import { useRegistrarVisita } from '../lib/analitica'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandLogo } from '@elcamino/ui/static'
@@ -347,6 +348,7 @@ function PastorsSection() {
 }
 
 export function LandingPage() {
+  useRegistrarVisita('landing')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const irASeccion = (event: MouseEvent<HTMLAnchorElement>, selector: string) => {
     event.preventDefault()

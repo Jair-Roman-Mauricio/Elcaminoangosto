@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { MusicService } from './music.service'
 import {
+  FavoritesRepository,
   MusicRepository,
   type AlbumEntity,
   type ArtistEntity,
@@ -122,6 +123,48 @@ class FakeMusicRepo extends MusicRepository {
   }
 }
 
+/** Favoritos en memoria: canciones marcadas y álbumes personales. */
+class FakeFavoritesRepo extends FavoritesRepository {
+  marcadas = new Map<string, Set<string>>()
+  albumes = new Map<string, { albumId: string; titulo: string; coverUrl: string | null; songIds: string[]; owner: string }>()
+
+  async favoritosDe(userId: string) {
+    return {
+      cancionesFavoritas: [...(this.marcadas.get(userId) ?? [])],
+      albumesPersonales: [...this.albumes.values()]
+        .filter((a) => a.owner === userId)
+        .map(({ owner: _owner, ...album }) => album),
+    }
+  }
+  async marcarCancion(userId: string, songId: string, favorita: boolean) {
+    const set = this.marcadas.get(userId) ?? new Set<string>()
+    if (favorita) set.add(songId)
+    else set.delete(songId)
+    this.marcadas.set(userId, set)
+  }
+  async crearAlbumPersonal(userId: string, titulo: string) {
+    const album = { albumId: `p${this.albumes.size + 1}`, titulo, coverUrl: null, songIds: [], owner: userId }
+    this.albumes.set(album.albumId, album)
+    const { owner: _owner, ...sinDueno } = album
+    return sinDueno
+  }
+  async actualizarAlbumPersonal(
+    userId: string,
+    albumId: string,
+    cambios: { titulo: string; coverUrl: string | null; songIds: string[] },
+  ) {
+    const album = this.albumes.get(albumId)!
+    Object.assign(album, cambios)
+    return { albumId, ...cambios }
+  }
+  async eliminarAlbumPersonal(_userId: string, albumId: string) {
+    this.albumes.delete(albumId)
+  }
+  async esDe(userId: string, albumId: string) {
+    return this.albumes.get(albumId)?.owner === userId
+  }
+}
+
 /** Fake de MediaService: firma el audio y registra lo eliminado. */
 class FakeMedia {
   eliminados: string[] = []
@@ -145,6 +188,7 @@ const maestro = { id: 'm1', role: 'MAESTRO' as const, levelRank: 0 }
 
 let music: FakeMusicRepo
 let media: FakeMedia
+let favoritos: FakeFavoritesRepo
 let svc: MusicService
 
 beforeEach(() => {
@@ -153,7 +197,8 @@ beforeEach(() => {
   media.assets.set('audio-nuevo', { ownerId: 'a1', kind: 'AUDIO' })
   media.assets.set('video-nuevo', { ownerId: 'a1', kind: 'VIDEO' })
   media.assets.set('audio-ajeno', { ownerId: 'otro', kind: 'AUDIO' })
-  svc = new MusicService(music, media as never)
+  favoritos = new FakeFavoritesRepo()
+  svc = new MusicService(music, media as never, favoritos)
 })
 
 const cancionMinima = {
@@ -308,5 +353,58 @@ describe('administración de música (módulo Contenido)', () => {
     await expect(svc.publicarCancion(maestro, 's1', true)).rejects.toThrow(ForbiddenException)
     await expect(svc.eliminarCancion(maestro, 's1')).rejects.toThrow(ForbiddenException)
     await expect(svc.eliminarAlbum(maestro, 'al1')).rejects.toThrow(ForbiddenException)
+  })
+})
+
+describe('favoritos: guardar exige cuenta y viaja con ella (HU-2.3)', () => {
+  const oyente = { id: 'e1', role: 'ESTUDIANTE' as const, levelRank: 1 }
+
+  it('marcar y desmarcar una canción', async () => {
+    music.seed(nuevaCancion({ id: 's1' }))
+
+    await svc.marcarCancion(oyente, 's1', true)
+    expect((await svc.misFavoritos(oyente)).cancionesFavoritas).toEqual(['s1'])
+
+    await svc.marcarCancion(oyente, 's1', false)
+    expect((await svc.misFavoritos(oyente)).cancionesFavoritas).toEqual([])
+  })
+
+  it('no se marca una canción que no existe', async () => {
+    await expect(svc.marcarCancion(oyente, 'fantasma', true)).rejects.toThrow(NotFoundException)
+  })
+
+  it('los favoritos son de cada quien: nadie ve los de otro', async () => {
+    const otro = { id: 'e2', role: 'ESTUDIANTE' as const, levelRank: 1 }
+    music.seed(nuevaCancion({ id: 's1' }))
+    await svc.marcarCancion(oyente, 's1', true)
+
+    expect((await svc.misFavoritos(otro)).cancionesFavoritas).toEqual([])
+  })
+
+  it('un álbum personal solo lo edita o borra su dueño', async () => {
+    const otro = { id: 'e2', role: 'ESTUDIANTE' as const, levelRank: 1 }
+    const album = await svc.crearAlbumPersonal(oyente, 'Para orar')
+
+    await expect(
+      svc.editarAlbumPersonal(otro, album.albumId, { titulo: 'Mío', coverUrl: null, songIds: [] }),
+    ).rejects.toThrow(NotFoundException)
+    await expect(svc.eliminarAlbumPersonal(otro, album.albumId)).rejects.toThrow(NotFoundException)
+  })
+
+  it('editar sustituye título y contenido del álbum', async () => {
+    const album = await svc.crearAlbumPersonal(oyente, 'Para orar')
+
+    const editado = await svc.editarAlbumPersonal(oyente, album.albumId, {
+      titulo: 'Para caminar',
+      coverUrl: 'https://portada/x.webp',
+      songIds: ['s1', 's2'],
+    })
+
+    expect(editado.titulo).toBe('Para caminar')
+    expect(editado.songIds).toEqual(['s1', 's2'])
+  })
+
+  it('un álbum sin nombre no se crea', async () => {
+    await expect(svc.crearAlbumPersonal(oyente, '   ')).rejects.toThrow(BadRequestException)
   })
 })

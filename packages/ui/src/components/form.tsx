@@ -77,11 +77,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   { className, ...props },
   ref,
 ) {
-  // El select nativo necesita fondo opaco para que el desplegable se lea bien.
+  // Fondo opaco para que el desplegable nativo se lea bien. La flecha la pinta
+  // `.eca-select` (tokens.css): la del navegador va pegada al borde y no se
+  // puede recolocar. El relleno derecho reserva su sitio.
   return (
     <select
       ref={ref}
-      className={cn(controlBase, 'cursor-pointer bg-superficie-1', className)}
+      className={cn(controlBase, 'eca-select cursor-pointer bg-superficie-1 pr-aire-m', className)}
       {...props}
     />
   )
