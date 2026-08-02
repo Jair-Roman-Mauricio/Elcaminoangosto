@@ -75,7 +75,8 @@ jobs:
                 mailer_secure_email_change_enabled: true,
                 smtp_admin_email: $smtp_admin_email,
                 smtp_host: "smtp-relay.brevo.com",
-                smtp_port: 587,
+                # La API lo valida como texto: un número devuelve 400.
+                smtp_port: "587",
                 smtp_user: $smtp_user,
                 smtp_pass: $smtp_pass,
                 smtp_sender_name: "El Camino Angosto"
