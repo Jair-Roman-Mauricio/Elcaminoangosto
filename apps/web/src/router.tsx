@@ -66,6 +66,11 @@ const RevisionDetallePage = lazy(() =>
 const ModeracionPage = lazy(() =>
   import('./modules/admin/moderacion-page').then((m) => ({ default: m.ModeracionPage })),
 )
+const EstadisticasPage = lazy(() =>
+  import('./modules/admin/estadisticas/estadisticas-page').then((m) => ({
+    default: m.EstadisticasPage,
+  })),
+)
 const ContenidoPage = lazy(() =>
   import('./modules/admin/contenido/contenido-page').then((m) => ({ default: m.ContenidoPage })),
 )
@@ -164,6 +169,7 @@ export const router = createBrowserRouter([
       { path: '/admin/moderacion', element: soloAdmin(conCarga(<ModeracionPage />)) },
       { path: '/admin/moderacion/:id', element: soloAdmin(conCarga(<ModeracionDetallePage />)) },
       { path: '/admin/contenido', element: soloAdmin(conCarga(<ContenidoPage />)) },
+      { path: '/admin/estadisticas', element: soloAdmin(conCarga(<EstadisticasPage />)) },
     ],
   },
 

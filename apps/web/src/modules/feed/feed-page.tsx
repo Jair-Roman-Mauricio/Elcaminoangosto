@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { BrandLogo } from '@elcamino/ui/static'
 import { usePerfil } from '../../auth/session'
 import { useFeed, type FeedCard } from './feed-api'
+import { useRegistrarVista, useRegistrarVisita } from '../../lib/analitica'
 
 const formatoFecha = new Intl.DateTimeFormat('es-PE', {
   day: '2-digit',
@@ -141,6 +142,7 @@ function atributosImagen(mediaUrl: string) {
  */
 export function FeedPage() {
   const { data, isPending, isError } = useFeed()
+  useRegistrarVisita('tarjetas')
   const { data: perfil } = usePerfil()
   const cardsPublicadas = data?.pages.flat() ?? []
   // La colección de muestra es un placeholder visual inmediato. Así el LCP no
@@ -148,6 +150,8 @@ export function FeedPage() {
   const usaMuestra = !isError && cardsPublicadas.length === 0
   const cards = usaMuestra ? tarjetasMuestra : cardsPublicadas
   const [seleccionada, setSeleccionada] = useState<FeedCard | null>(null)
+  // Abrir una tarjeta en el lienzo es lo que cuenta como verla; el mosaico no.
+  useRegistrarVista('POST', seleccionada?.id)
   const [telon, setTelon] = useState<{ clave: number } | null>(null)
   const telonActivoRef = useRef(false)
   const telonTimersRef = useRef<number[]>([])

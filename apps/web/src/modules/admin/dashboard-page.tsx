@@ -9,6 +9,7 @@ import {
   useModerationQueue,
 } from '../discipleship/authoring-api'
 import { BarrasV, Dona, type Serie } from '../dashboard/charts'
+import { useFlujoDeVisitantes, useMasVistos } from './estadisticas/estadisticas-api'
 
 interface PlatformStats {
   total: number
@@ -115,6 +116,10 @@ export function DashboardPage() {
           </div>
         </PanelGrafica>
       </div>
+
+      {/* Resumen de audiencia. El detalle vive en Estadísticas; aquí va lo
+          justo para saber si hace falta entrar. */}
+      <ResumenDeAudiencia />
 
       {/* Colas y accesos */}
       <div className="grid gap-aire-m md:grid-cols-2">
@@ -254,6 +259,63 @@ function Metrica({ valor, label, acento = false }: { valor: number; label: strin
       </span>
       <span className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">{label}</span>
     </div>
+  )
+}
+
+/**
+ * Últimos 30 días: cuánta gente entró sin cuenta y qué fue lo más visto de
+ * cada tipo. Es la portada de la sección Estadísticas, no su sustituto.
+ */
+function ResumenDeAudiencia() {
+  const visitantes = useFlujoDeVisitantes(30)
+  const videos = useMasVistos('VIDEO', 30)
+  const tarjetas = useMasVistos('POST', 30)
+  const canciones = useMasVistos('SONG', 30)
+
+  const flujo = visitantes.data
+  const lider = (datos: { titulo: string; vistas: number }[] | undefined) =>
+    datos && datos.length > 0 ? `${datos[0]!.titulo} · ${datos[0]!.vistas}` : '—'
+
+  return (
+    <section className={`flex flex-col gap-aire-s bg-superficie-1 p-aire-m ${SOMBRA}`}>
+      <div className="flex flex-wrap items-end justify-between gap-aire-s">
+        <div className="flex flex-col gap-aire-xs">
+          <Eyebrow rule={false}>Audiencia · 30 días</Eyebrow>
+          <h2 className="m-0 font-mono text-h-s font-normal text-contenido">
+            Quién entra y qué mira
+          </h2>
+        </div>
+        <Link
+          to="/admin/estadisticas"
+          className="font-mono text-eyebrow uppercase tracking-label text-contenido underline decoration-vino underline-offset-4 hover:text-vino"
+        >
+          Ver estadísticas →
+        </Link>
+      </div>
+
+      <div className="grid gap-aire-s sm:grid-cols-3">
+        <NumeroActividad valor={flujo?.visitantesAnonimos ?? 0} label="Visitantes sin cuenta" />
+        <NumeroActividad valor={flujo?.visitantesRegistrados ?? 0} label="Con sesión iniciada" />
+        <NumeroActividad valor={flujo?.sesionesQueSeRegistraron ?? 0} label="Se registraron" />
+      </div>
+
+      <dl className="m-0 grid gap-aire-xs sm:grid-cols-3">
+        {[
+          ['Video más visto', lider(videos.data)],
+          ['Tarjeta más vista', lider(tarjetas.data)],
+          ['Canción más escuchada', lider(canciones.data)],
+        ].map(([etiqueta, valor]) => (
+          <div key={etiqueta} className="flex flex-col gap-[0.15rem] border-l-2 border-linea pl-aire-s">
+            <dt className="font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
+              {etiqueta}
+            </dt>
+            <dd className="m-0 truncate font-mono text-body-s text-contenido" title={valor}>
+              {valor}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   )
 }
 

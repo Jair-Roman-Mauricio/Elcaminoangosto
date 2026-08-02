@@ -1,0 +1,98 @@
+<!--
+  El Camino Angosto · correo de CONFIRMACIÓN de cuenta.
+
+  Reglas de correo (no son las de la web):
+  · Maquetado con <table>: Outlook ignora flex y grid.
+  · Estilos EN LÍNEA: Gmail borra el <style> del <head>.
+  · Nada de webp ni svg: Outlook no los pinta. La imagen va en .jpg.
+  · `__WEB_URL__` lo sustituye el despliegue (.github/workflows/deploy.yml)
+    por la URL del entorno; las imágenes de correo exigen ruta absoluta.
+  · `{{ .ConfirmationURL }}` lo rellena Supabase al enviar.
+
+  Fondo oscuro a propósito: coincide con la landing y evita que los clientes
+  con modo oscuro inviertan los colores por su cuenta.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;background-color:#0a0a0a;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background-color:#14110f;border:1px solid #2a2622;">
+
+        <!-- Paisaje de marca -->
+        <tr>
+          <td style="padding:0;line-height:0;">
+            <img src="__WEB_URL__/brand/paisaje-correo.jpg" width="560" height="260" alt="Un sendero angosto de montaña hacia la luz del amanecer" style="display:block;width:100%;max-width:560px;height:auto;border:0;outline:none;text-decoration:none;">
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:40px 40px 8px 40px;">
+            <p style="margin:0 0 20px 0;font-family:'Space Mono',Consolas,monospace;font-size:10px;line-height:1;letter-spacing:0.14em;text-transform:uppercase;color:#b41e44;">
+              El Camino Angosto
+            </p>
+
+            <h1 style="margin:0 0 20px 0;font-family:Newsreader,Georgia,'Times New Roman',serif;font-size:32px;line-height:1.2;font-weight:400;color:#f7f6f2;">
+              Bienvenido a casa
+            </h1>
+
+            <p style="margin:0 0 20px 0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#d8d4cc;">
+              Falta un paso para que tu cuenta quede lista. Confirma que este correo es tuyo y podrás entrar a los cursos, a las Tarjetas de Fe, a la música y a la comunidad.
+            </p>
+
+            <!-- Cita: da nombre a la plataforma (Mateo 7:14). -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td style="padding:4px 0 24px 16px;border-left:2px solid #b41e44;">
+                  <p style="margin:0;font-family:Newsreader,Georgia,'Times New Roman',serif;font-size:17px;line-height:1.5;font-style:italic;color:#f7f6f2;">
+                    «Estrecha es la puerta y angosto el camino que lleva a la vida.»
+                  </p>
+                  <p style="margin:8px 0 0 0;font-family:'Space Mono',Consolas,monospace;font-size:10px;line-height:1;letter-spacing:0.14em;text-transform:uppercase;color:#8a837a;">
+                    Mateo 7:14
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Botón a prueba de clientes: el color va en el <td>, no en el enlace. -->
+        <tr>
+          <td style="padding:0 40px 28px 40px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#b41e44" style="background-color:#b41e44;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 32px;font-family:'Space Mono',Consolas,monospace;font-size:12px;line-height:1;letter-spacing:0.1em;text-transform:uppercase;color:#ffffff;text-decoration:none;">
+                    Confirmar mi correo
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 40px 36px 40px;">
+            <p style="margin:0 0 6px 0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#8a837a;">
+              ¿El botón no funciona? Copia y pega esta dirección en tu navegador:
+            </p>
+            <p style="margin:0;font-family:'Space Mono',Consolas,monospace;font-size:12px;line-height:1.6;word-break:break-all;color:#b41e44;">
+              {{ .ConfirmationURL }}
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:24px 40px 32px 40px;border-top:1px solid #2a2622;">
+            <p style="margin:0 0 10px 0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#8a837a;">
+              Si no creaste ninguna cuenta, puedes ignorar este mensaje: sin confirmar, nada queda activo.
+            </p>
+            <p style="margin:0;font-family:'Space Mono',Consolas,monospace;font-size:10px;line-height:1.6;letter-spacing:0.14em;text-transform:uppercase;color:#5c564e;">
+              El Camino Angosto
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

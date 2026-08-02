@@ -34,12 +34,28 @@ export class SupabaseAuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ])
-    if (esPublica) return true
-
     const request = context.switchToHttp().getRequest<Request & { user?: CurrentUserContext }>()
     const token = extraerBearer(request.headers.authorization)
-    if (!token) throw new UnauthorizedException('Falta el token de autenticación')
 
+    // En una ruta pública la sesión es opcional: si viene un token válido se
+    // adjunta el usuario —así el contenido abierto puede saber quién mira sin
+    // exigirlo— y si no viene, o no sirve, se sigue como visitante anónimo.
+    // Nunca se responde 401 aquí: la ruta es pública por decisión explícita.
+    if (esPublica) {
+      if (token) await this.adjuntarUsuario(request, token).catch(() => undefined)
+      return true
+    }
+
+    if (!token) throw new UnauthorizedException('Falta el token de autenticación')
+    await this.adjuntarUsuario(request, token)
+    return true
+  }
+
+  /** Verifica el token y deja el perfil en `request.user`. */
+  private async adjuntarUsuario(
+    request: Request & { user?: CurrentUserContext },
+    token: string,
+  ): Promise<void> {
     const claims = await this.verifier.verify(token)
 
     const perfil = await this.users.buscarPerfil(claims.sub)
@@ -55,8 +71,6 @@ export class SupabaseAuthGuard implements CanActivate {
       role: perfil.role,
       levelRank: perfil.levelRank,
     }
-
-    return true
   }
 }
 

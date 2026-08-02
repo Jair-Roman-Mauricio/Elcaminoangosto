@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common'
 import { MusicController } from './interface/music.controller'
 import { MusicService } from './application/music.service'
-import { MusicRepository } from './domain/music.repository'
+import { FavoritesRepository, MusicRepository } from './domain/music.repository'
 import { DrizzleMusicRepository } from './infrastructure/drizzle-music.repository'
+import { DrizzleFavoritesRepository } from './infrastructure/drizzle-favorites.repository'
 import { MediaModule } from '../media'
 
 /**
@@ -15,7 +16,11 @@ import { MediaModule } from '../media'
 @Module({
   imports: [MediaModule],
   controllers: [MusicController],
-  providers: [MusicService, { provide: MusicRepository, useClass: DrizzleMusicRepository }],
+  providers: [
+    MusicService,
+    { provide: MusicRepository, useClass: DrizzleMusicRepository },
+    { provide: FavoritesRepository, useClass: DrizzleFavoritesRepository },
+  ],
   exports: [MusicService],
 })
 export class MusicModule {}
