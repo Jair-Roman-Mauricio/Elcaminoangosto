@@ -73,6 +73,17 @@ begin
     now(), now(), '', '', '', '', '', '', '', ''
   );
 
+  -- GoTrue no autentica por contraseña a un usuario sin identidad `email`:
+  -- responde «invalid credentials» aunque el hash sea correcto.
+  insert into auth.identities (
+    id, user_id, provider_id, identity_data, provider, created_at, updated_at
+  )
+  values (
+    nuevo_id, nuevo_id, nuevo_id::text,
+    jsonb_build_object('sub', nuevo_id::text, 'email', correo),
+    'email', now(), now()
+  );
+
   -- El trigger sobre `auth.users` ya insertó el perfil como ESTUDIANTE; aquí se
   -- ajusta al rol que toca.
   update public.profiles set role = rol, display_name = nombre where id = nuevo_id;
