@@ -69,8 +69,10 @@ console.log('\n── un ESTUDIANTE no puede publicar ──')
 r = await j(await api(estudiante, '/feed', { method: 'POST', body: JSON.stringify({ mediaAssetId: assetId, caption: 'x' }) }))
 ok('estudiante publica → 403', r.status === 403, `status=${r.status}`)
 
-console.log('\n── HU-3.1: el feed vertical muestra la tarjeta con URL firmada ──')
-r = await j(await api(estudiante, '/feed'))
+console.log('\n── HU-3.1: el feed público muestra solo tarjetas ya publicadas ──')
+// El GET del feed se expone a visitantes para la landing. La publicación y
+// cualquier ruta de gestión siguen usando `api(token, ...)` y RBAC.
+r = await j(await fetch(`${API}/feed`))
 const tarjeta = r.body?.find((c) => c.caption?.includes('Contad el costo'))
 ok('la tarjeta aparece en el feed', Boolean(tarjeta))
 ok('trae una URL firmada del video', /token=/.test(tarjeta?.mediaUrl ?? ''), (tarjeta?.mediaUrl ?? '').slice(0, 60))

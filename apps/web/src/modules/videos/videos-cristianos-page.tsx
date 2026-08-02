@@ -322,7 +322,7 @@ export function VideosCristianosPage() {
                 <button type="submit" disabled={!comentarioNuevo.trim()}>Publicar</button>
               </form>
             ) : (
-              <button type="button" onClick={() => navigate('/entrar', { state: { desde: '/videos' } })}>
+              <button type="button" onClick={() => navigate('/videos?access=required&for=comentarios')}>
                 <CommentIcon />
                 Iniciar sesión para comentar
               </button>

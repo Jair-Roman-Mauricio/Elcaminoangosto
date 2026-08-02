@@ -5,6 +5,7 @@ import { DiscipleshipService } from '../application/discipleship.service'
 import {
   CurrentUser,
   type CurrentUserContext,
+  Public,
   RolesGuard,
   ZodValidationPipe,
 } from '../../shared'
@@ -20,6 +21,13 @@ const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank:
 @UseGuards(RolesGuard)
 export class DiscipleshipController {
   constructor(private readonly discipleship: DiscipleshipService) {}
+
+  @Get('public-catalog')
+  @Public()
+  @ApiOperation({ summary: 'Metadatos públicos de cursos publicados, sin acceso a lecciones' })
+  async catalogoPublico() {
+    return this.discipleship.catalogoPublico()
+  }
 
   @Get('catalog')
   @ApiOperation({ summary: 'Catálogo de cursos por nivel (HU-4.1)' })

@@ -81,10 +81,14 @@ export interface ProgressResult {
   courseCompleted: boolean
 }
 
-export function useCatalog() {
+export function useCatalog(lecturaPublica = false) {
   return useQuery({
-    queryKey: ['catalog'],
-    queryFn: () => apiClient.get<CatalogItem[]>('/discipleship/catalog'),
+    queryKey: lecturaPublica ? ['public-course-catalog'] : ['catalog'],
+    queryFn: async () => {
+      if (!lecturaPublica) return apiClient.get<CatalogItem[]>('/discipleship/catalog')
+      const cursos = await apiClient.get<Array<Omit<CatalogItem, 'thumbnailAssetId' | 'unlocked' | 'enrolled' | 'lockedReason' | 'progressPct'>>>('/discipleship/public-catalog')
+      return cursos.map((curso) => ({ ...curso, thumbnailAssetId: null, unlocked: false, enrolled: false, progressPct: 0, lockedReason: 'Inicia sesión o regístrate para acceder a este curso.' }))
+    },
   })
 }
 

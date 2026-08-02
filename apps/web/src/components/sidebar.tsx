@@ -40,6 +40,7 @@ export function gruposPara(role: Role | undefined): GrupoDeNav[] {
           { to: '/admin/revisiones', label: 'Revisiones' },
           { to: '/admin/moderacion', label: 'Moderación' },
           { to: '/admin/contenido', label: 'Contenido' },
+          { to: '/admin/chat', label: 'Mensajes de profesores' },
           { to: '/admin/usuarios', label: 'Usuarios' },
         ],
       },
@@ -53,7 +54,10 @@ export function gruposPara(role: Role | undefined): GrupoDeNav[] {
         enlaces: [
           { to: '/dashboard', label: 'Dashboard', exacto: true },
           { to: '/maestro/cursos', label: 'Mis cursos' },
-          { to: '/maestro/chat', label: 'Chat con estudiantes' },
+          // Debe ser exacta: la ruta de administración es hija y no puede
+          // activar este enlace ni dejar el selector en la fila anterior.
+          { to: '/maestro/chat', label: 'Chat con estudiantes', exacto: true },
+          { to: '/maestro/chat/administradores', label: 'Chat con administradores' },
           { to: '/maestro/estudiantes', label: 'Mis estudiantes' },
         ],
       },
@@ -69,13 +73,15 @@ export interface SidebarProps {
   onCerrar: () => void
   /** Oculta la navegación global en la experiencia inmersiva de una lección. */
   oculto?: boolean
+  /** Visitante sin sesión: mismo sidebar de estudiante, sin funciones privadas. */
+  invitado?: boolean
 }
 
 /**
  * Navegación lateral de la app autenticada. Fija en escritorio; cajón deslizante
  * bajo `cine` (820px), donde no cabe una columna sin comerse el contenido.
  */
-export function Sidebar({ abierto, onCerrar, oculto = false }: SidebarProps) {
+export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }: SidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { rolReal, rolEfectivo, viendoComo, verComo } = useVistaComo()
@@ -126,7 +132,10 @@ export function Sidebar({ abierto, onCerrar, oculto = false }: SidebarProps) {
         </div>
 
         <nav className="flex flex-1 flex-col gap-aire-s overflow-y-auto px-0 py-aire-m scrollbar-none">
-          {gruposPara(rolEfectivo).map((grupo) => (
+          {gruposPara(rolEfectivo).map((grupo) => ({
+            ...grupo,
+            enlaces: invitado ? grupo.enlaces.filter(({ to }) => to !== '/chat') : grupo.enlaces,
+          })).map((grupo) => (
             <div key={grupo.titulo} className="relative flex flex-col gap-aire-xs">
               {(() => {
                 const indiceActivo = grupo.enlaces.findIndex(({ to, exacto }) =>
@@ -147,8 +156,9 @@ export function Sidebar({ abierto, onCerrar, oculto = false }: SidebarProps) {
                   end={exacto ?? false}
                   className={({ isActive }) =>
                     cn(
-                      'sidebar-nav-link relative flex h-[2.35rem] items-center justify-start rounded-none border border-transparent px-aire-m text-left no-underline',
+                      'sidebar-nav-link relative flex h-[2.35rem] min-w-0 items-center justify-start rounded-none border border-transparent px-aire-m text-left no-underline',
                       'font-mono text-[0.6rem] uppercase tracking-[0.12em]',
+                      label === 'Chat con administradores' && 'text-[0.54rem] tracking-[0.08em] whitespace-nowrap',
                       'transition-colors duration-fade ease-camino',
                       // Barra de vino a la izquierda: marca la ruta activa sin
                       // depender solo del color del texto.
@@ -166,7 +176,12 @@ export function Sidebar({ abierto, onCerrar, oculto = false }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="flex flex-col gap-aire-s px-0 py-aire-m">
+        {invitado ? (
+          <div className="flex flex-col gap-aire-xs px-aire-m py-aire-m">
+            <Link to="/entrar" className="sidebar-nav-link flex h-[2.35rem] items-center justify-center border border-linea font-mono text-[0.6rem] uppercase tracking-[0.12em] text-contenido no-underline transition-colors duration-fade hover:border-vino hover:text-vino">Iniciar sesión</Link>
+            <Link to="/entrar?registro=1" className="flex h-[2.35rem] items-center justify-center border border-vino bg-vino font-mono text-[0.6rem] uppercase tracking-[0.12em] text-hueso no-underline transition-colors duration-fade hover:bg-vino/90">Registrarse</Link>
+          </div>
+        ) : <div className="flex flex-col gap-aire-s px-0 py-aire-m">
           {rolReal === 'ADMIN' && <VerComo activo={viendoComo} onVer={verComo} />}
 
           <div className="flex items-center px-aire-m">
@@ -200,7 +215,7 @@ export function Sidebar({ abierto, onCerrar, oculto = false }: SidebarProps) {
           >
             Cerrar sesión
           </Boton>
-        </div>
+        </div>}
       </aside>
     </>
   )

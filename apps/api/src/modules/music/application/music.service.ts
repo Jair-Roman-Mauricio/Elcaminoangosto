@@ -80,14 +80,20 @@ export class MusicService {
     ])
     const portadaDe = new Map(albumes.map((a) => [a.id, a.coverImageUrl ?? '']))
 
+    const tarjetas = await Promise.all(
+      // El repositorio ya excluye borradores y medios que no están READY.
+      // Sin audio no hay canción que reproducir: se descarta del catálogo.
+      canciones
+        .filter((c) => c.audioAssetId !== null)
+        .map(async (c) => this.aSongCard(c, portadaDe.get(c.albumId ?? '') ?? '')),
+    )
+    const albumesVisibles = new Set(tarjetas.flatMap((c) => (c.albumId ? [c.albumId] : [])))
+
     return {
-      albumes: albumes.map((a) => this.aAlbumCard(a)),
-      canciones: await Promise.all(
-        // Sin audio no hay canción que reproducir: se descarta del catálogo.
-        canciones
-          .filter((c) => c.audioAssetId !== null)
-          .map(async (c) => this.aSongCard(c, portadaDe.get(c.albumId ?? '') ?? '')),
-      ),
+      // Un álbum sin contenido público no revela su metadata en el catálogo
+      // anónimo; el módulo admin sigue consultando la colección completa.
+      albumes: albumes.filter((a) => albumesVisibles.has(a.id)).map((a) => this.aAlbumCard(a)),
+      canciones: tarjetas,
     }
   }
 

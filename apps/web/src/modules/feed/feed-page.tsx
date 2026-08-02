@@ -651,7 +651,20 @@ function EstudiarTarjeta({
             ref={piezaRef}
             className="faith-study__media"
             tabIndex={0}
+            onPointerDown={(event) => {
+              // El gesto se reserva solo dentro de la pieza; fuera de ella la
+              // página conserva el scroll vertical nativo.
+              if (event.pointerType !== 'mouse') event.currentTarget.setPointerCapture(event.pointerId)
+              inclinar(event)
+            }}
             onPointerMove={inclinar}
+            onPointerUp={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+            }}
+            onPointerCancel={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+              enderezar()
+            }}
             onPointerLeave={enderezar}
             onBlur={enderezar}
             onKeyDown={(event) => {

@@ -299,6 +299,20 @@
   transition: background-color 240ms var(--ease);
 }
 
+.mentor-chat__directory-group {
+  display: block;
+  border-top: 1px solid var(--linea);
+}
+
+.mentor-chat__directory-group h2 {
+  margin: 0;
+  padding: 0.8rem 1.25rem 0.55rem;
+  color: var(--vino);
+  font: 0.52rem/1 var(--mono);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
 .mentor-chat__mentor-indicator {
   position: absolute;
   z-index: 2;

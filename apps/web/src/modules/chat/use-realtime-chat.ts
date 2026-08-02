@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useSession } from '../../auth/session'
-import type { Mensaje } from './chat-api'
+import { compararConversaciones, type ConversationSummary, type Mensaje } from './chat-api'
 
 /** Fila cruda (snake_case) que entrega Realtime para la tabla `messages`. */
 interface FilaMensaje {
@@ -49,7 +49,7 @@ export function useRealtimeChat() {
     supabase.realtime.setAuth(token)
 
     const canal = supabase
-      .channel('chat-realtime')
+      .channel(`chat-realtime:${session.user.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
@@ -62,8 +62,32 @@ export function useRealtimeChat() {
             if (prev.some((m) => m.id === nuevo.id)) return prev
             return [...prev, nuevo]
           })
-          // La lista (preview + no leídos + orden) sí se refresca; su endpoint
-          // es muy liviano y no es la ruta crítica de latencia.
+          // Si ese hilo está abierto, la consulta de mensajes vuelve a pasar
+          // por el API y marca el recibido como leído. Así el badge no queda
+          // encendido para una conversación que el usuario ya está viendo.
+          void qc.invalidateQueries({ queryKey: ['chat', 'messages', nuevo.conversationId] })
+          // Actualiza primero la fila que ya está en caché: orden, preview y
+          // badge no esperan una ida HTTP. El refetch posterior reconcilia
+          // lecturas concurrentes o un hilo que se creó mientras tanto.
+          qc.setQueryData<ConversationSummary[]>(['chat', 'conversations'], (prev) => {
+            if (!prev) return prev
+            const encontrada = prev.some((conversacion) => conversacion.id === nuevo.conversationId)
+            if (!encontrada) return prev
+            const actualizadas = prev.map((conversacion) =>
+              conversacion.id === nuevo.conversationId
+                ? {
+                    ...conversacion,
+                    lastMessage: nuevo.body,
+                    lastMessageAt: nuevo.createdAt,
+                    unread:
+                      nuevo.senderId === session.user.id
+                        ? conversacion.unread
+                        : conversacion.unread + 1,
+                  }
+                : conversacion,
+            )
+            return [...actualizadas].sort(compararConversaciones)
+          })
           void qc.invalidateQueries({ queryKey: ['chat', 'conversations'] })
         },
       )

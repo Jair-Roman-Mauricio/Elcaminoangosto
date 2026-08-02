@@ -21,9 +21,17 @@ export class ChatService {
   async contactos(actor: Actor): Promise<Contacto[]> {
     // El estudiante consulta a cualquier mentor libremente (sin inscripción).
     if (actor.role === 'ESTUDIANTE') return this.chat.mentores()
-    // El mentor ve a sus estudiantes inscritos para poder contactarlos.
+    // El mentor ve solo a sus estudiantes inscritos en este módulo.
     if (actor.role === 'MAESTRO') return this.chat.contactsForTeacher(actor.id)
     return []
+  }
+
+  /** Directorio independiente para consultas de profesor a administración. */
+  async administradores(actor: Actor): Promise<Contacto[]> {
+    if (actor.role !== 'MAESTRO') {
+      throw new ForbiddenException('Solo los profesores pueden contactar a administración')
+    }
+    return this.chat.administradores()
   }
 
   /** Conversaciones del actor, con la otra persona y el último mensaje. */
@@ -37,17 +45,45 @@ export class ChatService {
    */
   async abrir(actor: Actor, otroId: string): Promise<{ conversationId: string; mensajes: MessageEntity[] }> {
     if (otroId === actor.id) throw new ForbiddenException('No puedes chatear contigo mismo')
+    const rolDelOtro = await this.chat.rolDe(otroId)
+    if (!rolDelOtro) throw new NotFoundException('Usuario no encontrado')
 
-    const mentorId = actor.role === 'MAESTRO' ? actor.id : otroId
-    const studentId = actor.role === 'MAESTRO' ? otroId : actor.id
+    let mentorId: string
+    let studentId: string
+    let permitirCrear = true
 
-    // El lado «mentor» de la conversación debe ser un mentor real. No se exige
-    // inscripción: el estudiante consulta a cualquier mentor de forma libre.
-    if (!(await this.chat.esMentor(mentorId))) {
-      throw new ForbiddenException('Solo puedes iniciar una conversación con un mentor')
+    if (actor.role === 'ESTUDIANTE' && rolDelOtro === 'MAESTRO') {
+      mentorId = otroId
+      studentId = actor.id
+    } else if (actor.role === 'MAESTRO' && rolDelOtro === 'ESTUDIANTE') {
+      // Un profesor solo puede iniciar con estudiantes de sus cursos. Esto
+      // evita convertir el directorio de perfiles en un canal de contacto.
+      const autorizados = await this.chat.contactsForTeacher(actor.id)
+      if (!autorizados.some((contacto) => contacto.id === otroId)) {
+        throw new ForbiddenException('Este estudiante no pertenece a tus cursos')
+      }
+      mentorId = actor.id
+      studentId = otroId
+    } else if (actor.role === 'MAESTRO' && rolDelOtro === 'ADMIN') {
+      // Reutilizamos el par estable de la conversación: profesor en mentor_id
+      // y admin en student_id. El nombre histórico de las columnas no se
+      // expone por el contrato HTTP.
+      mentorId = actor.id
+      studentId = otroId
+    } else if (actor.role === 'ADMIN' && rolDelOtro === 'MAESTRO') {
+      // Administración responde incidencias abiertas por un profesor, pero no
+      // inicia conversaciones arbitrarias con él.
+      mentorId = otroId
+      studentId = actor.id
+      permitirCrear = false
+    } else {
+      throw new ForbiddenException('No puedes iniciar una conversación con este usuario')
     }
 
     const existente = await this.chat.findConversation(mentorId, studentId)
+    if (!existente && !permitirCrear) {
+      throw new ForbiddenException('El profesor debe iniciar la conversación')
+    }
     const conv = existente ?? (await this.chat.createConversation(mentorId, studentId))
     await this.chat.markRead(conv.id, actor.id)
     return { conversationId: conv.id, mensajes: await this.chat.listMessages(conv.id) }
@@ -70,7 +106,7 @@ export class ChatService {
     const conv = await this.chat.findConversationById(conversationId)
     if (!conv) throw new NotFoundException('Conversación no encontrada')
     const participante =
-      conv.mentorId === actor.id || conv.studentId === actor.id || actor.role === 'ADMIN'
+      conv.mentorId === actor.id || conv.studentId === actor.id
     if (!participante) throw new ForbiddenException('No participas en esta conversación')
   }
 }
