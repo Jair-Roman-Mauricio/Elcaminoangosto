@@ -62,6 +62,9 @@
 }
 
 @media (max-width: 819px) {
+  /* En móvil el header ya concentra navegación y marca: este control no debe
+     competir ni reservar espacio. En tablet/escritorio permanece disponible. */
+  [data-theme-toggle] { display: none; }
   [data-theme-toggle] { width: 72px; height: 36px; flex-basis: 72px; }
   [data-theme-toggle][data-theme="dark"] .theme-toggle__orb { transform: translateX(34px); }
   [data-theme-toggle][data-theme="dark"][data-animating="true"] .theme-toggle__orb { animation-name: orb-to-dark-mobile; }

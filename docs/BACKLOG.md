@@ -264,6 +264,27 @@
 - **Entonces** se reemplazan GSAP/Webflow/Smootify por Framer Motion (o GSAP propio) conservando reveals, marquee direccional y *wipe* de botones.
 - **Entonces** respeta `prefers-reduced-motion` y es responsive (479/767/991/1600).
 
+### HU-9.2 — Contenido: canciones (ADMIN) ✅
+> **Como** ADMIN **quiero** publicar y administrar canciones desde el módulo Contenido **para** llenar Alabanza sin tocar código. **(8 pts)**
+- ✅ Contexto `music` construido (dominio, repositorio Drizzle, servicio, API) sobre las tablas `artists`/`albums`/`songs`, más los campos de presentación que la pantalla necesitaba (migración `20260730000300`).
+- ✅ El admin crea álbumes y sube canciones; el artista se reutiliza por nombre. Una canción **nace sin publicar**.
+- ✅ La pantalla de Alabanza consume el API; `alabanza-catalog.ts` conserva tipos, consulta y búsquedas, sin datos.
+- **Nota:** se acordó **no migrar** el catálogo estático; la base arranca vacía.
+- ✅ La portada del álbum se sube desde el equipo (bucket público `thumbnails`) y el color del disco se elige de la paleta de marca.
+- ✅ El fondo (imagen o video) y la letra (`.srt`) se suben desde el equipo; del `.srt` se guarda su contenido, que el reproductor ya sabe interpretar.
+
+### HU-9.3 — Contenido: videos (ADMIN) ✅
+> **Como** ADMIN **quiero** publicar y administrar videos cristianos **para** mantener esa sección viva. **(8 pts)**
+- ✅ Tabla `videos` con RLS, bounded context `videos` (dominio/aplicación/infraestructura/interfaz) y su API.
+- ✅ Subida por el pipeline de medios (E8); el video aparece en el catálogo cuando su medio está READY.
+- ✅ `videos-cristianos-page.tsx` consume el API y ya no tiene lista escrita en el código.
+- **Pendiente (HU-9.4):** me gusta, comentarios y compartidos de un video no se persisten. La pantalla los tenía como números fijos de maqueta; ahora el «me gusta» y los comentarios viven solo en la sesión y los contadores inventados se retiraron.
+
+### HU-9.4 — Interacción con los videos
+> **Como** ESTUDIANTE **quiero** dar me gusta y comentar un video **para** participar de la comunidad. **(5 pts)**
+- **Entonces** los me gusta y comentarios se guardan (tablas propias, como `post_likes`/`post_comments` del feed) y se muestran sus recuentos reales.
+- **Entonces** los comentarios se sanitizan y quedan sujetos a moderación (HU-7.2).
+
 ---
 
 ## Plan de sprints (sugerido, sprints de 2 semanas)

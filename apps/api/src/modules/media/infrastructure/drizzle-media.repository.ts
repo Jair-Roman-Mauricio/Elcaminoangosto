@@ -37,6 +37,20 @@ export class DrizzleMediaRepository extends MediaRepository {
       .where(eq(mediaAssets.id, id))
   }
 
+  async markReady(
+    id: string,
+    derivados: { posterPath: string | null; durationSeconds: number | null },
+  ): Promise<void> {
+    await this.db
+      .update(mediaAssets)
+      .set({ ...derivados, status: 'READY', updatedAt: new Date() })
+      .where(eq(mediaAssets.id, id))
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.db.delete(mediaAssets).where(eq(mediaAssets.id, id))
+  }
+
   private mapear(f: typeof mediaAssets.$inferSelect): MediaAssetEntity {
     return {
       id: f.id,

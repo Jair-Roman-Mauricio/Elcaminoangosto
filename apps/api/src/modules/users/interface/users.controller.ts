@@ -12,6 +12,7 @@ import {
 } from '../../shared'
 
 const AsignarRolSchema = z.object({ role: RoleSchema })
+const AsignarNivelSchema = z.object({ levelId: z.string().uuid() })
 
 const CrearCuentaSchema = z.object({
   email: z.string().email(),
@@ -53,6 +54,13 @@ export class UsersController {
     return this.users.listarTodos()
   }
 
+  @Get('platform-stats')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Métricas de crecimiento y actividad (HU-7.1)' })
+  async estadisticas() {
+    return this.users.estadisticasDePlataforma()
+  }
+
   @Post()
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una cuenta con rol (HU-1.2, solo ADMIN)' })
@@ -83,5 +91,15 @@ export class UsersController {
     @Body(new ZodValidationPipe(AsignarRolSchema)) body: { role: Role },
   ) {
     return this.users.asignarRol(id, body.role)
+  }
+
+  @Patch(':id/level')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Asignar el nivel de un estudiante (HU-1.2, solo ADMIN)' })
+  async asignarNivel(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(AsignarNivelSchema)) body: { levelId: string },
+  ) {
+    return this.users.asignarNivel(id, body.levelId)
   }
 }

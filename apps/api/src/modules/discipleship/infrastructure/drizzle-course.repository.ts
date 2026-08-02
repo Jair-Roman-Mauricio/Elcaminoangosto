@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { asc, count, eq, sql, type SQL } from 'drizzle-orm'
-import type { CourseStatus } from '@elcamino/shared-types'
+import { and, asc, count, eq, sql, type SQL } from 'drizzle-orm'
+import type { CourseStatus, LessonType, PreguntaExamen } from '@elcamino/shared-types'
 import { DRIZZLE, type Database } from '../../shared'
 import {
   courses,
@@ -8,13 +8,20 @@ import {
   lessons,
   levels,
   profiles,
+  enrollments,
+  contentObservations,
 } from '../../shared/database/schema'
 import {
   CourseRepository,
   type CourseCardEntity,
+  type CourseCompletionStat,
   type CourseEntity,
   type CourseModuleEntity,
   type LessonEntity,
+  type ModerationCourseStat,
+  type ModerationStatus,
+  type ObservationEntity,
+  type ObservationResource,
 } from '../domain/course.repository'
 
 /** Adaptador Drizzle del puerto `CourseRepository`. */
@@ -35,6 +42,7 @@ export class DrizzleCourseRepository extends CourseRepository {
         requiredLevelId: courses.requiredLevelId,
         requiredLevelRank: levels.rank,
         isFree: courses.isFree,
+        coverImageUrl: courses.coverImageUrl,
         teacherName: profiles.displayName,
         moduleCount: sql<number>`count(distinct ${courseModules.id})`.mapWith(Number),
         lessonCount: sql<number>`count(distinct ${lessons.id})`.mapWith(Number),
@@ -44,7 +52,8 @@ export class DrizzleCourseRepository extends CourseRepository {
       .leftJoin(levels, eq(courses.requiredLevelId, levels.id))
       .leftJoin(courseModules, eq(courseModules.courseId, courses.id))
       .leftJoin(lessons, eq(lessons.moduleId, courseModules.id))
-      .where(eq(courses.status, 'PUBLISHED'))
+      // Los cursos bloqueados por moderación no aparecen en el catálogo (HU-7.2).
+      .where(and(eq(courses.status, 'PUBLISHED'), eq(courses.blocked, false)))
       .groupBy(courses.id, levels.rank, profiles.displayName)
       .orderBy(asc(levels.rank), asc(courses.title))
 
@@ -82,7 +91,11 @@ export class DrizzleCourseRepository extends CourseRepository {
         isFree: courses.isFree,
         status: courses.status,
         plannedModules: courses.plannedModules,
+        learningObjectives: courses.learningObjectives,
+        purpose: courses.purpose,
+        coverImageUrl: courses.coverImageUrl,
         publishedAt: courses.publishedAt,
+        blocked: courses.blocked,
       })
       .from(courses)
       .leftJoin(levels, eq(courses.requiredLevelId, levels.id))
@@ -94,7 +107,10 @@ export class DrizzleCourseRepository extends CourseRepository {
     return { ...f, requiredLevelRank: f.requiredLevelRank ?? null }
   }
 
-  async findStructure(courseId: string): Promise<CourseModuleEntity[]> {
+  async findStructure(
+    courseId: string,
+    opts?: { soloAprobadas?: boolean },
+  ): Promise<CourseModuleEntity[]> {
     const modulos = await this.db
       .select({ id: courseModules.id, title: courseModules.title, orderIndex: courseModules.orderIndex })
       .from(courseModules)
@@ -102,6 +118,10 @@ export class DrizzleCourseRepository extends CourseRepository {
       .orderBy(asc(courseModules.orderIndex))
 
     if (modulos.length === 0) return []
+
+    const filtro = opts?.soloAprobadas
+      ? and(eq(courseModules.courseId, courseId), eq(lessons.moderationStatus, 'APPROVED'))
+      : eq(courseModules.courseId, courseId)
 
     const todasLasLecciones = await this.db
       .select({
@@ -111,12 +131,14 @@ export class DrizzleCourseRepository extends CourseRepository {
         type: lessons.type,
         content: lessons.content,
         mediaAssetId: lessons.mediaAssetId,
+        questions: lessons.questions,
         orderIndex: lessons.orderIndex,
         durationSeconds: lessons.durationSeconds,
+        moderationStatus: lessons.moderationStatus,
       })
       .from(lessons)
       .innerJoin(courseModules, eq(lessons.moduleId, courseModules.id))
-      .where(eq(courseModules.courseId, courseId))
+      .where(filtro)
       .orderBy(asc(lessons.orderIndex))
 
     return modulos.map((m) => ({
@@ -134,8 +156,10 @@ export class DrizzleCourseRepository extends CourseRepository {
         type: lessons.type,
         content: lessons.content,
         mediaAssetId: lessons.mediaAssetId,
+        questions: lessons.questions,
         orderIndex: lessons.orderIndex,
         durationSeconds: lessons.durationSeconds,
+        moderationStatus: lessons.moderationStatus,
       })
       .from(lessons)
       .where(eq(lessons.id, lessonId))
@@ -153,12 +177,16 @@ export class DrizzleCourseRepository extends CourseRepository {
     return filas[0]?.courseId ?? null
   }
 
-  async countLessons(courseId: string): Promise<number> {
+  async countLessons(courseId: string, opts?: { soloAprobadas?: boolean }): Promise<number> {
     const filas = await this.db
       .select({ n: count() })
       .from(lessons)
       .innerJoin(courseModules, eq(lessons.moduleId, courseModules.id))
-      .where(eq(courseModules.courseId, courseId))
+      .where(
+        opts?.soloAprobadas
+          ? and(eq(courseModules.courseId, courseId), eq(lessons.moderationStatus, 'APPROVED'))
+          : eq(courseModules.courseId, courseId),
+      )
     return filas[0]?.n ?? 0
   }
 
@@ -170,6 +198,71 @@ export class DrizzleCourseRepository extends CourseRepository {
 
   async findByStatus(status: CourseStatus): Promise<CourseEntity[]> {
     return this.findMany(eq(courses.status, status))
+  }
+
+  async completionStatsByTeacher(teacherId: string): Promise<CourseCompletionStat[]> {
+    const filas = await this.db
+      .select({
+        courseId: courses.id,
+        title: courses.title,
+        enrolled: count(enrollments.id),
+        completed: sql<number>`count(*) filter (where ${enrollments.status} = 'COMPLETED')`.mapWith(
+          Number,
+        ),
+      })
+      .from(courses)
+      .leftJoin(enrollments, eq(enrollments.courseId, courses.id))
+      .where(eq(courses.teacherId, teacherId))
+      .groupBy(courses.id, courses.title)
+      .orderBy(asc(courses.title))
+    return filas.map((f) => ({ ...f, enrolled: Number(f.enrolled), completed: Number(f.completed) }))
+  }
+
+  private mapObservacion(f: typeof contentObservations.$inferSelect): ObservationEntity {
+    return {
+      id: f.id,
+      courseId: f.courseId,
+      resourceType: f.resourceType as ObservationResource,
+      resourceId: f.resourceId,
+      note: f.note,
+      createdBy: f.createdBy,
+      resolvedAt: f.resolvedAt,
+      createdAt: f.createdAt,
+    }
+  }
+
+  async createObservation(input: {
+    courseId: string
+    resourceType: ObservationResource
+    resourceId: string | null
+    note: string
+    createdBy: string
+  }): Promise<ObservationEntity> {
+    const [fila] = await this.db.insert(contentObservations).values(input).returning()
+    if (!fila) throw new NotFoundException('No se pudo crear la indicación')
+    return this.mapObservacion(fila)
+  }
+
+  async listObservations(courseId: string): Promise<ObservationEntity[]> {
+    const filas = await this.db
+      .select()
+      .from(contentObservations)
+      .where(eq(contentObservations.courseId, courseId))
+      .orderBy(asc(contentObservations.createdAt))
+    return filas.map((f) => this.mapObservacion(f))
+  }
+
+  async findObservationById(id: string): Promise<ObservationEntity | null> {
+    const [fila] = await this.db
+      .select()
+      .from(contentObservations)
+      .where(eq(contentObservations.id, id))
+      .limit(1)
+    return fila ? this.mapObservacion(fila) : null
+  }
+
+  async deleteObservation(id: string): Promise<void> {
+    await this.db.delete(contentObservations).where(eq(contentObservations.id, id))
   }
 
   private async findMany(where: SQL): Promise<CourseEntity[]> {
@@ -186,7 +279,11 @@ export class DrizzleCourseRepository extends CourseRepository {
         isFree: courses.isFree,
         status: courses.status,
         plannedModules: courses.plannedModules,
+        learningObjectives: courses.learningObjectives,
+        purpose: courses.purpose,
+        coverImageUrl: courses.coverImageUrl,
         publishedAt: courses.publishedAt,
+        blocked: courses.blocked,
       })
       .from(courses)
       .leftJoin(levels, eq(courses.requiredLevelId, levels.id))
@@ -222,6 +319,9 @@ export class DrizzleCourseRepository extends CourseRepository {
       requiredLevelId?: string | null | undefined
       isFree?: boolean | undefined
       plannedModules?: number | undefined
+      learningObjectives?: string[] | undefined
+      purpose?: string | null | undefined
+      coverImageUrl?: string | null | undefined
     },
   ): Promise<CourseEntity> {
     await this.db
@@ -256,15 +356,59 @@ export class DrizzleCourseRepository extends CourseRepository {
   async addLesson(input: {
     moduleId: string
     title: string
-    type: 'VIDEO' | 'TEXT'
+    type: LessonType
     content: string | null
     mediaAssetId: string | null
+    questions: PreguntaExamen[]
     orderIndex: number
     durationSeconds: number | null
+    moderationStatus?: ModerationStatus
   }): Promise<string> {
-    const [fila] = await this.db.insert(lessons).values(input).returning({ id: lessons.id })
+    const [fila] = await this.db
+      .insert(lessons)
+      .values({ ...input, moderationStatus: input.moderationStatus ?? 'APPROVED' })
+      .returning({ id: lessons.id })
     if (!fila) throw new NotFoundException('No se pudo crear la lección')
     return fila.id
+  }
+
+  async moderationQueue(): Promise<ModerationCourseStat[]> {
+    const filas = await this.db
+      .select({
+        id: courses.id,
+        title: courses.title,
+        slug: courses.slug,
+        blocked: courses.blocked,
+        pendientes: sql<number>`count(distinct ${lessons.id}) filter (where ${lessons.moderationStatus} = 'PENDING')`.mapWith(
+          Number,
+        ),
+        bloqueados: sql<number>`count(distinct ${lessons.id}) filter (where ${lessons.moderationStatus} = 'BLOCKED')`.mapWith(
+          Number,
+        ),
+      })
+      .from(courses)
+      .leftJoin(courseModules, eq(courseModules.courseId, courses.id))
+      .leftJoin(lessons, eq(lessons.moduleId, courseModules.id))
+      .where(eq(courses.status, 'PUBLISHED'))
+      .groupBy(courses.id)
+      .orderBy(asc(courses.title))
+    return filas.map((f) => ({
+      ...f,
+      pendientes: Number(f.pendientes),
+      bloqueados: Number(f.bloqueados),
+    }))
+  }
+
+  async setLessonModeration(lessonId: string, status: ModerationStatus): Promise<void> {
+    await this.db.update(lessons).set({ moderationStatus: status }).where(eq(lessons.id, lessonId))
+  }
+
+  async setCourseBlocked(courseId: string, blocked: boolean): Promise<void> {
+    await this.db.update(courses).set({ blocked }).where(eq(courses.id, courseId))
+  }
+
+  async deleteLesson(lessonId: string): Promise<void> {
+    await this.db.delete(lessons).where(eq(lessons.id, lessonId))
   }
 
   async hasAnyLesson(courseId: string): Promise<boolean> {

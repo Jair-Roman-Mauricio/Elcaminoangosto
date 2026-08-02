@@ -29,4 +29,14 @@ export class SupabaseStorageAdapter extends MediaStoragePort {
     }
     return data.signedUrl
   }
+
+  async remove(bucket: string, paths: string[]): Promise<void> {
+    if (paths.length === 0) return
+    const { error } = await this.client.storage.from(bucket).remove(paths)
+    if (error) {
+      throw new InternalServerErrorException(
+        `No se pudo borrar de ${bucket}: ${error.message}`,
+      )
+    }
+  }
 }

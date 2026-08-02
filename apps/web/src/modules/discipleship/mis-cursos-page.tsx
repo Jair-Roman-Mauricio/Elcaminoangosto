@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Boton, Card, Field, Input, Reveal, Select } from '@elcamino/ui'
 import { useMyCourses, useCreateCourse, useLevels } from './authoring-api'
 import { EstadoBadge } from './estado-curso'
+import { MarcaCursoBloqueado } from './marca-moderacion'
 import { CourseAccessBadges } from './course-access-badges'
 
 /** Principal del profesor: catálogo propio, búsqueda y creación de cursos. */
@@ -83,8 +84,12 @@ export function MisCursosPage() {
                   requiredLevelRank={c.requiredLevelRank}
                   className="mt-aire-xs"
                 />
-                <div className="mt-auto flex items-center justify-between pt-aire-s">
-                  <EstadoBadge status={c.status} />
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-aire-xs pt-aire-s">
+                  <div className="flex flex-wrap items-center gap-aire-xs">
+                    <EstadoBadge status={c.status} />
+                    {/* Un curso bloqueado sigue PUBLISHED, pero nadie lo ve (HU-7.2). */}
+                    {c.blocked && <MarcaCursoBloqueado />}
+                  </div>
                   <EditarLink slug={c.id} />
                 </div>
               </Card>

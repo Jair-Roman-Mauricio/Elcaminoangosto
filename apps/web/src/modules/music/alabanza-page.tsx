@@ -1,18 +1,18 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlbumSleeve } from '../../components/album-sleeve'
 import { VinylDisc } from '../../components/vinyl-disc'
 import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
 import { usePlayerStore } from '../../stores/player.store'
 import {
-  ALBUMES_DE_ALABANZA,
-  CANCIONES_DE_ALABANZA,
-  buscarAlbumDeAlabanza,
-  buscarCancionDeAlabanza,
+  useCatalogoDeAlabanza,
+  buscarAlbum,
+  buscarCancion,
   type Alabanza,
   type AlbumDeAlabanza,
 } from './alabanza-catalog'
 import { SongSubtitles } from './song-subtitles'
+import { useSession } from '../../auth/session'
 
 type Vista = 'albumes' | 'discos' | 'reproductor'
 type Filtro = 'todo' | 'favoritos'
@@ -64,6 +64,11 @@ function convertirEnPortadaCuadrada(archivo: File) {
 }
 
 export function AlabanzaPage() {
+  const { session } = useSession()
+  const navigate = useNavigate()
+  const { catalogo, cargando } = useCatalogoDeAlabanza()
+  const ALBUMES_DE_ALABANZA = catalogo.albumes
+  const CANCIONES_DE_ALABANZA = catalogo.canciones
   const { pista, reproduciendo, progreso, reproducir } = usePlayerStore()
   const {
     cancionesFavoritas: favoritos,
@@ -77,10 +82,10 @@ export function AlabanzaPage() {
   const songIdEnUrl = searchParams.get('song')
   const collectionIdEnUrl = searchParams.get('collection')
   const categoriaEnUrl = searchParams.get('category')
-  const albumInicial = buscarAlbumDeAlabanza(albumIdEnUrl)
-  const cancionInicial = buscarCancionDeAlabanza(songIdEnUrl)
+  const albumInicial = buscarAlbum(ALBUMES_DE_ALABANZA, albumIdEnUrl)
+  const cancionInicial = buscarCancion(CANCIONES_DE_ALABANZA, songIdEnUrl)
   const [vista, setVista] = useState<Vista>(cancionInicial ? 'reproductor' : albumInicial || collectionIdEnUrl ? 'discos' : 'albumes')
-  const [albumId, setAlbumId] = useState(cancionInicial?.albumId ?? albumInicial?.albumId ?? ALBUMES_DE_ALABANZA[0]!.albumId)
+  const [albumId, setAlbumId] = useState(cancionInicial?.albumId ?? albumInicial?.albumId ?? '')
   const [collectionId, setCollectionId] = useState<string | null>(collectionIdEnUrl)
   const [categoriaAlbum, setCategoriaAlbum] = useState(
     categoriaEnUrl === 'favorites' || collectionIdEnUrl ? CATEGORIA_ALBUMES_FAVORITOS : 'todos',
@@ -111,7 +116,7 @@ export function AlabanzaPage() {
   }, [hidratarFavoritos])
 
   useEffect(() => {
-    const cancionDeLaUrl = buscarCancionDeAlabanza(songIdEnUrl)
+    const cancionDeLaUrl = buscarCancion(CANCIONES_DE_ALABANZA, songIdEnUrl)
     const coleccionDeLaUrl = albumesFavoritos.find((album) => album.albumId === collectionIdEnUrl)
     if (cancionDeLaUrl) {
       if (albumIdEnUrl !== cancionDeLaUrl.albumId) {
@@ -151,7 +156,7 @@ export function AlabanzaPage() {
       return
     }
 
-    const albumDeLaUrl = buscarAlbumDeAlabanza(albumIdEnUrl)
+    const albumDeLaUrl = buscarAlbum(ALBUMES_DE_ALABANZA, albumIdEnUrl)
     if (albumDeLaUrl) {
       setCollectionId(null)
       setAlbumId(albumDeLaUrl.albumId)
@@ -188,14 +193,18 @@ export function AlabanzaPage() {
     return () => window.removeEventListener('keydown', cerrarConEscape)
   }, [albumEditandoId, creandoAlbum])
 
-  const activa = buscarCancionDeAlabanza(songIdEnUrl) ?? (pista ? buscarCancionDeAlabanza(pista.songId) : undefined) ?? CANCIONES_DE_ALABANZA[0]!
-  const albumActivo = buscarAlbumDeAlabanza(albumId) ?? ALBUMES_DE_ALABANZA[0]!
+  // Con el catálogo vacío no hay nada activo: la pantalla lo explica más abajo.
+  const activa =
+    buscarCancion(CANCIONES_DE_ALABANZA, songIdEnUrl) ??
+    (pista ? buscarCancion(CANCIONES_DE_ALABANZA, pista.songId) : undefined) ??
+    CANCIONES_DE_ALABANZA[0]
+  const albumActivo = buscarAlbum(ALBUMES_DE_ALABANZA, albumId) ?? ALBUMES_DE_ALABANZA[0]
   const coleccionActiva = albumesFavoritos.find((album) => album.albumId === collectionId)
   const termino = normalizar(consulta.trim())
   const coincide = (texto: string) => !termino || normalizar(texto).includes(termino)
   const albumesPersonales = useMemo<AlbumDeCatalogo[]>(() => albumesFavoritos.map((album, indice) => {
     const primeraCancion = CANCIONES_DE_ALABANZA.find((cancion) => album.songIds.includes(cancion.songId))
-    const albumDeLaCancion = buscarAlbumDeAlabanza(primeraCancion?.albumId)
+    const albumDeLaCancion = buscarAlbum(ALBUMES_DE_ALABANZA, primeraCancion?.albumId)
     return {
       albumId: album.albumId,
       collectionId: album.albumId,
@@ -224,7 +233,7 @@ export function AlabanzaPage() {
     return candidatos.filter((disc) => coincide(`${disc.titulo} ${disc.artista} ${disc.subtitulo}`) && (filtro === 'todo' || favoritos.includes(disc.songId)))
   }, [albumId, coleccionActiva, favoritos, filtro, termino])
   const cancionesDelEditor = cancionesEditadas
-    .map((songId) => buscarCancionDeAlabanza(songId))
+    .map((songId) => buscarCancion(CANCIONES_DE_ALABANZA, songId))
     .filter((cancion): cancion is Alabanza => cancion !== undefined)
 
   function abrirAlbum(album: AlbumDeCatalogo) {
@@ -345,13 +354,28 @@ export function AlabanzaPage() {
     cerrarEditorDeAlbum()
   }
 
+  // El catálogo llega vacío mientras carga y también cuando aún no se ha
+  // publicado ninguna canción: sin álbumes no hay nada que reproducir.
+  if (!albumActivo || !activa) {
+    return (
+      <section className="praise-empty" aria-live="polite">
+        <p>
+          {cargando
+            ? 'Cargando el catálogo…'
+            : 'Todavía no hay canciones publicadas. El administrador las sube desde Contenido.'}
+        </p>
+      </section>
+    )
+  }
+
   if (vista === 'reproductor') {
     return (
       <section className={`praise-player-view praise-player-view--${activa.tono}`} aria-label={`Reproductor: ${activa.titulo}`}>
         <div className="praise-player-view__background" aria-hidden="true">
-          {activa.fondo.tipo === 'video'
-            ? <video src={activa.fondo.url} autoPlay muted loop playsInline preload="metadata" poster={activa.coverUrl ?? undefined} />
-            : <img src={activa.fondo.url} alt="" />}
+          {activa.fondo?.tipo === 'video' && (
+            <video src={activa.fondo.url} autoPlay muted loop playsInline preload="metadata" poster={activa.coverUrl ?? undefined} />
+          )}
+          {activa.fondo?.tipo === 'imagen' && <img src={activa.fondo.url} alt="" />}
         </div>
         <div className="praise-player-view__veil" />
         <div className="praise-player-view__body">
@@ -359,8 +383,8 @@ export function AlabanzaPage() {
             <h1>{activa.titulo}</h1>
             <span>{activa.artista}</span>
           </header>
-          {activa.fondo.tipo === 'imagen' && activa.subtitlesUrl && (
-            <SongSubtitles src={activa.subtitlesUrl} currentTime={progreso} />
+          {activa.fondo?.tipo === 'imagen' && activa.subtitulos && (
+            <SongSubtitles contenido={activa.subtitulos} currentTime={progreso} />
           )}
         </div>
       </section>
@@ -395,7 +419,7 @@ export function AlabanzaPage() {
               <button
                 type="button"
                 className="praise-library__create-album"
-                onClick={() => setCreandoAlbum(true)}
+                onClick={() => session ? setCreandoAlbum(true) : navigate('/alabanza?access=required&for=favoritos')}
               >
                 Crear álbum
               </button>
@@ -437,7 +461,7 @@ export function AlabanzaPage() {
                 const isSelected = albumAbriendo === album.albumId
                 const isEjecting = isSelected && faseApertura === 'discos'
                 const primerDisco = album.primerSongId
-                  ? buscarCancionDeAlabanza(album.primerSongId)
+                  ? buscarCancion(CANCIONES_DE_ALABANZA, album.primerSongId)
                   : CANCIONES_DE_ALABANZA.find((disco) => disco.albumId === album.albumId)
                 return (
                   <article
@@ -482,7 +506,9 @@ export function AlabanzaPage() {
               {discos.map((disco) => (
                 <article key={disco.songId} className={`praise-disc-object praise-disc-object--${disco.tono}`}>
                   <button type="button" onClick={() => reproducirDisco(disco)} aria-label={`Escuchar ${disco.titulo}`}>
-                    <VinylDisc artwork={disco.coverUrl ?? albumActivo.coverUrl} color={buscarAlbumDeAlabanza(disco.albumId)?.discColor ?? albumActivo.discColor} label={`Vinilo de ${disco.titulo}`} spinning={pista?.songId === disco.songId && reproduciendo} className="praise-disc-object__scene" />
+                    {/* El disco siempre muestra la portada de su álbum: es la
+                        identidad de la colección, no de la canción suelta. */}
+                    <VinylDisc artwork={buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.coverUrl ?? albumActivo.coverUrl} color={buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.discColor ?? albumActivo.discColor} label={`Vinilo de ${disco.titulo}`} spinning={pista?.songId === disco.songId && reproduciendo} className="praise-disc-object__scene" />
                     <strong>{disco.titulo}</strong>
                   </button>
                 </article>

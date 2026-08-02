@@ -1,7 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type UIEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type UIEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePerfil, useSession } from '../../auth/session'
+import { useVideos, type VideoCatalogo } from './videos-api'
 
+/**
+ * Video tal como lo pinta esta pantalla. Se construye desde el catálogo del
+ * API (HU-9.3); antes era una lista escrita aquí mismo.
+ */
 interface VideoCristiano {
   id: string
   titulo: string
@@ -11,9 +16,20 @@ interface VideoCristiano {
   poster: string
   cita: string
   autor: string
-  meGusta: string
-  comentarios: string
-  compartidos: string
+}
+
+/** Adapta un video del API a lo que espera la pantalla. */
+function aVideoCristiano(v: VideoCatalogo): VideoCristiano {
+  return {
+    id: v.id,
+    titulo: v.title,
+    serie: v.series ?? 'El Camino Angosto',
+    descripcion: v.description ?? '',
+    fuente: v.mediaUrl,
+    poster: v.posterUrl ?? '',
+    cita: v.reference ?? '',
+    autor: `@${v.authorName.toLocaleLowerCase('es-PE').replace(/\s+/g, '')}`,
+  }
 }
 
 interface ComentarioDeVideo {
@@ -24,61 +40,6 @@ interface ComentarioDeVideo {
   tiempo: string
   meGusta: string
 }
-
-const VIDEOS: VideoCristiano[] = [
-  {
-    id: 'bienaventurados',
-    titulo: 'Bienaventurados',
-    serie: 'Palabras que permanecen',
-    descripcion: 'Una pausa para volver al centro del mensaje y escuchar con calma.',
-    fuente: '/media/2-vertical.mp4',
-    poster: '/posters/2-vertical.jpg',
-    cita: 'Mateo 5:3–12',
-    autor: '@elcaminoangosto',
-    meGusta: '12.8K',
-    comentarios: '438',
-    compartidos: '816',
-  },
-  {
-    id: 'camino-desierto',
-    titulo: 'El camino en el desierto',
-    serie: 'Recorridos de fe',
-    descripcion: 'Caminar incluso cuando el horizonte todavía no revela la respuesta.',
-    fuente: '/media/1.mp4',
-    poster: '/posters/1.jpg',
-    cita: 'Isaías 43:19',
-    autor: '@elcaminoangosto',
-    meGusta: '9,704',
-    comentarios: '271',
-    compartidos: '519',
-  },
-  {
-    id: 'enviados',
-    titulo: 'Enviados de dos en dos',
-    serie: 'Comunidad y misión',
-    descripcion: 'La fe también se aprende caminando junto a otros y compartiendo el llamado.',
-    fuente: '/media/3.mp4',
-    poster: '/posters/3.jpg',
-    cita: 'Marcos 6:7',
-    autor: '@elcaminoangosto',
-    meGusta: '7,312',
-    comentarios: '186',
-    compartidos: '403',
-  },
-  {
-    id: 'tumba-vacia',
-    titulo: 'La piedra fue removida',
-    serie: 'Memorias de esperanza',
-    descripcion: 'Un recordatorio visual de que la última palabra no pertenece a la oscuridad.',
-    fuente: '/media/4.mp4',
-    poster: '/posters/4.jpg',
-    cita: 'Lucas 24:2–6',
-    autor: '@elcaminoangosto',
-    meGusta: '15.1K',
-    comentarios: '624',
-    compartidos: '1,024',
-  },
-]
 
 const COMENTARIOS_INICIALES: Record<string, ComentarioDeVideo[]> = {
   bienaventurados: [
@@ -111,7 +72,9 @@ export function VideosCristianosPage() {
   const navigate = useNavigate()
   const { session } = useSession()
   const { data: perfil } = usePerfil()
-  const [videoActivoId, setVideoActivoId] = useState(VIDEOS[0]?.id ?? '')
+  const { data: catalogo, isPending } = useVideos()
+  const VIDEOS = useMemo(() => (catalogo ?? []).map(aVideoCristiano), [catalogo])
+  const [videoActivoId, setVideoActivoId] = useState('')
   const [silenciado, setSilenciado] = useState(true)
   const [gustados, setGustados] = useState<Set<string>>(() => new Set())
   const [aviso, setAviso] = useState('')
@@ -119,6 +82,12 @@ export function VideosCristianosPage() {
   const [comentarioNuevo, setComentarioNuevo] = useState('')
   const [comentariosNuevos, setComentariosNuevos] = useState<Record<string, ComentarioDeVideo[]>>({})
   const feedRef = useRef<HTMLDivElement>(null)
+
+  // Al llegar el catálogo, el primer video pasa a ser el activo.
+  useEffect(() => {
+    if (videoActivoId || VIDEOS.length === 0) return
+    setVideoActivoId(VIDEOS[0]?.id ?? '')
+  }, [VIDEOS, videoActivoId])
 
   const indiceActivo = Math.max(0, VIDEOS.findIndex(({ id }) => id === videoActivoId))
   const videoDeComentarios = VIDEOS.find(({ id }) => id === comentariosAbiertosPara) ?? VIDEOS[indiceActivo]
@@ -225,6 +194,16 @@ export function VideosCristianosPage() {
           role="region"
           aria-label="Videos cristianos. Usa las flechas o desliza para cambiar de video."
         >
+          {/* Sin catálogo no hay nada que desplazar: se explica en vez de
+              dejar una pantalla negra vacía. */}
+          {VIDEOS.length === 0 && (
+            <p className="short-video__empty">
+              {isPending
+                ? 'Cargando videos…'
+                : 'Todavía no hay videos publicados. El administrador los sube desde Contenido.'}
+            </p>
+          )}
+
           {VIDEOS.map((video, indice) => {
             const activo = video.id === videoActivoId
             const gustado = gustados.has(video.id)
@@ -261,21 +240,19 @@ export function VideosCristianosPage() {
                   <aside className="short-video__actions" aria-label={`Acciones para ${video.titulo}`}>
                     <ActionButton
                       label={gustado ? 'Quitar Me gusta' : 'Me gusta'}
-                      count={video.meGusta}
                       pressed={gustado}
                       onClick={() => setGustados((actuales) => alternarEnColeccion(actuales, video.id))}
                       icon={<HeartIcon />}
                     />
                     <ActionButton
                       label="Comentarios"
-                      count={video.comentarios}
+                      count={String((comentariosNuevos[video.id] ?? []).length)}
                       expanded={comentariosAbiertosPara === video.id}
                       onClick={() => setComentariosAbiertosPara((actual) => actual === video.id ? null : video.id)}
                       icon={<CommentIcon />}
                     />
                     <ActionButton
                       label="Compartir"
-                      count={video.compartidos}
                       onClick={() => void compartir(video)}
                       icon={<ShareIcon />}
                     />
@@ -294,7 +271,7 @@ export function VideosCristianosPage() {
           inert={!comentariosAbiertosPara}
         >
           <header className="shorts-comments__header">
-            <h2>Comentarios <span>{videoDeComentarios?.comentarios ?? '0'}</span></h2>
+            <h2>Comentarios <span>{comentariosVisibles.length}</span></h2>
             <button type="button" onClick={() => setComentariosAbiertosPara(null)} aria-label="Cerrar comentarios">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
             </button>
@@ -345,7 +322,7 @@ export function VideosCristianosPage() {
                 <button type="submit" disabled={!comentarioNuevo.trim()}>Publicar</button>
               </form>
             ) : (
-              <button type="button" onClick={() => navigate('/entrar', { state: { desde: '/videos' } })}>
+              <button type="button" onClick={() => navigate('/videos?access=required&for=comentarios')}>
                 <CommentIcon />
                 Iniciar sesión para comentar
               </button>
@@ -473,7 +450,8 @@ function ActionButton({
   onClick,
 }: {
   label: string
-  count: string
+  /** Solo se pinta si hay un número real que enseñar. */
+  count?: string | undefined
   icon: React.ReactNode
   pressed?: boolean
   expanded?: boolean
@@ -489,7 +467,7 @@ function ActionButton({
       aria-controls={expanded === undefined ? undefined : 'video-comments-panel'}
     >
       <span>{icon}</span>
-      <small>{count}</small>
+      {count && <small>{count}</small>}
     </button>
   )
 }

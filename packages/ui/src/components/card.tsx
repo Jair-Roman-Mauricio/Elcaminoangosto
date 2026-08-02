@@ -41,9 +41,11 @@ export function Card({
   return (
     <article
       className={cn(
-        'group flex flex-col overflow-hidden rounded bg-superficie-1',
-        'border border-linea transition-colors duration-fade ease-camino',
-        interactiva && 'cursor-pointer hover:border-linea-fuerte',
+        // Cuadradas y sin borde: esquinas rectas, sin línea perimetral.
+        // La sombra da la separación que antes daba el borde.
+        'group flex flex-col overflow-hidden bg-superficie-1',
+        'shadow-lg transition-[box-shadow,transform] duration-fade ease-camino',
+        interactiva && 'cursor-pointer hover:-translate-y-0.5 hover:shadow-2xl',
         className,
       )}
       {...(interactiva

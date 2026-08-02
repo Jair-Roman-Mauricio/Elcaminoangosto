@@ -43,8 +43,20 @@ export const CourseSchema = z.object({
 })
 export type Course = z.infer<typeof CourseSchema>
 
-export const LessonTypeSchema = z.enum(['VIDEO', 'TEXT'])
+export const LessonTypeSchema = z.enum(['VIDEO', 'TEXT', 'EXAM', 'IMAGE'])
 export type LessonType = z.infer<typeof LessonTypeSchema>
+
+/** Una pregunta de una evaluación: enunciado, opciones y el índice correcto. */
+export const PreguntaExamenSchema = z.object({
+  enunciado: z.string().min(1).max(500),
+  opciones: z.array(z.string().min(1).max(300)).min(2).max(6),
+  /** Índice (0-based) de la opción correcta. */
+  correcta: z.number().int().nonnegative(),
+})
+export type PreguntaExamen = z.infer<typeof PreguntaExamenSchema>
+
+/** Pregunta tal como la ve el alumno: sin revelar la respuesta correcta. */
+export type PreguntaExamenAlumno = Omit<PreguntaExamen, 'correcta'>
 
 export const LessonSchema = z.object({
   id: z.string().uuid(),

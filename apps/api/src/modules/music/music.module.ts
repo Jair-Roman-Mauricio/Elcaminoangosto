@@ -1,11 +1,21 @@
 import { Module } from '@nestjs/common'
+import { MusicController } from './interface/music.controller'
+import { MusicService } from './application/music.service'
+import { MusicRepository } from './domain/music.repository'
+import { DrizzleMusicRepository } from './infrastructure/drizzle-music.repository'
+import { MediaModule } from '../media'
 
 /**
- * Bounded context `music`: catálogo, playlists, reproducciones y likes.
+ * Bounded context `music` (HU-9.2): catálogo de Alabanza —artistas, álbumes y
+ * canciones— que el ADMIN publica desde el módulo Contenido.
  *
- * Se implementa en S5 (ver docs/BACKLOG.md).
- * Capas: interface / application / domain / infrastructure.
- * Comunicación con otros módulos: solo por servicio público o evento de dominio.
+ * Capas: interface / application / domain / infrastructure. Usa el servicio
+ * público de `media` para firmar el audio; no conoce Storage.
  */
-@Module({})
+@Module({
+  imports: [MediaModule],
+  controllers: [MusicController],
+  providers: [MusicService, { provide: MusicRepository, useClass: DrizzleMusicRepository }],
+  exports: [MusicService],
+})
 export class MusicModule {}

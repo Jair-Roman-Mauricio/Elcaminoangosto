@@ -18,9 +18,11 @@ const VerificarCorreoPage = lazy(() =>
   import('./pages/verificar-correo').then((m) => ({ default: m.VerificarCorreoPage })),
 )
 const KitUiPage = lazy(() => import('./pages/kit-ui').then((m) => ({ default: m.KitUiPage })))
-const Pendiente = lazy(() => import('./pages/pendiente').then((m) => ({ default: m.Pendiente })))
 const AuthenticatedShell = lazy(() =>
   import('./auth/authenticated-shell').then((m) => ({ default: m.AuthenticatedShell })),
+)
+const PublicContentShell = lazy(() =>
+  import('./layouts/public-content-shell').then((m) => ({ default: m.PublicContentShell })),
 )
 const MaestroRoute = lazy(() =>
   import('./auth/authenticated-shell').then((m) => ({ default: m.MaestroRoute })),
@@ -28,8 +30,17 @@ const MaestroRoute = lazy(() =>
 const AdminRoute = lazy(() =>
   import('./auth/authenticated-shell').then((m) => ({ default: m.AdminRoute })),
 )
+const PanelRoute = lazy(() =>
+  import('./auth/authenticated-shell').then((m) => ({ default: m.PanelRoute })),
+)
+const DashboardHomePage = lazy(() =>
+  import('./modules/dashboard/dashboard-page').then((m) => ({ default: m.DashboardHomePage })),
+)
 const CatalogoPage = lazy(() =>
   import('./modules/discipleship/catalogo-page').then((m) => ({ default: m.CatalogoPage })),
+)
+const CatalogoPublicoPage = lazy(() =>
+  import('./modules/discipleship/catalogo-publico-page').then((m) => ({ default: m.CatalogoPublicoPage })),
 )
 const CursoPage = lazy(() =>
   import('./modules/discipleship/curso-page').then((m) => ({ default: m.CursoPage })),
@@ -49,8 +60,19 @@ const UsuariosPage = lazy(() =>
 const RevisionesPage = lazy(() =>
   import('./modules/admin/revisiones-page').then((m) => ({ default: m.RevisionesPage })),
 )
-const DashboardPage = lazy(() =>
-  import('./modules/admin/dashboard-page').then((m) => ({ default: m.DashboardPage })),
+const RevisionDetallePage = lazy(() =>
+  import('./modules/admin/revision-detalle-page').then((m) => ({ default: m.RevisionDetallePage })),
+)
+const ModeracionPage = lazy(() =>
+  import('./modules/admin/moderacion-page').then((m) => ({ default: m.ModeracionPage })),
+)
+const ContenidoPage = lazy(() =>
+  import('./modules/admin/contenido/contenido-page').then((m) => ({ default: m.ContenidoPage })),
+)
+const ModeracionDetallePage = lazy(() =>
+  import('./modules/admin/moderacion-detalle-page').then((m) => ({
+    default: m.ModeracionDetallePage,
+  })),
 )
 const FeedPage = lazy(() =>
   import('./modules/feed/feed-page').then((m) => ({ default: m.FeedPage })),
@@ -65,7 +87,16 @@ const AlabanzaPage = lazy(() =>
   import('./modules/music/alabanza-page').then((m) => ({ default: m.AlabanzaPage })),
 )
 const MentorChatPage = lazy(() =>
-  import('./modules/chat/mentor-chat-page').then((m) => ({ default: m.MentorChatPage })),
+  import('./modules/chat/chat-page').then((m) => ({ default: m.MentorChatPage })),
+)
+const ChatConEstudiantesPage = lazy(() =>
+  import('./modules/chat/chat-page').then((m) => ({ default: m.ChatConEstudiantesPage })),
+)
+const ChatConAdministradoresPage = lazy(() =>
+  import('./modules/chat/chat-page').then((m) => ({ default: m.ChatConAdministradoresPage })),
+)
+const ChatConProfesoresPage = lazy(() =>
+  import('./modules/chat/chat-page').then((m) => ({ default: m.ChatConProfesoresPage })),
 )
 const StudentProfilePage = lazy(() =>
   import('./modules/profile/student-profile-page').then((m) => ({ default: m.StudentProfilePage })),
@@ -77,6 +108,7 @@ const conCarga = (elemento: ReactNode) => <Suspense fallback={<Cargando />}>{ele
 /** Restringe una pantalla a ciertos roles (el ADMIN siempre pasa). */
 const soloMaestro = (el: ReactNode) => conCarga(<MaestroRoute>{el}</MaestroRoute>)
 const soloAdmin = (el: ReactNode) => conCarga(<AdminRoute>{el}</AdminRoute>)
+const soloPanel = (el: ReactNode) => conCarga(<PanelRoute>{el}</PanelRoute>)
 
 /**
  * Rutas. Toda la app autenticada vive bajo un único layout, cuya nav se deriva
@@ -95,36 +127,43 @@ export const router = createBrowserRouter([
   { path: '/verificar-correo', element: conCarga(<VerificarCorreoPage />) },
   { path: '/kit-ui', element: conCarga(<KitUiPage />) },
 
+  // Contenido de lectura pública. Cada pantalla conserva sus mutaciones bajo
+  // rutas/servicios protegidos; solo el catálogo publicado se carga sin JWT.
+  { element: conCarga(<PublicContentShell />), children: [
+    { path: '/tarjetas', element: conCarga(<FeedPage />) },
+    { path: '/videos', element: conCarga(<VideosCristianosPage />) },
+    { path: '/alabanza', element: conCarga(<AlabanzaPage />) },
+    { path: '/discipulado', element: conCarga(<CatalogoPublicoPage />) },
+  ] },
+
   // App autenticada (nav por rol efectivo)
   {
     element: conCarga(<AuthenticatedShell />),
     children: [
       { path: '/discipulado', element: conCarga(<CatalogoPage />) },
       { path: '/discipulado/:slug', element: conCarga(<CursoPage />) },
-      { path: '/tarjetas', element: conCarga(<FeedPage />) },
       { path: '/tarjetas/publicar', element: conCarga(<PublicarTarjetaPage />) },
-      { path: '/videos', element: conCarga(<VideosCristianosPage />) },
-      { path: '/alabanza', element: conCarga(<AlabanzaPage />) },
       { path: '/chat', element: conCarga(<MentorChatPage />) },
       { path: '/perfil', element: conCarga(<StudentProfilePage />) },
 
+      // Base de la navegación para MAESTRO y ADMIN.
+      { path: '/dashboard', element: soloPanel(conCarga(<DashboardHomePage />)) },
+
       { path: '/maestro/cursos', element: soloMaestro(conCarga(<MisCursosPage />)) },
       { path: '/maestro/cursos/:id', element: soloMaestro(conCarga(<EditorCursoPage />)) },
-      {
-        path: '/maestro/chat',
-        element: soloMaestro(
-          conCarga(<Pendiente titulo="Chat con estudiantes" historia="Interfaz del profesor" />),
-        ),
-      },
+      { path: '/maestro/chat', element: soloMaestro(conCarga(<ChatConEstudiantesPage />)) },
+      { path: '/maestro/chat/administradores', element: soloMaestro(conCarga(<ChatConAdministradoresPage />)) },
+      { path: '/admin/chat', element: soloAdmin(conCarga(<ChatConProfesoresPage />)) },
       { path: '/maestro/estudiantes', element: soloMaestro(conCarga(<EstudiantesPage />)) },
 
-      { path: '/admin', element: soloAdmin(conCarga(<DashboardPage />)) },
+      // El panel del admin ahora vive en /dashboard (base compartida).
+      { path: '/admin', element: <Navigate to="/dashboard" replace /> },
       { path: '/admin/revisiones', element: soloAdmin(conCarga(<RevisionesPage />)) },
+      { path: '/admin/revisiones/:id', element: soloAdmin(conCarga(<RevisionDetallePage />)) },
       { path: '/admin/usuarios', element: soloAdmin(conCarga(<UsuariosPage />)) },
-      {
-        path: '/admin/moderacion',
-        element: soloAdmin(conCarga(<Pendiente titulo="Moderación" historia="HU-7.2 · Sprint S6" />)),
-      },
+      { path: '/admin/moderacion', element: soloAdmin(conCarga(<ModeracionPage />)) },
+      { path: '/admin/moderacion/:id', element: soloAdmin(conCarga(<ModeracionDetallePage />)) },
+      { path: '/admin/contenido', element: soloAdmin(conCarga(<ContenidoPage />)) },
     ],
   },
 

@@ -1,6 +1,7 @@
 import * as tus from 'tus-js-client'
-import { supabase } from '../../lib/supabase'
-import { apiClient } from '../../lib/api-client'
+import type { Bucket, MediaKind } from '@elcamino/shared-types'
+import { supabase } from './supabase'
+import { apiClient } from './api-client'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -13,6 +14,7 @@ interface CrearSubidaResp {
 /**
  * Subida reanudable a Supabase Storage por TUS (HU-8.1). Tolerante a cortes de
  * red: `tus-js-client` reintenta y reanuda desde el último trozo confirmado.
+ * Compartida entre el feed (`feed-media`) y el discipulado (`course-media`).
  *
  * 1. El API reserva el asset y devuelve bucket+path (carpeta del usuario).
  * 2. Se sube el archivo por TUS al endpoint resumable, con el JWT del usuario.
@@ -22,13 +24,16 @@ interface CrearSubidaResp {
  */
 export async function subirMedioReanudable(
   file: File,
-  kind: 'VIDEO' | 'IMAGE',
+  kind: MediaKind,
+  bucket: Bucket,
   onProgress: (pct: number) => void,
+  opciones: { procesar?: boolean } = {},
 ): Promise<string> {
-  const { assetId, bucket, path } = await apiClient.post<CrearSubidaResp>('/media/uploads', {
-    kind,
-    bucket: 'feed-media',
-  })
+  const { procesar = true } = opciones
+  const { assetId, bucket: bucketReal, path } = await apiClient.post<CrearSubidaResp>(
+    '/media/uploads',
+    { kind, bucket },
+  )
 
   const {
     data: { session },
@@ -46,9 +51,9 @@ export async function subirMedioReanudable(
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true,
       metadata: {
-        bucketName: bucket,
+        bucketName: bucketReal,
         objectName: path,
-        contentType: file.type || (kind === 'VIDEO' ? 'video/mp4' : 'image/jpeg'),
+        contentType: file.type || (kind === 'AUDIO' ? 'audio/mpeg' : kind === 'VIDEO' ? 'video/mp4' : 'image/jpeg'),
         cacheControl: '3600',
       },
       chunkSize: 6 * 1024 * 1024, // 6 MB — requerido por el endpoint de Supabase
@@ -64,8 +69,21 @@ export async function subirMedioReanudable(
     })
   })
 
-  await apiClient.post(`/media/uploads/${assetId}/process`)
+  // Encolar la transcodificación. Opcional: quien crea una lección de curso
+  // prefiere no perder el contenido si la cola (Redis) está temporalmente caída;
+  // encola aparte, como mejor esfuerzo. El feed sí la necesita antes de esperar.
+  if (procesar) await apiClient.post(`/media/uploads/${assetId}/process`)
   return assetId
+}
+
+/** Encola la transcodificación sin propagar el fallo (mejor esfuerzo). */
+export async function encolarProcesado(assetId: string): Promise<boolean> {
+  try {
+    await apiClient.post(`/media/uploads/${assetId}/process`)
+    return true
+  } catch {
+    return false
+  }
 }
 
 interface EstadoMedio {
@@ -88,4 +106,22 @@ export async function esperarProcesado(
     if (Date.now() > hasta) throw new Error('La transcodificación tardó demasiado')
     await new Promise((r) => setTimeout(r, 2000))
   }
+}
+
+/** Lee la duración (segundos) de un archivo de video local, sin subirlo. */
+export function leerDuracionVideo(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url)
+      resolve(Number.isFinite(video.duration) ? Math.round(video.duration) : null)
+    }
+    video.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }
+    video.src = url
+  })
 }

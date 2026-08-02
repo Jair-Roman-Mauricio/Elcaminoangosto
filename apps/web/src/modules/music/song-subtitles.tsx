@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
 interface CueDeSubtitulo {
@@ -6,8 +6,6 @@ interface CueDeSubtitulo {
   fin: number
   texto: string
 }
-
-const cacheDeSubtitulos = new Map<string, Promise<CueDeSubtitulo[]>>()
 
 function tiempoEnSegundos(valor: string) {
   const partes = valor.trim().replace('.', ',').split(/[:,]/).map(Number)
@@ -37,42 +35,17 @@ export function parsearSrt(contenido: string): CueDeSubtitulo[] {
     })
 }
 
-function cargarSrt(url: string) {
-  const existente = cacheDeSubtitulos.get(url)
-  if (existente) return existente
-
-  const solicitud = fetch(url)
-    .then((respuesta) => {
-      if (!respuesta.ok) throw new Error(`No se pudo cargar el SRT (${respuesta.status})`)
-      return respuesta.text()
-    })
-    .then(parsearSrt)
-
-  cacheDeSubtitulos.set(url, solicitud)
-  return solicitud
-}
-
 interface SongSubtitlesProps {
-  src: string
+  /**
+   * Contenido del `.srt`, no su URL: el admin sube el archivo y su texto viaja
+   * con la canción, así que no hay una segunda petición que pueda fallar.
+   */
+  contenido: string
   currentTime: number
 }
 
-export function SongSubtitles({ src, currentTime }: SongSubtitlesProps) {
-  const [cues, setCues] = useState<CueDeSubtitulo[]>([])
-
-  useEffect(() => {
-    let vigente = true
-    setCues([])
-    void cargarSrt(src)
-      .then((resultado) => {
-        if (vigente) setCues(resultado)
-      })
-      .catch(() => {
-        cacheDeSubtitulos.delete(src)
-        if (vigente) setCues([])
-      })
-    return () => { vigente = false }
-  }, [src])
+export function SongSubtitles({ contenido, currentTime }: SongSubtitlesProps) {
+  const cues = useMemo<CueDeSubtitulo[]>(() => parsearSrt(contenido), [contenido])
 
   const activo = useMemo(
     () => cues.find((cue) => currentTime >= cue.inicio && currentTime < cue.fin),

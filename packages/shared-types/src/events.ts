@@ -14,6 +14,7 @@ export const DOMAIN_EVENTS = {
   LESSON_COMPLETED: 'lesson.completed',
   // admin
   COURSE_REVIEWED: 'course.reviewed',
+  CONTENT_MODERATED: 'content.moderated',
   // chat
   LEVEL_UP_REQUESTED: 'level_up.requested',
   LEVEL_UP_REQUEST_APPROVED: 'level_up.approved',
@@ -50,6 +51,22 @@ export interface CourseReviewedEvent {
   courseId: string
   teacherId: string
   decision: 'APPROVED' | 'REJECTED'
+}
+
+/**
+ * HU-7.2 — el admin decidió sobre el contenido de un curso ya publicado.
+ * `lessonId` es nulo cuando la decisión afecta al curso completo.
+ */
+export interface ContentModeratedEvent {
+  courseId: string
+  teacherId: string
+  lessonId: string | null
+  action:
+    | 'LESSON_APPROVED'
+    | 'LESSON_PENDING'
+    | 'LESSON_BLOCKED'
+    | 'COURSE_BLOCKED'
+    | 'COURSE_UNBLOCKED'
 }
 
 export interface LessonCompletedEvent {
