@@ -84,32 +84,35 @@ comment on function public.crear_cuenta_inicial is
 
 do $$
 declare
-  -- Definido con:  alter database postgres set app.clave_cuentas_iniciales = '…';
-  clave text := nullif(current_setting('app.clave_cuentas_iniciales', true), '');
-  clave_al_azar boolean := clave is null;
+  -- Una contraseña por cuenta: si se filtra la del profesor, no se lleva por
+  -- delante la del administrador. Se definen con:
+  --   alter database postgres set app.clave_admin = '…';
+  --   alter database postgres set app.clave_maestro = '…';
+  clave_admin   text := nullif(current_setting('app.clave_admin', true), '');
+  clave_maestro text := nullif(current_setting('app.clave_maestro', true), '');
+  al_azar boolean := clave_admin is null or clave_maestro is null;
   creadas int := 0;
 begin
-  if clave_al_azar then
-    -- Sin ajuste no se inventa una contraseña conocida: una fija en el
-    -- repositorio sería la misma en todos los entornos y para siempre.
-    clave := encode(gen_random_bytes(24), 'base64');
-  end if;
+  -- Sin ajuste no se inventa una contraseña conocida: una fija en el
+  -- repositorio sería la misma en todos los entornos y para siempre.
+  clave_admin   := coalesce(clave_admin,   encode(gen_random_bytes(24), 'base64'));
+  clave_maestro := coalesce(clave_maestro, encode(gen_random_bytes(24), 'base64'));
 
   if public.crear_cuenta_inicial(
-    'admin@elcaminoangosto.test', 'Administración', 'ADMIN', clave
+    'admin@elcaminoangosto.test', 'Administración', 'ADMIN', clave_admin
   ) then
     creadas := creadas + 1;
   end if;
 
   if public.crear_cuenta_inicial(
-    'maestro@elcaminoangosto.test', 'Profesor', 'MAESTRO', clave
+    'maestro@elcaminoangosto.test', 'Profesor', 'MAESTRO', clave_maestro
   ) then
     creadas := creadas + 1;
   end if;
 
-  if creadas > 0 and clave_al_azar then
-    raise notice 'Cuentas creadas (%) con contraseña ALEATORIA. Fíjala antes de usarlas:', creadas;
+  if creadas > 0 and al_azar then
+    raise notice 'Cuentas creadas (%). Alguna quedó con contraseña ALEATORIA; fíjala así:', creadas;
     raise notice '  update auth.users set encrypted_password = crypt(''LA-QUE-QUIERAS'', gen_salt(''bf''))';
-    raise notice '   where email in (''admin@elcaminoangosto.test'', ''maestro@elcaminoangosto.test'');';
+    raise notice '   where email = ''admin@elcaminoangosto.test'';';
   end if;
 end $$;
