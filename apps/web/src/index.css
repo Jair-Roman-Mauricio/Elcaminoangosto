@@ -5359,12 +5359,20 @@
   .praise-library__tools:not(.praise-library__tools--with-action) {
     grid-template-columns: 1fr;
   }
-  .alabanza-shell--player .main-interface-transition {
-    padding-top: 3.75rem;
-  }
+  /*
+   * El aire de arriba lo pone AHORA la propia vista, no el envoltorio: como el
+   * envoltorio no pinta la imagen, su relleno dejaba ver el fondo de la página
+   * —una franja blanca en tema claro— entre la cabecera y la portada.
+   *
+   * La sección se come el hueco de la cabecera fija (5.5rem del `main`) con un
+   * margen negativo y repone los 9.25rem completos como relleno, así el título
+   * queda donde estaba y la imagen llega hasta arriba. El `min-height` sube en
+   * esa misma medida para seguir tocando el borde inferior de la pantalla.
+   */
   .praise-player-view {
-    min-height: calc(100svh - 9.25rem);
-    margin-top: 0;
+    min-height: 100svh;
+    margin-top: -5.5rem;
+    padding-top: 9.25rem;
     padding-inline: 1rem;
   }
   .praise-player-view__body {
