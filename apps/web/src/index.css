@@ -5247,27 +5247,6 @@
 .alabanza-shell--player {
   background: var(--praise-page-background);
 }
-
-/*
- * El `main` reserva 5.5rem arriba para la cabecera fija de móvil (2rem a partir
- * de `cine`, donde esa cabecera desaparece). El lienzo del reproductor ya
- * sangraba a los lados y por abajo, pero no hacia arriba: quedaba una franja
- * del fondo de la página —blanca en tema claro— entre la cabecera y la imagen.
- *
- * Se come ese hueco con un margen negativo y lo repone como relleno, así la
- * imagen llega hasta la cabecera sin que el título se meta debajo de ella.
- */
-.praise-player-view {
-  margin-top: -5.5rem;
-  padding-top: 5.5rem;
-}
-
-@media (min-width: 820px) {
-  .praise-player-view {
-    margin-top: -2rem;
-    padding-top: 2rem;
-  }
-}
 .praise-player-view__background,
 .praise-player-view__background > *,
 .praise-player-view__veil {
