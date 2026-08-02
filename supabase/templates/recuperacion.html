@@ -1,0 +1,82 @@
+<!--
+  El Camino Angosto · correo de RECUPERACIÓN de contraseña.
+
+  Mismas reglas que confirmacion.html (tablas, estilos en línea, .jpg,
+  `__WEB_URL__` sustituido en el despliegue). Aquí el enlace es
+  `{{ .ConfirmationURL }}`, que Supabase apunta al flujo de recuperación.
+
+  Tono distinto al de bienvenida: quien recibe esto puede no haberlo pedido,
+  así que se dice pronto y claro qué pasa si ignora el mensaje.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;background-color:#0a0a0a;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background-color:#14110f;border:1px solid #2a2622;">
+
+        <tr>
+          <td style="padding:0;line-height:0;">
+            <img src="__WEB_URL__/brand/paisaje-correo.jpg" width="560" height="260" alt="Un sendero angosto de montaña hacia la luz del amanecer" style="display:block;width:100%;max-width:560px;height:auto;border:0;outline:none;text-decoration:none;">
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:40px 40px 8px 40px;">
+            <p style="margin:0 0 20px 0;font-family:'Space Mono',Consolas,monospace;font-size:10px;line-height:1;letter-spacing:0.14em;text-transform:uppercase;color:#b41e44;">
+              El Camino Angosto
+            </p>
+
+            <h1 style="margin:0 0 20px 0;font-family:Newsreader,Georgia,'Times New Roman',serif;font-size:32px;line-height:1.2;font-weight:400;color:#f7f6f2;">
+              Recupera tu acceso
+            </h1>
+
+            <p style="margin:0 0 20px 0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#d8d4cc;">
+              Pediste volver a entrar a tu cuenta. Con el botón de abajo eliges una contraseña nueva y sigues donde lo dejaste.
+            </p>
+
+            <p style="margin:0 0 24px 0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#d8d4cc;">
+              El enlace caduca en una hora y sirve una sola vez.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 40px 28px 40px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#b41e44" style="background-color:#b41e44;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 32px;font-family:'Space Mono',Consolas,monospace;font-size:12px;line-height:1;letter-spacing:0.1em;text-transform:uppercase;color:#ffffff;text-decoration:none;">
+                    Crear contraseña nueva
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 40px 36px 40px;">
+            <p style="margin:0 0 6px 0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#8a837a;">
+              ¿El botón no funciona? Copia y pega esta dirección en tu navegador:
+            </p>
+            <p style="margin:0;font-family:'Space Mono',Consolas,monospace;font-size:12px;line-height:1.6;word-break:break-all;color:#b41e44;">
+              {{ .ConfirmationURL }}
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:24px 40px 32px 40px;border-top:1px solid #2a2622;">
+            <p style="margin:0 0 10px 0;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#8a837a;">
+              Si no fuiste tú, ignora este mensaje: tu contraseña actual sigue funcionando y nadie ha entrado a tu cuenta.
+            </p>
+            <p style="margin:0;font-family:'Space Mono',Consolas,monospace;font-size:10px;line-height:1.6;letter-spacing:0.14em;text-transform:uppercase;color:#5c564e;">
+              El Camino Angosto
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

@@ -40,9 +40,12 @@ jobs:
           BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
           BREVO_SMTP_USER: ${{ secrets.BREVO_SMTP_USER }}
           BREVO_SMTP_KEY: ${{ secrets.BREVO_SMTP_KEY }}
+          # Las imágenes de un correo exigen URL absoluta: no hay página que
+          # resuelva las relativas. Cada entorno sirve las suyas.
+          WEB_URL: ${{ github.ref == 'refs/heads/main' && 'https://web-production-551e4.up.railway.app' || 'https://web-staging-4f40.up.railway.app' }}
         run: |
           umask 077
-          trap 'rm -f /tmp/elcamino-supabase-auth.json' EXIT
+          trap 'rm -f /tmp/elcamino-supabase-auth.json /tmp/elcamino-correo-*.html' EXIT
           auth_url="https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth"
           current_allow_list=$(curl --fail --silent --show-error "$auth_url" \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.uri_allow_list // ""')
@@ -81,6 +84,23 @@ jobs:
           else
             echo "::warning::Brevo no configurado. Supabase solo entregará correos a miembros de la organización y aplicará su límite de demostración."
           fi
+
+          # Plantillas con la identidad de marca (supabase/templates/). Se
+          # versionan en el repo para que se revisen como cualquier otro cambio.
+          for plantilla in confirmacion recuperacion; do
+            sed "s|__WEB_URL__|$WEB_URL|g" "supabase/templates/$plantilla.html" \
+              > "/tmp/elcamino-correo-$plantilla.html"
+          done
+          jq \
+            --rawfile confirmacion /tmp/elcamino-correo-confirmacion.html \
+            --rawfile recuperacion /tmp/elcamino-correo-recuperacion.html \
+            '. + {
+              mailer_subjects_confirmation: "Confirma tu correo · El Camino Angosto",
+              mailer_templates_confirmation_content: $confirmacion,
+              mailer_subjects_recovery: "Recupera tu acceso · El Camino Angosto",
+              mailer_templates_recovery_content: $recuperacion
+            }' /tmp/elcamino-supabase-auth.json > /tmp/elcamino-supabase-auth.next.json
+          mv /tmp/elcamino-supabase-auth.next.json /tmp/elcamino-supabase-auth.json
 
           curl --fail --silent --show-error -X PATCH "$auth_url" \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
