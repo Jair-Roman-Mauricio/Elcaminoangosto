@@ -79,7 +79,12 @@ jobs:
                 smtp_port: "587",
                 smtp_user: $smtp_user,
                 smtp_pass: $smtp_pass,
-                smtp_sender_name: "El Camino Angosto"
+                smtp_sender_name: "El Camino Angosto",
+                # Con el servicio de demostración Supabase impone 2 correos por
+                # HORA en todo el proyecto: la tercera persona que se registre en
+                # esa hora recibe un 429 y se queda sin verificar. Con SMTP propio
+                # el límite lo pone Brevo (300/día en el plan gratuito).
+                rate_limit_email_sent: 100
               }' /tmp/elcamino-supabase-auth.json > /tmp/elcamino-supabase-auth.next.json
             mv /tmp/elcamino-supabase-auth.next.json /tmp/elcamino-supabase-auth.json
           else
