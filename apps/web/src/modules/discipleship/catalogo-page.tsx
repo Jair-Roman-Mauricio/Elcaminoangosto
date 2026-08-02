@@ -7,8 +7,8 @@ import { useCatalog, type CatalogItem } from './api'
  * Catálogo de cursos por nivel (HU-4.1). Los cursos de nivel superior se
  * muestran bloqueados con su motivo, no se ocultan.
  */
-export function CatalogoPage() {
-  const { data: cursos, isPending, isError } = useCatalog()
+export function CatalogoPage({ lecturaPublica = false }: { lecturaPublica?: boolean }) {
+  const { data: cursos, isPending, isError } = useCatalog(lecturaPublica)
   const [busqueda, setBusqueda] = useState('')
   const [categoria, setCategoria] = useState('Todos')
   const categorias = ['Todos', 'Biblia', 'Vida práctica', 'Oración', 'Discipulado']
@@ -104,7 +104,7 @@ export function CatalogoPage() {
       {cursosFiltrados.length > 0 && (
         <div className="grid gap-aire-m sm:grid-cols-2 md:grid-cols-3">
           {cursosFiltrados.map((curso) => (
-            <CursoCard key={curso.id} curso={curso} />
+            <CursoCard key={curso.id} curso={curso} lecturaPublica={lecturaPublica} />
           ))}
         </div>
       )}
@@ -112,11 +112,11 @@ export function CatalogoPage() {
   )
 }
 
-function CursoCard({ curso }: { curso: CatalogItem }) {
+function CursoCard({ curso, lecturaPublica }: { curso: CatalogItem; lecturaPublica: boolean }) {
   const navigate = useNavigate()
   const nivel = curso.requiredLevelRank ? `Nivel ${curso.requiredLevelRank}` : 'Abierto'
 
-  const abrir = () => navigate(`/discipulado/${curso.slug}`)
+  const abrir = () => navigate(lecturaPublica ? `/discipulado?access=required&for=curso-${curso.slug}` : `/discipulado/${curso.slug}`)
 
   return (
     <Card
@@ -168,7 +168,7 @@ function CursoCard({ curso }: { curso: CatalogItem }) {
         </p>
       )}
 
-      {curso.unlocked && (
+      {(curso.unlocked || lecturaPublica) && (
         <div className="mt-auto pt-aire-xs">
           <button
             type="button"
@@ -178,7 +178,7 @@ function CursoCard({ curso }: { curso: CatalogItem }) {
             }}
             className="inline-flex w-full items-center justify-center rounded-none border-0 bg-vino px-aire-m py-aire-xs font-mono text-[0.6rem] uppercase tracking-[0.12em] text-hueso transition-colors duration-fade hover:bg-vino/90"
           >
-            Ver detalle
+            {lecturaPublica ? 'Iniciar para acceder' : 'Ver detalle'}
           </button>
         </div>
       )}

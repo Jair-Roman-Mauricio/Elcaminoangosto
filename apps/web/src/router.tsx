@@ -21,6 +21,9 @@ const KitUiPage = lazy(() => import('./pages/kit-ui').then((m) => ({ default: m.
 const AuthenticatedShell = lazy(() =>
   import('./auth/authenticated-shell').then((m) => ({ default: m.AuthenticatedShell })),
 )
+const PublicContentShell = lazy(() =>
+  import('./layouts/public-content-shell').then((m) => ({ default: m.PublicContentShell })),
+)
 const MaestroRoute = lazy(() =>
   import('./auth/authenticated-shell').then((m) => ({ default: m.MaestroRoute })),
 )
@@ -35,6 +38,9 @@ const DashboardHomePage = lazy(() =>
 )
 const CatalogoPage = lazy(() =>
   import('./modules/discipleship/catalogo-page').then((m) => ({ default: m.CatalogoPage })),
+)
+const CatalogoPublicoPage = lazy(() =>
+  import('./modules/discipleship/catalogo-publico-page').then((m) => ({ default: m.CatalogoPublicoPage })),
 )
 const CursoPage = lazy(() =>
   import('./modules/discipleship/curso-page').then((m) => ({ default: m.CursoPage })),
@@ -86,6 +92,12 @@ const MentorChatPage = lazy(() =>
 const ChatConEstudiantesPage = lazy(() =>
   import('./modules/chat/chat-page').then((m) => ({ default: m.ChatConEstudiantesPage })),
 )
+const ChatConAdministradoresPage = lazy(() =>
+  import('./modules/chat/chat-page').then((m) => ({ default: m.ChatConAdministradoresPage })),
+)
+const ChatConProfesoresPage = lazy(() =>
+  import('./modules/chat/chat-page').then((m) => ({ default: m.ChatConProfesoresPage })),
+)
 const StudentProfilePage = lazy(() =>
   import('./modules/profile/student-profile-page').then((m) => ({ default: m.StudentProfilePage })),
 )
@@ -115,16 +127,22 @@ export const router = createBrowserRouter([
   { path: '/verificar-correo', element: conCarga(<VerificarCorreoPage />) },
   { path: '/kit-ui', element: conCarga(<KitUiPage />) },
 
+  // Contenido de lectura pública. Cada pantalla conserva sus mutaciones bajo
+  // rutas/servicios protegidos; solo el catálogo publicado se carga sin JWT.
+  { element: conCarga(<PublicContentShell />), children: [
+    { path: '/tarjetas', element: conCarga(<FeedPage />) },
+    { path: '/videos', element: conCarga(<VideosCristianosPage />) },
+    { path: '/alabanza', element: conCarga(<AlabanzaPage />) },
+    { path: '/discipulado', element: conCarga(<CatalogoPublicoPage />) },
+  ] },
+
   // App autenticada (nav por rol efectivo)
   {
     element: conCarga(<AuthenticatedShell />),
     children: [
       { path: '/discipulado', element: conCarga(<CatalogoPage />) },
       { path: '/discipulado/:slug', element: conCarga(<CursoPage />) },
-      { path: '/tarjetas', element: conCarga(<FeedPage />) },
       { path: '/tarjetas/publicar', element: conCarga(<PublicarTarjetaPage />) },
-      { path: '/videos', element: conCarga(<VideosCristianosPage />) },
-      { path: '/alabanza', element: conCarga(<AlabanzaPage />) },
       { path: '/chat', element: conCarga(<MentorChatPage />) },
       { path: '/perfil', element: conCarga(<StudentProfilePage />) },
 
@@ -134,6 +152,8 @@ export const router = createBrowserRouter([
       { path: '/maestro/cursos', element: soloMaestro(conCarga(<MisCursosPage />)) },
       { path: '/maestro/cursos/:id', element: soloMaestro(conCarga(<EditorCursoPage />)) },
       { path: '/maestro/chat', element: soloMaestro(conCarga(<ChatConEstudiantesPage />)) },
+      { path: '/maestro/chat/administradores', element: soloMaestro(conCarga(<ChatConAdministradoresPage />)) },
+      { path: '/admin/chat', element: soloAdmin(conCarga(<ChatConProfesoresPage />)) },
       { path: '/maestro/estudiantes', element: soloMaestro(conCarga(<EstudiantesPage />)) },
 
       // El panel del admin ahora vive en /dashboard (base compartida).

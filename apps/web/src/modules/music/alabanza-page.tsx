@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlbumSleeve } from '../../components/album-sleeve'
 import { VinylDisc } from '../../components/vinyl-disc'
 import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
@@ -12,6 +12,7 @@ import {
   type AlbumDeAlabanza,
 } from './alabanza-catalog'
 import { SongSubtitles } from './song-subtitles'
+import { useSession } from '../../auth/session'
 
 type Vista = 'albumes' | 'discos' | 'reproductor'
 type Filtro = 'todo' | 'favoritos'
@@ -63,6 +64,8 @@ function convertirEnPortadaCuadrada(archivo: File) {
 }
 
 export function AlabanzaPage() {
+  const { session } = useSession()
+  const navigate = useNavigate()
   const { catalogo, cargando } = useCatalogoDeAlabanza()
   const ALBUMES_DE_ALABANZA = catalogo.albumes
   const CANCIONES_DE_ALABANZA = catalogo.canciones
@@ -416,7 +419,7 @@ export function AlabanzaPage() {
               <button
                 type="button"
                 className="praise-library__create-album"
-                onClick={() => setCreandoAlbum(true)}
+                onClick={() => session ? setCreandoAlbum(true) : navigate('/alabanza?access=required&for=favoritos')}
               >
                 Crear álbum
               </button>

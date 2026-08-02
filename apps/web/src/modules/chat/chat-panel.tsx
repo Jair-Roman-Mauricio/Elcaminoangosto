@@ -10,6 +10,7 @@ import {
 import { useSession } from '../../auth/session'
 import {
   useContactos,
+  useAdministradores,
   useConversaciones,
   useAbrirConversacion,
   useMensajes,
@@ -21,6 +22,7 @@ import './mentor-chat.css'
 interface Interlocutor {
   id: string
   nombre: string
+  rol: 'ESTUDIANTE' | 'MAESTRO' | 'ADMIN'
   preview: string
   unread: number
   hora: string
@@ -48,13 +50,15 @@ function horaDe(iso: string | null): string {
  * Chat mentor–estudiante con el aspecto de directorio + conversación.
  * «Tiempo real» por sondeo (React Query). Compartido por alumno y profesor.
  */
-export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' }) {
+export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' | 'administradores' | 'profesores' }) {
   const { session } = useSession()
   const yo = session?.user.id ?? ''
 
   useRealtimeChat() // push en tiempo real; el sondeo queda solo de respaldo
 
-  const { data: contactos } = useContactos()
+  const esAdministradores = etiqueta === 'administradores'
+  const { data: contactos } = useContactos(!esAdministradores && etiqueta !== 'profesores')
+  const { data: administradores } = useAdministradores(esAdministradores)
   const { data: conversaciones } = useConversaciones()
   const abrir = useAbrirConversacion()
 
@@ -66,7 +70,12 @@ export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' }
   // cualquiera). El maestro solo ve a los estudiantes con los que YA conversó
   // (sus conversaciones existentes), nunca la lista completa ni otros maestros.
   const esEstudiante = etiqueta === 'mentores'
-  const rolDelOtro = esEstudiante ? 'MAESTRO' : 'ESTUDIANTE'
+  const esMaestro = etiqueta === 'estudiantes'
+  const rolDelOtro = esEstudiante || etiqueta === 'profesores'
+    ? 'MAESTRO'
+    : esAdministradores
+      ? 'ADMIN'
+      : 'ESTUDIANTE'
   const ordenar = (lista: Interlocutor[]) =>
     // Con mensajes primero (más recientes arriba); el resto, alfabético al final.
     [...lista].sort((a, b) => b.ts - a.ts || a.nombre.localeCompare(b.nombre))
@@ -77,14 +86,30 @@ export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' }
     const deConv = (c: (typeof convs)[number]): Interlocutor => ({
       id: c.otherId,
       nombre: c.otherName,
+      rol: c.otherRole as Interlocutor['rol'],
       preview: c.lastMessage ?? 'Sin mensajes todavía',
       unread: c.unread,
       hora: horaDe(c.lastMessageAt),
       ts: c.lastMessageAt ? Date.parse(c.lastMessageAt) : 0,
     })
 
-    // El maestro solo ve conversaciones con estudiantes (nunca la lista completa).
-    if (!esEstudiante) return ordenar(convs.map(deConv))
+    // Administración recibe solo incidencias que un profesor ya abrió. No se
+    // expone el directorio de profesores ni sus datos de perfil fuera del chat.
+    if (esMaestro || (!esEstudiante && !esAdministradores)) return ordenar(convs.map(deConv))
+
+    // Módulo aislado de profesor ↔ administración. Todos los administradores
+    // aparecen aquí, enriquecidos con su conversación si ya existe.
+    if (esAdministradores) {
+      const admins = (administradores ?? [])
+        .map((c) => {
+          const conv = convPorOtro.get(c.id)
+          return conv
+            ? { ...deConv(conv), nombre: c.name, rol: 'ADMIN' as const }
+            : { id: c.id, nombre: c.name, rol: 'ADMIN' as const, preview: 'Inicia una consulta', unread: 0, hora: '', ts: 0 }
+        })
+      const enBase = new Set(admins.map((admin) => admin.id))
+      return ordenar([...admins, ...convs.filter((c) => !enBase.has(c.otherId)).map(deConv)])
+    }
 
     // El estudiante parte de TODOS los mentores (query rápida) para que la lista
     // nunca dependa de que llegue la de conversaciones (la lenta); cada mentor se
@@ -93,13 +118,13 @@ export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' }
       const conv = convPorOtro.get(c.id)
       return conv
         ? { ...deConv(conv), nombre: c.name }
-        : { id: c.id, nombre: c.name, preview: 'Inicia la conversación', unread: 0, hora: '', ts: 0 }
+        : { id: c.id, nombre: c.name, rol: 'MAESTRO', preview: 'Inicia la conversación', unread: 0, hora: '', ts: 0 }
     })
     // Conversaciones con un mentor que ya no esté en la lista de contactos (raro).
     const enBase = new Set(base.map((b) => b.id))
     const extra = convs.filter((c) => !enBase.has(c.otherId)).map(deConv)
     return ordenar([...base, ...extra])
-  }, [conversaciones, contactos, rolDelOtro, esEstudiante])
+  }, [conversaciones, contactos, administradores, rolDelOtro, esEstudiante, esMaestro, esAdministradores])
 
   const filtrados = directorio.filter((d) =>
     d.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()),
@@ -124,6 +149,28 @@ export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' }
     setIndicador({ top: btn.offsetTop, height: btn.offsetHeight, visible: true })
   }, [activo, filtrados.length])
 
+  const renderizarContacto = (d: Interlocutor) => (
+    <button
+      key={d.id}
+      type="button"
+      className={activo?.id === d.id ? 'is-active' : undefined}
+      onClick={() => seleccionar(d)}
+      aria-pressed={activo?.id === d.id}
+    >
+      <Avatar nombre={d.nombre} id={d.id} />
+      <span className="mentor-chat__mentor-copy">
+        <span>
+          <strong>{d.nombre}</strong>
+          <time>{d.hora}</time>
+        </span>
+        <span className="mentor-chat__preview">
+          <span>{d.preview}</span>
+          {d.unread > 0 ? <b aria-label={`${d.unread} mensajes sin leer`}>{d.unread}</b> : null}
+        </span>
+      </span>
+    </button>
+  )
+
   return (
     <section className="mentor-chat" aria-label="Chat">
       <div className="mentor-chat__conversation">
@@ -139,7 +186,7 @@ export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' }
       <aside className="mentor-chat__directory" aria-label="Directorio">
         <header>
           <span>Acompañamiento</span>
-          <h1>{etiqueta === 'mentores' ? 'Mentores' : 'Estudiantes'}</h1>
+          <h1>{etiqueta === 'mentores' ? 'Mentores' : etiqueta === 'profesores' ? 'Profesores' : esAdministradores ? 'Administradores' : 'Estudiantes'}</h1>
         </header>
 
         <label className="mentor-chat__search">
@@ -149,7 +196,7 @@ export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' }
             type="search"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder={`Buscar ${etiqueta === 'mentores' ? 'mentor' : 'estudiante'}…`}
+            placeholder={`Buscar ${etiqueta === 'mentores' ? 'mentor' : etiqueta === 'profesores' ? 'profesor' : esAdministradores ? 'administrador' : 'estudiante'}…`}
           />
         </label>
 
@@ -167,32 +214,14 @@ export function ChatPanel({ etiqueta }: { etiqueta: 'mentores' | 'estudiantes' }
               } as CSSProperties
             }
           />
-          {filtrados.map((d) => (
-            <button
-              key={d.id}
-              type="button"
-              className={activo?.id === d.id ? 'is-active' : undefined}
-              onClick={() => seleccionar(d)}
-              aria-pressed={activo?.id === d.id}
-            >
-              <Avatar nombre={d.nombre} id={d.id} />
-              <span className="mentor-chat__mentor-copy">
-                <span>
-                  <strong>{d.nombre}</strong>
-                  <time>{d.hora}</time>
-                </span>
-                <span className="mentor-chat__preview">
-                  <span>{d.preview}</span>
-                  {d.unread > 0 ? <b>{d.unread}</b> : null}
-                </span>
-              </span>
-            </button>
-          ))}
+          {filtrados.map(renderizarContacto)}
           {filtrados.length === 0 && (
             <p className="mentor-chat__empty">
               {etiqueta === 'mentores'
                 ? 'No hay mentores con ese nombre.'
-                : 'Aún nadie te ha escrito.'}
+                : etiqueta === 'profesores'
+                  ? 'Aún no hay consultas de profesores.'
+                  : 'Aún nadie te ha escrito.'}
             </p>
           )}
         </div>

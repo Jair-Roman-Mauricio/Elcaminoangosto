@@ -21,7 +21,8 @@ export interface FeedCard {
 }
 
 /** Feed vertical paginado por cursor (`publishedAt`). */
-export function useFeed() {
+/** Permite posponer la consulta en superficies que lo necesiten. */
+export function useFeed(options: { enabled?: boolean } = {}) {
   return useInfiniteQuery({
     queryKey: ['feed'],
     initialPageParam: null as string | null,
@@ -31,6 +32,7 @@ export function useFeed() {
       ultima.length === 0 ? undefined : (ultima[ultima.length - 1]?.publishedAt ?? undefined),
     // Las URLs firmadas caducan (~60 min): refrescar al reenfocar.
     staleTime: 5 * 60 * 1000,
+    enabled: options.enabled ?? true,
   })
 }
 

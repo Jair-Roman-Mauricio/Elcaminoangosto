@@ -4,6 +4,7 @@ import { apiClient } from '../../lib/api-client'
 export interface Contacto {
   id: string
   name: string
+  role: 'ESTUDIANTE' | 'MAESTRO' | 'ADMIN'
 }
 
 export interface ConversationSummary {
@@ -26,10 +27,35 @@ export interface Mensaje {
   createdAt: string
 }
 
-export function useContactos() {
+export function useContactos(enabled = true) {
   return useQuery({
     queryKey: ['chat', 'contacts'],
     queryFn: () => apiClient.get<Contacto[]>('/chat/contacts'),
+    // Un directorio no puede depender de que ocurra otro evento para
+    // completarse. Reintentamos pronto y refrescamos de forma independiente de
+    // las conversaciones, que es lo que evita el estado parcial prolongado.
+    staleTime: 0,
+    retry: 1,
+    retryDelay: 800,
+    refetchOnMount: 'always',
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: true,
+    enabled,
+  })
+}
+
+/** Directorio aislado para el módulo profesor ↔ administración. */
+export function useAdministradores(enabled = true) {
+  return useQuery({
+    queryKey: ['chat', 'administrators'],
+    queryFn: () => apiClient.get<Contacto[]>('/chat/administrators'),
+    staleTime: 0,
+    retry: 1,
+    retryDelay: 800,
+    refetchOnMount: 'always',
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: true,
+    enabled,
   })
 }
 
@@ -39,7 +65,7 @@ export function useConversaciones() {
     queryFn: () => apiClient.get<ConversationSummary[]>('/chat/conversations'),
     // La frescura la da Realtime (useRealtimeChat). El sondeo queda de respaldo
     // por si el WebSocket se cae; sigue activo aunque la pestaña no tenga foco.
-    refetchInterval: 12000,
+    refetchInterval: 3500,
     refetchIntervalInBackground: true,
   })
 }
@@ -73,9 +99,31 @@ export function useEnviarMensaje(conversationId: string) {
   return useMutation({
     mutationFn: (body: string) =>
       apiClient.post<Mensaje>(`/chat/conversations/${conversationId}/messages`, { body }),
-    onSuccess: () => {
+    onSuccess: (nuevo) => {
+      // Quien envía ve el reordenamiento al resolver el POST, sin esperar al
+      // WebSocket ni al siguiente sondeo. El receptor recibe el mismo cambio
+      // por Realtime y el sondeo corto queda como red de seguridad.
+      qc.setQueryData<ConversationSummary[]>(['chat', 'conversations'], (prev) => {
+        if (!prev) return prev
+        const actualizada = prev.map((conversacion) =>
+          conversacion.id === conversationId
+            ? {
+                ...conversacion,
+                lastMessage: nuevo.body,
+                lastMessageAt: nuevo.createdAt,
+              }
+            : conversacion,
+        )
+        return [...actualizada].sort(compararConversaciones)
+      })
       void qc.invalidateQueries({ queryKey: ['chat', 'messages', conversationId] })
       void qc.invalidateQueries({ queryKey: ['chat', 'conversations'] })
     },
   })
+}
+
+export function compararConversaciones(a: ConversationSummary, b: ConversationSummary): number {
+  const fechaA = a.lastMessageAt ? Date.parse(a.lastMessageAt) : 0
+  const fechaB = b.lastMessageAt ? Date.parse(b.lastMessageAt) : 0
+  return fechaB - fechaA || a.id.localeCompare(b.id)
 }
