@@ -5,9 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import {
+  FavoritesRepository,
   MusicRepository,
   type AlbumEntity,
   type SongEntity,
+  type AlbumPersonalEntity,
+  type FavoritosEntity,
   type TipoDeFondo,
   type Tono,
 } from '../domain/music.repository'
@@ -70,7 +73,53 @@ export class MusicService {
   constructor(
     private readonly music: MusicRepository,
     private readonly media: MediaService,
+    private readonly favoritos: FavoritesRepository,
   ) {}
+
+  // ── Favoritos (HU-2.3) ────────────────────────────────────────────────────
+  //
+  // Guardar exige cuenta: antes vivía en el navegador y se perdía al cambiar de
+  // dispositivo. El actor siempre viene de la sesión, así que nadie puede tocar
+  // los favoritos de otra persona.
+
+  async misFavoritos(actor: Actor): Promise<FavoritosEntity> {
+    return this.favoritos.favoritosDe(actor.id)
+  }
+
+  async marcarCancion(actor: Actor, songId: string, favorita: boolean): Promise<void> {
+    const cancion = await this.music.findSongById(songId)
+    if (!cancion) throw new NotFoundException('Canción no encontrada')
+    await this.favoritos.marcarCancion(actor.id, songId, favorita)
+  }
+
+  async crearAlbumPersonal(actor: Actor, titulo: string): Promise<AlbumPersonalEntity> {
+    const nombre = titulo.trim()
+    if (nombre.length < 1) throw new BadRequestException('El álbum necesita un nombre')
+    return this.favoritos.crearAlbumPersonal(actor.id, nombre)
+  }
+
+  async editarAlbumPersonal(
+    actor: Actor,
+    albumId: string,
+    cambios: { titulo: string; coverUrl: string | null; songIds: string[] },
+  ): Promise<AlbumPersonalEntity> {
+    await this.exigirAlbumPropio(actor, albumId)
+    const nombre = cambios.titulo.trim()
+    if (nombre.length < 1) throw new BadRequestException('El álbum necesita un nombre')
+    return this.favoritos.actualizarAlbumPersonal(actor.id, albumId, { ...cambios, titulo: nombre })
+  }
+
+  async eliminarAlbumPersonal(actor: Actor, albumId: string): Promise<void> {
+    await this.exigirAlbumPropio(actor, albumId)
+    await this.favoritos.eliminarAlbumPersonal(actor.id, albumId)
+  }
+
+  /** Un álbum personal solo lo toca su dueño; para el resto no existe. */
+  private async exigirAlbumPropio(actor: Actor, albumId: string): Promise<void> {
+    if (!(await this.favoritos.esDe(actor.id, albumId))) {
+      throw new NotFoundException('Álbum no encontrado')
+    }
+  }
 
   /** Catálogo de Alabanza: álbumes y canciones publicadas, para cualquiera. */
   async catalogo(): Promise<{ albumes: AlbumCard[]; canciones: SongCard[] }> {

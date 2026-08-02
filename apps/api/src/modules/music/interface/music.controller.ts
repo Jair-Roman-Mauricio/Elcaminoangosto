@@ -56,6 +56,14 @@ const EditarAlbumSchema = z.object({
 
 const PublicarSchema = z.object({ isPublished: z.boolean() })
 
+const FavoritaSchema = z.object({ favorita: z.boolean() })
+const AlbumPersonalSchema = z.object({ titulo: z.string().min(1).max(120) })
+const EditarAlbumPersonalSchema = z.object({
+  titulo: z.string().min(1).max(120),
+  coverUrl: z.string().max(500).nullable().default(null),
+  songIds: z.array(z.string().uuid()).max(500).default([]),
+})
+
 const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank: u.levelRank })
 
 @ApiTags('music')
@@ -70,6 +78,52 @@ export class MusicController {
   @ApiOperation({ summary: 'Catálogo de Alabanza: álbumes y canciones publicadas (HU-9.2)' })
   async catalogo() {
     return this.music.catalogo()
+  }
+
+  // ── Favoritos (exigen cuenta) ─────────────────────────────────────────────
+
+  @Get('favorites')
+  @ApiOperation({ summary: 'Mis canciones favoritas y mis álbumes personales' })
+  async misFavoritos(@CurrentUser() u: CurrentUserContext) {
+    return this.music.misFavoritos(actorDe(u))
+  }
+
+  @Patch('songs/:id/favorite')
+  @ApiOperation({ summary: 'Marcar o desmarcar una canción como favorita' })
+  async marcarFavorita(
+    @CurrentUser() u: CurrentUserContext,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(FavoritaSchema)) body: z.infer<typeof FavoritaSchema>,
+  ) {
+    await this.music.marcarCancion(actorDe(u), id, body.favorita)
+    return { ok: true }
+  }
+
+  @Post('my-albums')
+  @ApiOperation({ summary: 'Crear un álbum personal' })
+  async crearAlbumPersonal(
+    @CurrentUser() u: CurrentUserContext,
+    @Body(new ZodValidationPipe(AlbumPersonalSchema)) body: z.infer<typeof AlbumPersonalSchema>,
+  ) {
+    return this.music.crearAlbumPersonal(actorDe(u), body.titulo)
+  }
+
+  @Patch('my-albums/:id')
+  @ApiOperation({ summary: 'Editar un álbum personal' })
+  async editarAlbumPersonal(
+    @CurrentUser() u: CurrentUserContext,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(EditarAlbumPersonalSchema))
+    body: z.infer<typeof EditarAlbumPersonalSchema>,
+  ) {
+    return this.music.editarAlbumPersonal(actorDe(u), id, body)
+  }
+
+  @Delete('my-albums/:id')
+  @ApiOperation({ summary: 'Eliminar un álbum personal' })
+  async eliminarAlbumPersonal(@CurrentUser() u: CurrentUserContext, @Param('id') id: string) {
+    await this.music.eliminarAlbumPersonal(actorDe(u), id)
+    return { ok: true }
   }
 
   // ── Administración de contenido (solo ADMIN) ──────────────────────────────
