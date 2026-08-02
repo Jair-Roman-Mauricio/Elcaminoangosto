@@ -13,8 +13,17 @@ insert into public.levels (id, name, rank, description) values
 on conflict (rank) do nothing;
 
 -- ─── Usuarios ──────────────────────────────────────────────────────────────
+-- El ADMIN y el MAESTRO los crea la migración `20260802000100`, porque deben
+-- existir en TODO entorno y no solo aquí. El seed no los repite —chocaría con
+-- el índice único de correo— y se limita a ponerles la clave de desarrollo.
+-- Sus id los decide la migración, así que abajo se buscan por correo.
+update auth.users
+set encrypted_password = crypt('camino123', gen_salt('bf'))
+where email in ('admin@elcaminoangosto.test', 'maestro@elcaminoangosto.test');
+
+-- Los estudiantes de ejemplo sí son datos de prueba y viven solo aquí.
 -- Se insertan en `auth.users`; el trigger `crear_perfil_al_registrarse`
--- genera la fila de `profiles` con rol ESTUDIANTE. Después ajustamos roles.
+-- genera la fila de `profiles` con rol ESTUDIANTE.
 -- Los campos de token van a '' y NO a NULL: GoTrue los escanea a `string` en Go
 -- y un NULL revienta el login con
 -- `converting NULL to string is unsupported` → 500 "Database error querying schema".
@@ -27,18 +36,6 @@ insert into auth.users (
   phone_change, phone_change_token, reauthentication_token
 )
 values
-  ('00000000-0000-0000-0000-000000000000', '22222222-2222-4222-8222-000000000001',
-   'authenticated', 'authenticated', 'admin@elcaminoangosto.test',
-   crypt('camino123', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}', '{"display_name":"Ana Admin"}',
-   now(), now(), '', '', '', '', '', '', '', ''),
-
-  ('00000000-0000-0000-0000-000000000000', '22222222-2222-4222-8222-000000000002',
-   'authenticated', 'authenticated', 'maestro@elcaminoangosto.test',
-   crypt('camino123', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}', '{"display_name":"Marcos Maestro"}',
-   now(), now(), '', '', '', '', '', '', '', ''),
-
   ('00000000-0000-0000-0000-000000000000', '22222222-2222-4222-8222-000000000003',
    'authenticated', 'authenticated', 'ester@elcaminoangosto.test',
    crypt('camino123', gen_salt('bf')), now(),
@@ -58,29 +55,28 @@ select id, id, id::text,
        'email', now(), now()
 from auth.users
 where id in (
-  '22222222-2222-4222-8222-000000000001',
-  '22222222-2222-4222-8222-000000000002',
   '22222222-2222-4222-8222-000000000003',
   '22222222-2222-4222-8222-000000000004'
 )
 on conflict do nothing;
 
--- ─── Roles y niveles ───────────────────────────────────────────────────────
-update public.profiles set role = 'ADMIN'
-  where id = '22222222-2222-4222-8222-000000000001';
-
-update public.profiles set role = 'MAESTRO'
-  where id = '22222222-2222-4222-8222-000000000002';
-
+-- ─── Niveles ───────────────────────────────────────────────────────────────
+-- Los roles de ADMIN y MAESTRO ya los fijó la migración al crear las cuentas.
 -- Todo estudiante comienza en el nivel base (nivel 1).
 update public.profiles
 set current_level_id = '11111111-1111-4111-8111-000000000001'
 where role = 'ESTUDIANTE';
 
 -- ─── Mentoría ──────────────────────────────────────────────────────────────
-insert into public.mentorships (mentor_id, student_id) values
-  ('22222222-2222-4222-8222-000000000002', '22222222-2222-4222-8222-000000000003'),
-  ('22222222-2222-4222-8222-000000000002', '22222222-2222-4222-8222-000000000004')
+-- El id del maestro lo decide la migración: se busca por correo.
+insert into public.mentorships (mentor_id, student_id)
+select u.id, e.id
+from auth.users u
+cross join (values
+  ('22222222-2222-4222-8222-000000000003'::uuid),
+  ('22222222-2222-4222-8222-000000000004'::uuid)
+) as e(id)
+where u.email = 'maestro@elcaminoangosto.test'
 on conflict do nothing;
 
 -- ─── Curso publicado de ejemplo ────────────────────────────────────────────
@@ -88,15 +84,17 @@ on conflict do nothing;
 insert into public.courses (
   id, teacher_id, title, slug, description,
   required_level_id, is_free, status, planned_modules, published_at
-) values (
+)
+select
   '33333333-3333-4333-8333-000000000001',
-  '22222222-2222-4222-8222-000000000002',
+  u.id,
   'La puerta angosta',
   'la-puerta-angosta',
   'Un recorrido por Mateo 7 y lo que significa entrar por la puerta angosta.',
   '11111111-1111-4111-8111-000000000001',
   true, 'PUBLISHED', 2, now()
-)
+from auth.users u
+where u.email = 'maestro@elcaminoangosto.test'
 on conflict (id) do nothing;
 
 insert into public.course_modules (id, course_id, title, order_index) values
