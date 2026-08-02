@@ -92,7 +92,9 @@ export class DrizzleChatRepository extends ChatRepository {
       .innerJoin(profiles, eq(profiles.id, otroId))
       .where(or(eq(conversations.mentorId, userId), eq(conversations.studentId, userId)))
       // Las más recientes primero; las vacías (sin mensajes) al final.
-      .orderBy(sql`${conversations.lastMessageAt} desc nulls last`)
+      // El id rompe empates de reloj de forma determinista. Así la lista no
+      // parece reordenarse al refrescar cuando dos envíos caen en el mismo ms.
+      .orderBy(sql`${conversations.lastMessageAt} desc nulls last`, conversations.id)
 
     return filas.map((f) => ({
       id: f.id,
@@ -135,7 +137,10 @@ export class DrizzleChatRepository extends ChatRepository {
     if (!fila) throw new NotFoundException('No se pudo enviar el mensaje')
     await this.db
       .update(conversations)
-      .set({ lastMessageAt: new Date(), updatedAt: new Date() })
+      // La marca de orden debe ser la del mensaje insertado, no la hora en la
+      // que terminó el UPDATE: con dos envíos simultáneos eso podía invertir el
+      // orden de las conversaciones.
+      .set({ lastMessageAt: fila.createdAt, updatedAt: fila.createdAt })
       .where(eq(conversations.id, conversationId))
     return fila
   }
@@ -155,19 +160,39 @@ export class DrizzleChatRepository extends ChatRepository {
 
   async contactsForTeacher(teacherId: string): Promise<Contacto[]> {
     return this.db
-      .selectDistinct({ id: profiles.id, name: profiles.displayName })
+      .selectDistinct({ id: profiles.id, name: profiles.displayName, role: profiles.role })
       .from(enrollments)
       .innerJoin(courses, eq(courses.id, enrollments.courseId))
       .innerJoin(profiles, eq(profiles.id, enrollments.studentId))
-      .where(eq(courses.teacherId, teacherId))
+      // El directorio del profesor solo incluye alumnado de sus cursos. Sin
+      // este filtro una inscripción atípica de un maestro también entraba en
+      // la respuesta, aunque no fuese un contacto permitido por la UI.
+      .where(and(eq(courses.teacherId, teacherId), eq(profiles.role, 'ESTUDIANTE')))
   }
 
   async mentores(): Promise<Contacto[]> {
     return this.db
-      .select({ id: profiles.id, name: profiles.displayName })
+      .select({ id: profiles.id, name: profiles.displayName, role: profiles.role })
       .from(profiles)
       .where(eq(profiles.role, 'MAESTRO'))
       .orderBy(profiles.displayName)
+  }
+
+  async administradores(): Promise<Contacto[]> {
+    return this.db
+      .select({ id: profiles.id, name: profiles.displayName, role: profiles.role })
+      .from(profiles)
+      .where(eq(profiles.role, 'ADMIN'))
+      .orderBy(profiles.displayName)
+  }
+
+  async rolDe(userId: string): Promise<Contacto['role'] | null> {
+    const [fila] = await this.db
+      .select({ role: profiles.role })
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1)
+    return fila?.role ?? null
   }
 
   async esMentor(userId: string): Promise<boolean> {

@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, NotImplementedException, Param, Patch, Post, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 import { VideosService } from '../application/videos.service'
 import {
   CurrentUser,
+  Public,
   type CurrentUserContext,
   Roles,
   RolesGuard,
@@ -27,6 +28,7 @@ const EditarSchema = z.object({
 })
 
 const EstadoSchema = z.object({ status: z.enum(['PUBLISHED', 'HIDDEN']) })
+const ComentarioSchema = z.object({ body: z.string().trim().min(1).max(320) })
 
 const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank: u.levelRank })
 
@@ -38,9 +40,19 @@ export class VideosController {
   constructor(private readonly videos: VideosService) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Catálogo de videos cristianos (HU-9.3)' })
   async catalogo() {
     return this.videos.catalogo()
+  }
+
+  // No hay persistencia de comentarios de video todavía. La ruta existe solo
+  // para que el guard global rechace explícitamente toda escritura anónima.
+  @Post(':id/comments')
+  @Roles('ESTUDIANTE', 'MAESTRO', 'ADMIN')
+  @ApiOperation({ summary: 'Comentarios de video (requiere sesión; persistencia pendiente)' })
+  comentar(@Body(new ZodValidationPipe(ComentarioSchema)) _body: z.infer<typeof ComentarioSchema>) {
+    throw new NotImplementedException('Los comentarios de video aún no están habilitados')
   }
 
   // ── Administración de contenido (solo ADMIN) ──────────────────────────────

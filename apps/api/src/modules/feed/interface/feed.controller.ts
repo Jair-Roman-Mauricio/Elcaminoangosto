@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { FeedService } from '../application/feed.service'
 import {
   CurrentUser,
+  Public,
   type CurrentUserContext,
   Roles,
   RolesGuard,
@@ -35,6 +36,11 @@ export class FeedController {
   constructor(private readonly feed: FeedService) {}
 
   @Get()
+  // La landing y el catálogo pueden leer solo la colección ya publicada. La
+  // consulta de repositorio excluye HIDDEN/REPORTED, assets no READY y filas
+  // sin fecha de publicación; las rutas de escritura y administración siguen
+  // protegidas por el guard global y sus roles.
+  @Public()
   @ApiOperation({ summary: 'Feed vertical de Tarjetas de Fe (HU-3.1)' })
   async listar(@Query('before') before?: string) {
     const cursor = before ? new Date(before) : null

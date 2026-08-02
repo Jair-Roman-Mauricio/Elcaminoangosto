@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { MusicService } from '../application/music.service'
 import {
   CurrentUser,
+  Public,
   type CurrentUserContext,
   Roles,
   RolesGuard,
@@ -65,6 +66,7 @@ export class MusicController {
   constructor(private readonly music: MusicService) {}
 
   @Get('catalog')
+  @Public()
   @ApiOperation({ summary: 'Catálogo de Alabanza: álbumes y canciones publicadas (HU-9.2)' })
   async catalogo() {
     return this.music.catalogo()

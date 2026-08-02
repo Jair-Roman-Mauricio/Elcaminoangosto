@@ -30,6 +30,8 @@ export interface ConversationSummary {
 export interface Contacto {
   id: string
   name: string
+  /** Rol mínimo necesario para separar directorios sin exponer perfiles completos. */
+  role: 'ESTUDIANTE' | 'MAESTRO' | 'ADMIN'
 }
 
 /** Puerto del repositorio de chat. */
@@ -46,6 +48,10 @@ export abstract class ChatRepository {
   abstract contactsForTeacher(teacherId: string): Promise<Contacto[]>
   /** Todos los mentores disponibles: el estudiante puede consultar a cualquiera. */
   abstract mentores(): Promise<Contacto[]>
+  /** Administradores disponibles únicamente para consultas de profesores. */
+  abstract administradores(): Promise<Contacto[]>
+  /** Rol del destinatario, usado para aplicar la política antes de crear un chat. */
+  abstract rolDe(userId: string): Promise<Contacto['role'] | null>
   /** ¿Este usuario es un mentor (MAESTRO)? Autoriza chatear con él. */
   abstract esMentor(userId: string): Promise<boolean>
 }

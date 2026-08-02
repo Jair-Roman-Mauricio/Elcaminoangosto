@@ -192,7 +192,7 @@ export class FeedService {
         origin: f.origin,
         reference: f.reference,
         audioUrl: f.audioAssetId ? await this.media.urlDeOrigen(f.audioAssetId, true) : null,
-        // El feed es público para autenticados: `autorizado = true`.
+        // Solo se firman medios de tarjetas ya filtradas como PUBLISHED/READY.
         mediaUrl: await this.media.urlDeLectura(f.mediaAssetId, true),
         posterUrl: await this.media.urlDePoster(f.mediaAssetId, true),
         publishedAt: f.publishedAt?.toISOString() ?? null,

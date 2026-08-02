@@ -29,6 +29,13 @@ export interface CatalogItem {
   lockedReason: string | null
 }
 
+/** Metadatos de cursos publicados que se pueden descubrir sin sesión.
+ * No incluye inscripción, progreso, estructura ni lecciones. */
+export type PublicCatalogItem = Pick<
+  CatalogItem,
+  'id' | 'title' | 'slug' | 'description' | 'requiredLevelRank' | 'isFree' | 'coverImageUrl' | 'teacherName' | 'moduleCount' | 'lessonCount'
+>
+
 /**
  * API pública del bounded context `discipleship`.
  * Único punto por el que otros módulos piden datos de cursos.
@@ -75,6 +82,22 @@ export class DiscipleshipService {
           : `Requiere el nivel ${c.requiredLevelRank}. Tu nivel actual es ${actor.levelRank}.`,
       }
     })
+  }
+
+  async catalogoPublico(): Promise<PublicCatalogItem[]> {
+    const publicados = await this.courses.findAllPublished()
+    return publicados.map((curso) => ({
+      id: curso.id,
+      title: curso.title,
+      slug: curso.slug,
+      description: curso.description,
+      requiredLevelRank: curso.requiredLevelRank,
+      isFree: curso.isFree,
+      coverImageUrl: curso.coverImageUrl,
+      teacherName: curso.teacherName,
+      moduleCount: curso.moduleCount,
+      lessonCount: curso.lessonCount,
+    }))
   }
 
   /** Ficha de un curso por slug, con su estructura y las lecciones completadas. */

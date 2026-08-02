@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { asc, count, eq, type SQL } from 'drizzle-orm'
+import { and, asc, count, eq, type SQL } from 'drizzle-orm'
 import { DRIZZLE, type Database } from '../../shared'
-import { albums, artists, songs } from '../../shared/database/schema'
+import { albums, artists, mediaAssets, songs } from '../../shared/database/schema'
 import {
   MusicRepository,
   type AlbumEntity,
@@ -107,7 +107,9 @@ export class DrizzleMusicRepository extends MusicRepository {
   // ── Canciones ───────────────────────────────────────────────────────────
 
   async findPublishedSongs(): Promise<SongEntity[]> {
-    return this.consultaDeCanciones(eq(songs.isPublished, true))
+    return this.consultaDeCanciones(
+      and(eq(songs.isPublished, true), eq(mediaAssets.status, 'READY')),
+    )
   }
 
   async findAllSongs(): Promise<SongEntity[]> {
@@ -164,6 +166,7 @@ export class DrizzleMusicRepository extends MusicRepository {
       })
       .from(songs)
       .innerJoin(artists, eq(songs.artistId, artists.id))
+      .leftJoin(mediaAssets, eq(songs.audioAssetId, mediaAssets.id))
       .orderBy(asc(songs.albumId), asc(songs.trackNumber))
 
     return filtro ? consulta.where(filtro) : consulta

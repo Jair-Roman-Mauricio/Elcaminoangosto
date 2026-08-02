@@ -27,6 +27,12 @@ export class ChatController {
     return this.chat.contactos(actorDe(u))
   }
 
+  @Get('administrators')
+  @ApiOperation({ summary: 'Administradores con los que el profesor puede conversar' })
+  async administradores(@CurrentUser() u: CurrentUserContext) {
+    return this.chat.administradores(actorDe(u))
+  }
+
   @Get('conversations')
   @ApiOperation({ summary: 'Mis conversaciones con último mensaje' })
   async conversaciones(@CurrentUser() u: CurrentUserContext) {
