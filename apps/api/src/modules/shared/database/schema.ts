@@ -62,6 +62,8 @@ export const postStatusEnum = pgEnum('post_status', ['PUBLISHED', 'HIDDEN', 'REP
 export const videoStatusEnum = pgEnum('video_status', ['PUBLISHED', 'HIDDEN'])
 /** Identidad visual de un álbum/canción en la pantalla de Alabanza. */
 export const alabanzaTonoEnum = pgEnum('alabanza_tono', ['vino', 'marfil', 'azul'])
+/** Qué se mira: un video, una Tarjeta de Fe o una canción. */
+export const contentKindEnum = pgEnum('content_kind', ['VIDEO', 'POST', 'SONG'])
 export const reportStatusEnum = pgEnum('report_status', ['PENDING', 'RESOLVED', 'DISMISSED'])
 export const levelUpStatusEnum = pgEnum('level_up_status', ['PENDING', 'APPROVED', 'REJECTED'])
 export const mentorshipStatusEnum = pgEnum('mentorship_status', ['ACTIVE', 'ENDED'])
@@ -366,6 +368,8 @@ export const playlists = pgTable('playlists', {
     .references(() => profiles.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   isPublic: boolean('is_public').notNull().default(false),
+  /** Portada del álbum personal. */
+  coverUrl: text('cover_url'),
   ...timestamps,
 })
 
@@ -581,3 +585,43 @@ export const notifications = pgTable('notifications', {
   readAt: timestamp('read_at', { withTimezone: true }),
   ...timestamps,
 })
+
+// ─── Analítica ────────────────────────────────────────────────────────────
+/**
+ * Vista de una pieza de contenido público. `contentId` va sin clave ajena a
+ * propósito: la vista es un hecho ocurrido y sobrevive a que se borre el
+ * contenido. `sessionId` es aleatorio por sesión de navegador: nunca IP ni
+ * huella (RNF-9).
+ */
+export const contentViews = pgTable(
+  'content_views',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    kind: contentKindEnum('kind').notNull(),
+    contentId: uuid('content_id').notNull(),
+    viewerId: uuid('viewer_id').references(() => profiles.id, { onDelete: 'set null' }),
+    sessionId: text('session_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('content_views_kind_fecha_idx').on(t.kind, t.createdAt),
+    index('content_views_contenido_idx').on(t.kind, t.contentId),
+  ],
+)
+
+/** Entrada a una sección. `viewerId` nulo = visitante sin cuenta. */
+export const siteVisits = pgTable(
+  'site_visits',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    section: text('section').notNull(),
+    viewerId: uuid('viewer_id').references(() => profiles.id, { onDelete: 'set null' }),
+    sessionId: text('session_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('site_visits_fecha_idx').on(t.createdAt),
+    index('site_visits_seccion_idx').on(t.section, t.createdAt),
+    index('site_visits_sesion_idx').on(t.sessionId, t.createdAt),
+  ],
+)

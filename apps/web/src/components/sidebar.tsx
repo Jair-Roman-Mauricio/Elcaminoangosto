@@ -40,6 +40,7 @@ export function gruposPara(role: Role | undefined): GrupoDeNav[] {
           { to: '/admin/revisiones', label: 'Revisiones' },
           { to: '/admin/moderacion', label: 'Moderación' },
           { to: '/admin/contenido', label: 'Contenido' },
+          { to: '/admin/estadisticas', label: 'Estadísticas' },
           { to: '/admin/chat', label: 'Mensajes de profesores' },
           { to: '/admin/usuarios', label: 'Usuarios' },
         ],

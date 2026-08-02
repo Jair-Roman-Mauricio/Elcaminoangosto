@@ -34,6 +34,7 @@ const RUTAS_BASE = [
   { prefijo: '/admin/usuarios', etiqueta: 'Usuarios' },
   { prefijo: '/admin/moderacion', etiqueta: 'Moderación' },
   { prefijo: '/admin/contenido', etiqueta: 'Contenido' },
+  { prefijo: '/admin/estadisticas', etiqueta: 'Estadísticas' },
 ] as const
 
 function etiquetaDeSegmento(segmento: string): string {
