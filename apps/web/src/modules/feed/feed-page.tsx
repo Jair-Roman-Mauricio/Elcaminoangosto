@@ -301,6 +301,10 @@ function TelonTarjeta() {
  *
  * La card es solo la imagen. Sin título ni pie: la tarjeta ya lleva su texto
  * dentro, y repetirlo fuera competía con la pieza.
+ *
+ * En móvil cambia el modo, no solo el tamaño: una tarjeta por pantalla que se
+ * navega deslizando, sin buscador y sin abrir ficha. Ahí no hay sitio para
+ * leer un estudio, y forzarlo daría una pantalla peor que la de escritorio.
  */
 function ListadoDeTarjetas({
   cards,
@@ -315,8 +319,13 @@ function ListadoDeTarjetas({
 }) {
   const [busqueda, setBusqueda] = useState('')
 
+  const ordenadas = useMemo(
+    () => [...cards].sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? '')),
+    [cards],
+  )
+
   const visibles = useMemo(() => {
-    const orden = [...cards].sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+    const orden = ordenadas
     const termino = busqueda.trim().toLocaleLowerCase()
     if (!termino) return orden
     // Busca en todo lo que la tarjeta enseña, no solo en el título: quien
@@ -328,75 +337,112 @@ function ListadoDeTarjetas({
         .toLocaleLowerCase()
         .includes(termino),
     )
-  }, [busqueda, cards])
+  }, [busqueda, ordenadas])
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-aire-m">
-      <header className="flex flex-col gap-aire-xs">
-        <Eyebrow>Tarjetas de fe</Eyebrow>
-        {/* Mismo buscador que tenía el catálogo de cursos: la etiqueta la lee
-            el lector de pantalla, y a la vista queda la lupa dentro del campo. */}
-        <label className="relative block w-full">
-          <span className="sr-only">Buscar tarjetas</span>
-          <svg
-            className="pointer-events-none absolute left-aire-s top-1/2 size-5 -translate-y-1/2 text-texto-tenue"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <input
-            type="search"
-            value={busqueda}
-            onChange={(evento) => setBusqueda(evento.target.value)}
-            placeholder="Título, versículo o una frase del relato"
-            autoComplete="off"
-            className="h-14 w-full rounded-full border border-linea-fuerte bg-superficie-1 pl-12 pr-aire-s font-ui text-body text-contenido shadow-[inset_0_0_0_1px_var(--linea)] outline-none transition-[border-color,box-shadow] placeholder:text-texto-tenue focus:border-vino focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--vino)_12%,transparent)]"
-          />
-        </label>
-      </header>
+    <>
+      {/* ── Móvil: una tarjeta por pantalla, se navega deslizando ──────────
+          Sin buscador y sin abrir ficha: aquí la tarjeta se contempla, no se
+          estudia. El `scroll-snap` hace que cada gesto deje una pieza
+          centrada, sin dejar dos a medias.
+          Los márgenes negativos cancelan el relleno del layout para llegar a
+          los bordes; la cabecera se respeta porque el alto descuenta su
+          espacio en vez de taparla. */}
+      <div className="-mx-gutter -mb-32 cine:hidden">
+        {error && (
+          <p className="px-gutter font-ui text-body text-vino">
+            No se pudieron cargar las tarjetas.
+          </p>
+        )}
+        {cargando && !error && (
+          <p className="px-gutter font-ui text-body text-texto-tenue">Cargando tarjetas…</p>
+        )}
 
-      {error && (
-        <p className="m-0 font-ui text-body text-vino">
-          No se pudieron cargar las tarjetas. Vuelve a intentarlo en un momento.
-        </p>
-      )}
-      {cargando && !error && (
-        <p className="m-0 font-ui text-body text-texto-tenue">Cargando tarjetas…</p>
-      )}
-      {!cargando && !error && visibles.length === 0 && (
-        <p className="m-0 font-ui text-body text-texto-tenue">
-          {busqueda.trim()
-            ? 'Ninguna tarjeta coincide con esa búsqueda.'
-            : 'Todavía no hay tarjetas publicadas.'}
-        </p>
-      )}
-
-      {/* Rejilla de columnas, no de filas: cada tarjeta conserva su propia
-          proporción y las alturas distintas encajan sin dejar huecos. Con
-          `grid` habría que recortar las imágenes o igualar alturas, y la
-          tarjeta ES la imagen. */}
-      <ul className="m-0 list-none columns-1 gap-aire-m p-0 sm:columns-2 md:columns-3">
-        {visibles.map((card) => (
-          <li key={card.id} className="mb-aire-m break-inside-avoid">
-            <button
-              type="button"
-              onClick={() => onSeleccionar(card)}
-              className="block w-full overflow-hidden border border-linea bg-superficie-1 transition-colors duration-fade ease-camino hover:border-vino"
+        <ul className="m-0 h-[calc(100dvh-5.5rem)] snap-y snap-mandatory list-none overflow-y-auto overscroll-contain p-0 scrollbar-none">
+          {ordenadas.map((card) => (
+            <li
+              key={card.id}
+              className="flex h-[calc(100dvh-5.5rem)] snap-start snap-always items-center justify-center px-aire-xs"
             >
               <img
                 src={card.posterUrl ?? card.mediaUrl}
                 alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
                 loading="lazy"
-                className="block w-full"
+                className="max-h-full w-full object-contain"
               />
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* ── Escritorio: rejilla con buscador y ficha al pulsar ─────────── */}
+      <section className="mx-auto hidden w-full max-w-5xl flex-col gap-aire-m cine:flex">
+        <header className="flex flex-col gap-aire-xs">
+          <Eyebrow>Tarjetas de fe</Eyebrow>
+          {/* Mismo buscador que tenía el catálogo de cursos: la etiqueta la lee
+              el lector de pantalla, y a la vista queda la lupa dentro del campo. */}
+          <label className="relative block w-full">
+            <span className="sr-only">Buscar tarjetas</span>
+            <svg
+              className="pointer-events-none absolute left-aire-s top-1/2 size-5 -translate-y-1/2 text-texto-tenue"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(evento) => setBusqueda(evento.target.value)}
+              placeholder="Título, versículo o una frase del relato"
+              autoComplete="off"
+              className="h-14 w-full rounded-full border border-linea-fuerte bg-superficie-1 pl-12 pr-aire-s font-ui text-body text-contenido shadow-[inset_0_0_0_1px_var(--linea)] outline-none transition-[border-color,box-shadow] placeholder:text-texto-tenue focus:border-vino focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--vino)_12%,transparent)]"
+            />
+          </label>
+        </header>
+
+        {error && (
+          <p className="m-0 font-ui text-body text-vino">
+            No se pudieron cargar las tarjetas. Vuelve a intentarlo en un momento.
+          </p>
+        )}
+        {cargando && !error && (
+          <p className="m-0 font-ui text-body text-texto-tenue">Cargando tarjetas…</p>
+        )}
+        {!cargando && !error && visibles.length === 0 && (
+          <p className="m-0 font-ui text-body text-texto-tenue">
+            {busqueda.trim()
+              ? 'Ninguna tarjeta coincide con esa búsqueda.'
+              : 'Todavía no hay tarjetas publicadas.'}
+          </p>
+        )}
+
+        {/* Rejilla de columnas, no de filas: cada tarjeta conserva su propia
+            proporción y las alturas distintas encajan sin dejar huecos. Con
+            `grid` habría que recortar las imágenes o igualar alturas, y la
+            tarjeta ES la imagen. */}
+        <ul className="m-0 list-none columns-2 gap-aire-m p-0 md:columns-3">
+          {visibles.map((card) => (
+            <li key={card.id} className="mb-aire-m break-inside-avoid">
+              <button
+                type="button"
+                onClick={() => onSeleccionar(card)}
+                className="block w-full overflow-hidden border border-linea bg-superficie-1 transition-colors duration-fade ease-camino hover:border-vino"
+              >
+                <img
+                  src={card.posterUrl ?? card.mediaUrl}
+                  alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
+                  loading="lazy"
+                  className="block w-full"
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
   )
 }
 
