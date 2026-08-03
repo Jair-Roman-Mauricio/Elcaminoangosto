@@ -505,7 +505,7 @@ export function AlabanzaPage() {
             {/* Traer una colección de otro dispositivo solo tiene sentido aquí,
                 que es donde vive lo guardado. */}
             {categoriaAlbum === CATEGORIA_ALBUMES_FAVORITOS && (
-              <div className="mx-auto mt-aire-l w-full max-w-sm">
+              <div className="mt-aire-l flex justify-center">
                 <RestaurarConCodigo />
               </div>
             )}

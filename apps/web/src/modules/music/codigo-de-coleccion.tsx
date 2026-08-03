@@ -58,50 +58,77 @@ export function AvisoDeCodigoNuevo() {
   )
 }
 
-/** Campo para traer una colección guardada en otro dispositivo. */
+/**
+ * Botón + diálogo para traer una colección guardada en otro dispositivo.
+ *
+ * Va en diálogo y no suelto bajo los álbumes porque es una acción de rescate,
+ * poco frecuente: en línea competía con lo que la persona viene a hacer, que
+ * es escuchar lo que ya tiene guardado.
+ */
 export function RestaurarConCodigo() {
   const { codigo, restaurarConCodigo } = useFavoriteSongsStore()
+  const [abierto, setAbierto] = useState(false)
   const [valor, setValor] = useState('')
   const [estado, setEstado] = useState<'quieto' | 'buscando' | 'falla'>('quieto')
+
+  const cerrar = () => {
+    setAbierto(false)
+    setValor('')
+    setEstado('quieto')
+  }
 
   const enviar = async (evento: React.FormEvent) => {
     evento.preventDefault()
     setEstado('buscando')
-    setEstado((await restaurarConCodigo(valor)) ? 'quieto' : 'falla')
-    setValor('')
+    if (await restaurarConCodigo(valor)) cerrar()
+    else setEstado('falla')
   }
 
   return (
-    <form onSubmit={(e) => void enviar(e)} className="flex flex-col gap-aire-xs">
-      <Field
-        label="Recuperar con un código"
-        htmlFor="codigo-coleccion"
-        hint={
-          codigo
-            ? 'Sustituirá lo guardado en este navegador por la colección de ese código.'
-            : 'Pega aquí el código que te dimos al crear tu primer álbum.'
-        }
-        error={estado === 'falla' ? 'No hay ninguna colección con ese código.' : undefined}
-      >
-        <Input
-          id="codigo-coleccion"
-          value={valor}
-          onChange={(e) => setValor(e.target.value)}
-          placeholder="XXXXX-XXXXX"
-          autoComplete="off"
-          spellCheck={false}
-          className="font-mono uppercase tracking-[0.14em]"
-        />
-      </Field>
-      <Boton
-        variante="contorno"
-        tamano="compacto"
-        type="submit"
-        disabled={estado === 'buscando' || valor.trim().length < 6}
-        className="self-start"
-      >
-        {estado === 'buscando' ? 'Buscando…' : 'Recuperar'}
+    <>
+      <Boton variante="contorno" tamano="compacto" onClick={() => setAbierto(true)}>
+        Recuperar álbumes de favoritos
       </Boton>
-    </form>
+
+      <Modal abierto={abierto} titulo="Recuperar álbumes de favoritos" onCerrar={cerrar}>
+        <form onSubmit={(e) => void enviar(e)} className="flex flex-col gap-aire-s">
+          <Field
+            label="Código"
+            htmlFor="codigo-coleccion"
+            hint={
+              codigo
+                ? 'Sustituirá lo guardado en este navegador por la colección de ese código.'
+                : 'Es el código que te dimos al crear tu primer álbum.'
+            }
+            error={estado === 'falla' ? 'No hay ninguna colección con ese código.' : undefined}
+          >
+            <Input
+              id="codigo-coleccion"
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              placeholder="XXXXX-XXXXX"
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus
+              className="font-mono uppercase tracking-[0.14em]"
+            />
+          </Field>
+
+          <div className="flex flex-wrap gap-aire-xs">
+            <Boton
+              variante="primary"
+              tamano="compacto"
+              type="submit"
+              disabled={estado === 'buscando' || valor.trim().length < 6}
+            >
+              {estado === 'buscando' ? 'Buscando…' : 'Recuperar'}
+            </Boton>
+            <Boton variante="contorno" tamano="compacto" type="button" onClick={cerrar}>
+              Cancelar
+            </Boton>
+          </div>
+        </form>
+      </Modal>
+    </>
   )
 }
