@@ -1,5 +1,5 @@
 import { chromium } from 'playwright'
-const BASE = process.argv[2] ?? 'https://web-production-551e4.up.railway.app'
+const BASE = process.argv[2] ?? 'https://elcaminoangosto.up.railway.app'
 const b = await chromium.launch()
 const p = await b.newPage({ viewport: { width: 1200, height: 900 } })
 const logs = []
