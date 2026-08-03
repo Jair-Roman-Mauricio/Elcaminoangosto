@@ -37,7 +37,7 @@ export function ComunidadPage() {
   const { data: hilos, isPending, isError } = useHilos(busqueda)
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-aire-m">
+    <section className="mx-auto flex w-full max-w-5xl flex-col gap-aire-m">
       <header className="flex flex-col gap-aire-s">
         <Eyebrow>Comunidad</Eyebrow>
         <h1 className="m-0 font-ui text-h-l font-medium tracking-titulo text-contenido">
@@ -69,7 +69,13 @@ export function ComunidadPage() {
               className="h-14 w-full rounded-full border border-linea-fuerte bg-superficie-1 pl-12 pr-aire-s font-ui text-body text-contenido shadow-[inset_0_0_0_1px_var(--linea)] outline-none transition-[border-color,box-shadow] placeholder:text-texto-tenue focus:border-vino focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--vino)_12%,transparent)]"
             />
           </label>
-          <Boton variante="primary" tamano="compacto" onClick={() => setAbriendo(true)}>
+          {/* Es la acción principal de la pantalla: se le da el mismo peso
+              visual que al buscador, no el de un botón secundario. */}
+          <Boton
+            variante="primary"
+            onClick={() => setAbriendo(true)}
+            className="h-14 px-aire-m"
+          >
             Escribir
           </Boton>
         </div>
@@ -216,20 +222,27 @@ export function HiloPage() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-aire-m">
-      <article className="flex flex-col gap-aire-xs border border-linea bg-superficie-1 px-aire-s py-aire-s">
-        <h1 className="m-0 font-ui text-h-m font-medium tracking-titulo text-contenido">
+    <section className="mx-auto flex w-full max-w-4xl flex-col gap-aire-m">
+      {/* La pregunta que abre el hilo se distingue del resto por todo a la vez:
+          fondo propio, filete de vino, título grande y una etiqueta que la
+          nombra. Con un solo recurso —solo el borde, solo el tamaño— seguía
+          leyéndose como una respuesta más. */}
+      <article className="flex flex-col gap-aire-s border border-linea border-l-4 border-l-vino bg-superficie-2 px-aire-m py-aire-m">
+        <p className="m-0 font-mono text-eyebrow uppercase tracking-label text-vino">
+          Pregunta del hilo
+        </p>
+        <h1 className="m-0 font-ui text-h-l font-medium tracking-titulo text-contenido">
           {hilo.titulo}
         </h1>
+        <p className="m-0 whitespace-pre-wrap font-ui text-body-l leading-relaxed text-contenido">
+          {hilo.cuerpo}
+        </p>
         <p className="m-0 font-mono text-eyebrow uppercase tracking-label text-texto-debil">
           {hilo.autor} · {cuando(hilo.createdAt)}
           {hilo.oculto && ' · Oculto'}
         </p>
-        <p className="m-0 whitespace-pre-wrap font-ui text-body leading-relaxed text-contenido">
-          {hilo.cuerpo}
-        </p>
         {esAdmin && (
-          <div className="flex gap-aire-xs pt-aire-xs">
+          <div className="flex gap-aire-xs">
             <Boton
               variante="contorno"
               tamano="compacto"
@@ -241,11 +254,17 @@ export function HiloPage() {
         )}
       </article>
 
-      <ul className="m-0 flex list-none flex-col gap-aire-xs p-0">
+      <h2 className="m-0 font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
+        {hilo.respuestas.length === 0
+          ? 'Todavía sin respuestas'
+          : `${hilo.respuestas.length} ${hilo.respuestas.length === 1 ? 'respuesta' : 'respuestas'}`}
+      </h2>
+
+      <ul className="m-0 flex list-none flex-col gap-aire-s p-0">
         {hilo.respuestas.map((r) => (
           <li
             key={r.id}
-            className="flex flex-col gap-aire-xs border-l-2 border-linea bg-superficie-1 px-aire-s py-aire-xs"
+            className="flex flex-col gap-aire-xs border-l-2 border-linea pl-aire-s"
           >
             <p className="m-0 font-mono text-eyebrow uppercase tracking-label text-texto-debil">
               {r.autor} · {cuando(r.createdAt)}
@@ -286,7 +305,6 @@ export function HiloPage() {
         )}
         <Boton
           variante="primary"
-          tamano="compacto"
           type="submit"
           disabled={responder.isPending || respuesta.trim().length < 2}
           className="self-start"

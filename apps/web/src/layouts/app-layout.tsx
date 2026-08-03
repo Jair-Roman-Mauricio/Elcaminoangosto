@@ -8,6 +8,7 @@ import {
 } from '../modules/music/alabanza-catalog'
 import { useFavoriteSongsStore } from '../stores/favorite-songs.store'
 import { usePlayerStore } from '../stores/player.store'
+import { useHilo } from '../modules/community/comunidad-api'
 import { AvisoDeCodigoNuevo } from '../modules/music/codigo-de-coleccion'
 import { PageTransition } from '../components/page-transition'
 import { Sidebar } from '../components/sidebar'
@@ -66,6 +67,17 @@ export function AppLayout() {
 
   const cerrarMenu = useCallback(() => setMenuAbierto(false), [])
   const migas = construirMigas(location.pathname)
+
+  // En el detalle de un hilo la última miga sería su id en crudo. Se cambia
+  // por el título; es la misma consulta que hace la pantalla y TanStack la
+  // deduplica, así que no cuesta una petición extra.
+  const hiloDetalle = /^\/comunidad\/[^/]+\/?$/.test(location.pathname)
+  const { data: hiloConTitulo } = useHilo(hiloDetalle ? (location.pathname.split('/')[2] ?? '') : '')
+
+  if (hiloDetalle && hiloConTitulo?.titulo) {
+    const ultima = migas.at(-1)
+    if (ultima) ultima[1] = hiloConTitulo.titulo
+  }
 
   // El breadcrumb de Alabanza nombra el álbum y la canción, así que necesita el
   // catálogo. Es la misma consulta que hace la pantalla: TanStack la deduplica.
