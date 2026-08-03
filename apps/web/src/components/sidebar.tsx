@@ -23,6 +23,7 @@ const PLATAFORMA: EnlaceDeNav[] = [
   { to: '/tarjetas', label: 'Tarjetas' },
   { to: '/videos', label: 'Videos cristianos' },
   { to: '/alabanza', label: 'Alabanza' },
+  { to: '/comunidad', label: 'Comunidad' },
 ]
 
 /**

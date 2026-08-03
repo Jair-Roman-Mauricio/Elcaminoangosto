@@ -14,6 +14,7 @@ import { MusicModule } from './modules/music'
 import { FeedModule } from './modules/feed'
 import { VideosModule } from './modules/videos'
 import { AnalyticsModule } from './modules/analytics'
+import { CommunityModule } from './modules/community'
 import { MediaModule } from './modules/media'
 import { AdminModule } from './modules/admin'
 
@@ -52,6 +53,7 @@ import { AdminModule } from './modules/admin'
     FeedModule,
     VideosModule,
     AnalyticsModule,
+    CommunityModule,
     AdminModule,
   ],
   controllers: [HealthController],

@@ -286,3 +286,30 @@ export const coleccionAlbumCanciones = pgTable(
   },
   (t) => [primaryKey({ columns: [t.albumId, t.songId] })],
 )
+
+// ─── Comunidad ────────────────────────────────────────────────────────────
+// Hilos abiertos sin cuentas: el autor es la huella de un identificador
+// aleatorio del navegador. Ver `20260803000200_comunidad.sql`.
+export const estadoPublicacionEnum = pgEnum('estado_publicacion', ['VISIBLE', 'OCULTO'])
+
+export const hilos = pgTable('hilos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  titulo: text('titulo').notNull(),
+  cuerpo: text('cuerpo').notNull(),
+  autorHuella: text('autor_huella').notNull(),
+  estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
+  respuestas: integer('respuestas').notNull().default(0),
+  ultimaActividad: timestamp('ultima_actividad', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
+})
+
+export const hiloRespuestas = pgTable('hilo_respuestas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hiloId: uuid('hilo_id')
+    .notNull()
+    .references(() => hilos.id, { onDelete: 'cascade' }),
+  cuerpo: text('cuerpo').notNull(),
+  autorHuella: text('autor_huella').notNull(),
+  estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
+  ...timestamps,
+})

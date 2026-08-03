@@ -39,6 +39,12 @@ const VideosCristianosPage = lazy(() =>
     default: m.VideosCristianosPage,
   })),
 )
+const ComunidadPage = lazy(() =>
+  import('./modules/community/comunidad-page').then((m) => ({ default: m.ComunidadPage })),
+)
+const HiloPage = lazy(() =>
+  import('./modules/community/comunidad-page').then((m) => ({ default: m.HiloPage })),
+)
 const AlabanzaPage = lazy(() =>
   import('./modules/music/alabanza-page').then((m) => ({ default: m.AlabanzaPage })),
 )
@@ -70,6 +76,8 @@ export const router = createBrowserRouter([
       { path: '/tarjetas', element: conCarga(<FeedPage />) },
       { path: '/videos', element: conCarga(<VideosCristianosPage />) },
       { path: '/alabanza', element: conCarga(<AlabanzaPage />) },
+      { path: '/comunidad', element: conCarga(<ComunidadPage />) },
+      { path: '/comunidad/:id', element: conCarga(<HiloPage />) },
     ],
   },
 
