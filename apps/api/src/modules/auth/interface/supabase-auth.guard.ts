@@ -69,7 +69,6 @@ export class SupabaseAuthGuard implements CanActivate {
       id: perfil.id,
       email: claims.email ?? null,
       role: perfil.role,
-      levelRank: perfil.levelRank,
     }
   }
 }

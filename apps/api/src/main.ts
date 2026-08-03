@@ -32,7 +32,7 @@ async function bootstrap(): Promise<void> {
       app,
       new DocumentBuilder()
         .setTitle('El Camino Angosto — API')
-        .setDescription('Alabanza · Tarjetas de Fe · Discipulado · Chat mentor')
+        .setDescription('Alabanza · Tarjetas de Fe · Videos')
         .setVersion('0.1.0')
         .addBearerAuth()
         .build(),

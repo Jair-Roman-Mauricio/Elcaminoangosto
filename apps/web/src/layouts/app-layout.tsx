@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   buscarAlbum,
   buscarCancion,
@@ -8,10 +8,9 @@ import {
 } from '../modules/music/alabanza-catalog'
 import { useFavoriteSongsStore } from '../stores/favorite-songs.store'
 import { usePlayerStore } from '../stores/player.store'
+import { AvisoDeCodigoNuevo } from '../modules/music/codigo-de-coleccion'
 import { PageTransition } from '../components/page-transition'
 import { Sidebar } from '../components/sidebar'
-import { useVistaComo } from '../components/vista-como'
-import { useStudentView } from '../modules/discipleship/authoring-api'
 import { BrandLogo, cn } from '@elcamino/ui/static'
 import { ThemeToggle } from '../components/theme'
 import { useSession } from '../auth/session'
@@ -19,20 +18,9 @@ import { useSession } from '../auth/session'
 const PlayerBar = lazy(() => import('../modules/music/player-bar').then((modulo) => ({ default: modulo.PlayerBar })))
 
 const RUTAS_BASE = [
-  { prefijo: '/dashboard', etiqueta: 'Dashboard' },
-  { prefijo: '/maestro/cursos', etiqueta: 'Mis cursos' },
-  { prefijo: '/maestro/chat/administradores', etiqueta: 'Chat con administradores' },
-  { prefijo: '/maestro/chat', etiqueta: 'Chat con estudiantes' },
-  { prefijo: '/maestro/estudiantes', etiqueta: 'Mis estudiantes' },
-  { prefijo: '/discipulado', etiqueta: 'Discipulado' },
   { prefijo: '/tarjetas', etiqueta: 'Tarjetas de fe' },
   { prefijo: '/videos', etiqueta: 'Videos cristianos' },
   { prefijo: '/alabanza', etiqueta: 'Alabanzas' },
-  { prefijo: '/chat', etiqueta: 'Mentor' },
-  { prefijo: '/perfil', etiqueta: 'Mi perfil' },
-  { prefijo: '/admin/revisiones', etiqueta: 'Revisiones' },
-  { prefijo: '/admin/usuarios', etiqueta: 'Usuarios' },
-  { prefijo: '/admin/moderacion', etiqueta: 'Moderación' },
   { prefijo: '/admin/contenido', etiqueta: 'Contenido' },
   { prefijo: '/admin/estadisticas', etiqueta: 'Estadísticas' },
 ] as const
@@ -66,47 +54,18 @@ function construirMigas(pathname: string): Array<[string, string]> {
  * un sidebar y se deriva del rol efectivo (real o simulado por el admin).
  */
 export function AppLayout() {
-  const navigate = useNavigate()
   const location = useLocation()
-  const { viendoComo, verComo, rolEfectivo } = useVistaComo()
   const { session } = useSession()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const { albumesFavoritos, hidratarFavoritos } = useFavoriteSongsStore()
   const pistaActiva = usePlayerStore((estado) => estado.pista)
-  const editorCursoMaestro = /^\/maestro\/cursos\/[^/]+\/?$/.test(location.pathname)
-  const revisionDetalle = /^\/admin\/revisiones\/[^/]+\/?$/.test(location.pathname)
-  const moderacionDetalle = /^\/admin\/moderacion\/[^/]+\/?$/.test(location.pathname)
-  const cursoDetalle = location.pathname.startsWith('/discipulado/') || editorCursoMaestro
   const mosaicoTarjetas = location.pathname === '/tarjetas'
   const paginaVideos = location.pathname.startsWith('/videos')
   const paginaAlabanza = location.pathname.startsWith('/alabanza')
-  const paginaMentor = location.pathname.startsWith('/chat')
 
   const cerrarMenu = useCallback(() => setMenuAbierto(false), [])
   const migas = construirMigas(location.pathname)
 
-  // Para MAESTRO y ADMIN el Dashboard es la base de la navegación: encabeza el
-  // breadcrumb en todas sus páginas (salvo en el propio Dashboard).
-  const tieneDashboard = rolEfectivo === 'MAESTRO' || rolEfectivo === 'ADMIN'
-  if (tieneDashboard && migas.length > 0 && migas[0]?.[0] !== '/dashboard') {
-    migas.unshift(['/dashboard', 'Dashboard'])
-  }
-
-  // En el editor del maestro y en los detalles del admin (revisión y moderación)
-  // la última miga es el id del curso: lo cambiamos por el título real. Reutiliza
-  // la misma consulta que ya hacen esas páginas (deduplica).
-  const detalleDeCurso = editorCursoMaestro || revisionDetalle || moderacionDetalle
-  const cursoIdConTitulo = detalleDeCurso ? (location.pathname.split('/')[3] ?? '') : ''
-  const { data: cursoConTitulo } = useStudentView(cursoIdConTitulo, Boolean(cursoIdConTitulo))
-  const ultimaMiga = migas.at(-1)
-  if (detalleDeCurso && cursoConTitulo?.title && ultimaMiga) {
-    ultimaMiga[1] = cursoConTitulo.title
-  }
-  // El panel «Añadir contenido» del editor se refleja en ?contenido=: añade su
-  // miga. La miga del curso (sin query) sirve de «volver» al editor.
-  if (editorCursoMaestro && new URLSearchParams(location.search).has('contenido')) {
-    migas.push([`${location.pathname}${location.search}`, 'Contenido'])
-  }
   // El breadcrumb de Alabanza nombra el álbum y la canción, así que necesita el
   // catálogo. Es la misma consulta que hace la pantalla: TanStack la deduplica.
   const { catalogo: catalogoDeAlabanza } = useCatalogoDeAlabanza()
@@ -137,12 +96,15 @@ export function AppLayout() {
     <div className={cn(
       'min-h-screen bg-fondo',
       paginaVideos && 'videos-app-shell',
-      paginaMentor && 'mentor-app-shell',
     )}>
-      <Sidebar abierto={menuAbierto} onCerrar={cerrarMenu} oculto={cursoDetalle} invitado={!session} />
+      <Sidebar abierto={menuAbierto} onCerrar={cerrarMenu} invitado={!session} />
+
+      {/* El código del respaldo se enseña una sola vez, se cree el álbum donde
+          se cree: por eso vive en el layout y no en la pantalla de Alabanza. */}
+      <AvisoDeCodigoNuevo />
 
       {/* Cabecera solo en móvil: bajo `cine` el sidebar es un cajón. */}
-      <header className={cn('fixed inset-x-0 top-0 z-30 flex items-center gap-aire-s border-b border-linea bg-fondo px-aire-s py-aire-xs cine:hidden', cursoDetalle && 'hidden')}>
+      <header className={cn('fixed inset-x-0 top-0 z-30 flex items-center gap-aire-s border-b border-linea bg-fondo px-aire-s py-aire-xs cine:hidden')}>
         <button
           type="button"
           onClick={() => setMenuAbierto(true)}
@@ -163,33 +125,12 @@ export function AppLayout() {
         </Link>
       </header>
 
-      <div className={cn(!cursoDetalle && 'cine:pl-[15.5rem]')}>
-        {/* Banner cuando el admin está simulando otro rol. */}
-        {viendoComo && (
-          <div className="sticky top-0 z-20 flex flex-wrap items-center justify-center gap-x-aire-s gap-y-1 bg-vino px-gutter py-2 text-center font-mono text-eyebrow uppercase tracking-label text-hueso">
-            <span>
-              Vista previa como {viendoComo === 'MAESTRO' ? 'profesor' : 'estudiante'} · no se guarda
-              ningún cambio
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                verComo(null)
-                navigate('/dashboard')
-              }}
-              className="rounded-full border border-hueso/70 px-[0.9rem] py-[0.15rem] transition-colors hover:bg-hueso hover:text-vino"
-            >
-              Volver a admin
-            </button>
-          </div>
-        )}
-
+      <div className={'cine:pl-[15.5rem]'}>
         <main className={cn(
           'relative px-gutter pb-32 pt-[5.5rem] cine:pt-8',
           paginaVideos && 'videos-shell',
           paginaAlabanza && 'alabanza-shell',
           vistaDeReproduccion && 'alabanza-shell--player',
-          paginaMentor && 'mentor-shell',
         )}>
           <div className="theme-toggle-anchor flex items-center gap-aire-s">
             <ThemeToggle />
@@ -212,13 +153,7 @@ export function AppLayout() {
               </span>
             ))}
           </nav>
-          {cursoDetalle ? (
-            /* El panel de lecciones usa position:fixed; se mantiene fuera del
-               wrapper animado para conservar el viewport de sus columnas. */
-            <div key={location.pathname} className="course-interface-transition">
-              <Outlet />
-            </div>
-          ) : mosaicoTarjetas ? (
+          {mosaicoTarjetas ? (
             /* El mosaico ya prepara su posición antes de pintar. Evitamos la
                máscara general de entrada porque durante ese barrido dejaba ver
                una franja negra junto al sidebar. */

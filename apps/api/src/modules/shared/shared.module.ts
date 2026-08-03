@@ -1,7 +1,5 @@
 import { Global, Module } from '@nestjs/common'
-import { PolicyRegistry } from './guards/policy.registry'
 import { RolesGuard } from './guards/roles.guard'
-import { PolicyGuard } from './guards/policy.guard'
 import { DatabaseModule } from './database/database.module'
 
 /**
@@ -11,7 +9,7 @@ import { DatabaseModule } from './database/database.module'
 @Global()
 @Module({
   imports: [DatabaseModule],
-  providers: [PolicyRegistry, RolesGuard, PolicyGuard],
-  exports: [PolicyRegistry, RolesGuard, PolicyGuard, DatabaseModule],
+  providers: [RolesGuard],
+  exports: [RolesGuard, DatabaseModule],
 })
 export class SharedModule {}

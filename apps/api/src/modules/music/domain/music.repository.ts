@@ -106,9 +106,9 @@ export abstract class MusicRepository {
   abstract removeSong(id: string): Promise<void>
 }
 
-/* ── Favoritos de una persona (HU-2.3) ─────────────────────────────────── */
+/* ── Colecciones: favoritos sin cuenta ─────────────────────────────────── */
 
-/** Álbum personal: una colección que arma quien escucha, no el catálogo. */
+/** Álbum que arma quien escucha, no el catálogo. */
 export interface AlbumPersonalEntity {
   albumId: string
   titulo: string
@@ -116,29 +116,42 @@ export interface AlbumPersonalEntity {
   songIds: string[]
 }
 
-export interface FavoritosEntity {
-  /** Canciones marcadas sueltas. */
+export interface ColeccionEntity {
   cancionesFavoritas: string[]
   albumesPersonales: AlbumPersonalEntity[]
 }
 
-export abstract class FavoritesRepository {
-  abstract favoritosDe(userId: string): Promise<FavoritosEntity>
+/**
+ * Puerto de las colecciones.
+ *
+ * Nadie se registra para guardar música: cada colección se identifica por la
+ * HUELLA de un código que su dueño eligió. El código en claro nunca llega
+ * hasta aquí, y por eso una colección perdida no se puede recuperar: es el
+ * precio de no pedir una cuenta.
+ */
+export abstract class ColeccionRepository {
+  /** Id de la colección con esa huella, o null si no existe. */
+  abstract buscarPorHuella(huella: string): Promise<string | null>
+
+  /** Crea una colección. Devuelve null si esa huella ya estaba tomada. */
+  abstract crear(huella: string): Promise<string | null>
+
+  abstract contenido(coleccionId: string): Promise<ColeccionEntity>
 
   /** Marca o desmarca una canción. Idempotente. */
-  abstract marcarCancion(userId: string, songId: string, favorita: boolean): Promise<void>
+  abstract marcarCancion(coleccionId: string, songId: string, favorita: boolean): Promise<void>
 
-  abstract crearAlbumPersonal(userId: string, titulo: string): Promise<AlbumPersonalEntity>
+  abstract crearAlbum(coleccionId: string, titulo: string): Promise<AlbumPersonalEntity>
 
-  /** Sustituye título, portada y contenido del álbum personal. */
-  abstract actualizarAlbumPersonal(
-    userId: string,
+  /** Sustituye título, portada y contenido del álbum. */
+  abstract actualizarAlbum(
+    coleccionId: string,
     albumId: string,
     cambios: { titulo: string; coverUrl: string | null; songIds: string[] },
   ): Promise<AlbumPersonalEntity>
 
-  abstract eliminarAlbumPersonal(userId: string, albumId: string): Promise<void>
+  abstract eliminarAlbum(coleccionId: string, albumId: string): Promise<void>
 
-  /** El álbum existe y es de esa persona. */
-  abstract esDe(userId: string, albumId: string): Promise<boolean>
+  /** El álbum existe y pertenece a esa colección. */
+  abstract esDe(coleccionId: string, albumId: string): Promise<boolean>
 }

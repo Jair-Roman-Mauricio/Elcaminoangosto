@@ -30,7 +30,7 @@ const EditarSchema = z.object({
 const EstadoSchema = z.object({ status: z.enum(['PUBLISHED', 'HIDDEN']) })
 const ComentarioSchema = z.object({ body: z.string().trim().min(1).max(320) })
 
-const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank: u.levelRank })
+const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role })
 
 @ApiTags('videos')
 @ApiBearerAuth()

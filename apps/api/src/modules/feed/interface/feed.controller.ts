@@ -26,7 +26,7 @@ const PublicarSchema = z.object({
 
 const EstadoSchema = z.object({ status: z.enum(['PUBLISHED', 'HIDDEN']) })
 
-const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank: u.levelRank })
+const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role })
 
 @ApiTags('feed')
 @ApiBearerAuth()
