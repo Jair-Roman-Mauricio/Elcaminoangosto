@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import {
   BadRequestException,
   ConflictException,
@@ -88,14 +88,38 @@ export class MusicService {
   // La contrapartida, que la interfaz debe dejar clarísima: un código perdido
   // es una colección perdida. No hay correo con el que recuperarla.
 
-  /** Longitud mínima del código: uno corto se adivina probando. */
-  private static readonly LARGO_MINIMO = 6
+  /**
+   * Alfabeto sin caracteres que se confunden al dictar o copiar a mano:
+   * nada de O/0, I/1/L. Quien apunte su código en un papel lo agradecerá.
+   */
+  private static readonly ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  private static readonly LARGO = 10
 
-  async crearColeccion(codigo: string): Promise<{ coleccionId: string }> {
-    const huella = this.huellaDe(codigo)
-    const id = await this.colecciones.crear(huella)
-    if (!id) throw new ConflictException('Ese código ya está en uso, elige otro')
-    return { coleccionId: id }
+  /**
+   * Crea una colección y devuelve su código EN CLARO. Es la única vez que se
+   * puede leer: de aquí en adelante solo existe su huella.
+   *
+   * El código lo genera el servidor y no lo elige quien guarda, por dos
+   * razones: uno elegido a mano tiende a ser corto y adivinable, y así nadie
+   * puede quedarse con el código que otro quería.
+   */
+  async crearColeccion(): Promise<{ coleccionId: string; codigo: string }> {
+    // Un choque es improbable (31^10 combinaciones), pero si ocurre se
+    // reintenta en vez de devolverle a alguien la colección de otro.
+    for (let intento = 0; intento < 5; intento += 1) {
+      const codigo = this.generarCodigo()
+      const id = await this.colecciones.crear(this.huellaDe(codigo))
+      if (id) return { coleccionId: id, codigo }
+    }
+    throw new ConflictException('No se pudo generar un código libre, inténtalo de nuevo')
+  }
+
+  private generarCodigo(): string {
+    const bytes = randomBytes(MusicService.LARGO)
+    const letras = Array.from(bytes, (b) => MusicService.ALFABETO[b % MusicService.ALFABETO.length])
+    // En dos bloques: se lee, se dicta y se teclea mucho mejor que diez
+    // caracteres seguidos.
+    return `${letras.slice(0, 5).join('')}-${letras.slice(5).join('')}`
   }
 
   /** Abre una colección existente. Devuelve su contenido. */
@@ -111,9 +135,27 @@ export class MusicService {
     await this.colecciones.marcarCancion(id, songId, favorita)
   }
 
-  async crearAlbumPersonal(codigo: string, titulo: string): Promise<AlbumPersonalEntity> {
-    const id = await this.exigirColeccion(codigo)
-    return this.colecciones.crearAlbum(id, this.exigirNombre(titulo))
+  /**
+   * Crea un álbum. Si quien lo crea todavía no tiene colección —su primer
+   * álbum—, se le abre una y se le devuelve el código: es el momento natural
+   * para pedirle que lo guarde, porque acaba de crear algo que perder.
+   */
+  async crearAlbumPersonal(
+    titulo: string,
+    codigo?: string | null,
+  ): Promise<{ album: AlbumPersonalEntity; codigo: string | null }> {
+    const nombre = this.exigirNombre(titulo)
+
+    if (codigo) {
+      const id = await this.exigirColeccion(codigo)
+      return { album: await this.colecciones.crearAlbum(id, nombre), codigo: null }
+    }
+
+    const nueva = await this.crearColeccion()
+    return {
+      album: await this.colecciones.crearAlbum(nueva.coleccionId, nombre),
+      codigo: nueva.codigo,
+    }
   }
 
   async editarAlbumPersonal(
@@ -136,17 +178,16 @@ export class MusicService {
   }
 
   /**
-   * Huella determinista del código: hay que poder buscar por ella. Por eso la
-   * defensa contra adivinarlo no está aquí sino en la longitud mínima y en el
-   * límite de peticiones.
+   * Huella determinista del código: hay que poder buscar por ella, así que no
+   * lleva sal. Lo que protege de que alguien pruebe códigos a lo bruto es su
+   * tamaño —31^10 combinaciones— y el límite de peticiones del servidor.
+   *
+   * Se normaliza a mayúsculas y sin espacios: quien lo teclea a mano no tiene
+   * por qué acertar el formato exacto.
    */
   private huellaDe(codigo: string): string {
-    const limpio = codigo.trim()
-    if (limpio.length < MusicService.LARGO_MINIMO) {
-      throw new BadRequestException(
-        `El código necesita al menos ${MusicService.LARGO_MINIMO} caracteres`,
-      )
-    }
+    const limpio = codigo.trim().toUpperCase()
+    if (!limpio) throw new BadRequestException('Falta el código de la colección')
     return createHash('sha256').update(limpio).digest('hex')
   }
 

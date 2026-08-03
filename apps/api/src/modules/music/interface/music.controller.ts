@@ -59,8 +59,12 @@ const PublicarSchema = z.object({ isPublished: z.boolean() })
 // El código viaja siempre en el cuerpo: en la URL acabaría en los registros
 // del servidor y en el historial del navegador.
 const CodigoSchema = z.object({ codigo: z.string().min(6).max(64) })
+// Sin código: es el primer álbum y el servidor abre la colección.
+const CrearAlbumSchema = z.object({
+  codigo: z.string().min(6).max(64).nullish(),
+  titulo: z.string().min(1).max(120),
+})
 const MarcarSchema = CodigoSchema.extend({ favorita: z.boolean() })
-const CrearAlbumSchema = CodigoSchema.extend({ titulo: z.string().min(1).max(120) })
 const EditarAlbumDeColeccionSchema = CodigoSchema.extend({
   titulo: z.string().min(1).max(120),
   coverUrl: z.string().max(500).nullable().default(null),
@@ -90,11 +94,9 @@ export class MusicController {
 
   @Post('collections')
   @Public()
-  @ApiOperation({ summary: 'Crear una colección con un código propio' })
-  async crearColeccion(
-    @Body(new ZodValidationPipe(CodigoSchema)) body: z.infer<typeof CodigoSchema>,
-  ) {
-    return this.music.crearColeccion(body.codigo)
+  @ApiOperation({ summary: 'Abrir una colección nueva y recibir su código' })
+  async crearColeccion() {
+    return this.music.crearColeccion()
   }
 
   @Post('collections/open')
@@ -123,7 +125,7 @@ export class MusicController {
   async crearAlbumPersonal(
     @Body(new ZodValidationPipe(CrearAlbumSchema)) body: z.infer<typeof CrearAlbumSchema>,
   ) {
-    return this.music.crearAlbumPersonal(body.codigo, body.titulo)
+    return this.music.crearAlbumPersonal(body.titulo, body.codigo)
   }
 
   @Patch('collections/albums/:id')

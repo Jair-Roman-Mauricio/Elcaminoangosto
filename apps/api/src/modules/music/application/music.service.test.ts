@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { MusicService } from './music.service'
 import {
   ColeccionRepository,
@@ -375,64 +375,81 @@ describe('administración de música (módulo Contenido)', () => {
 })
 
 describe('colecciones: guardar sin cuenta, recuperar con un código', () => {
-  const CODIGO = 'mi-codigo-1'
-  const OTRO = 'otro-codigo-2'
+  /** Abre una colección y devuelve su código, como haría el primer álbum. */
+  const nuevaColeccion = async () => (await svc.crearColeccion()).codigo
 
-  beforeEach(async () => {
-    await svc.crearColeccion(CODIGO)
-    await svc.crearColeccion(OTRO)
+  it('el primer álbum abre la colección y devuelve el código', async () => {
+    const { album, codigo } = await svc.crearAlbumPersonal('Para orar')
+
+    expect(codigo).toMatch(/^[A-Z2-9]{5}-[A-Z2-9]{5}$/)
+    expect(album.titulo).toBe('Para orar')
+    expect((await svc.abrirColeccion(codigo!)).albumesPersonales).toHaveLength(1)
+  })
+
+  it('con código, el álbum se suma a la colección que ya existe', async () => {
+    const codigo = await nuevaColeccion()
+
+    const segundo = await svc.crearAlbumPersonal('Para caminar', codigo)
+
+    expect(segundo.codigo).toBeNull()
+    expect((await svc.abrirColeccion(codigo)).albumesPersonales).toHaveLength(1)
   })
 
   it('marcar y desmarcar una canción', async () => {
+    const codigo = await nuevaColeccion()
     music.seed(nuevaCancion({ id: 's1' }))
 
-    await svc.marcarCancion(CODIGO, 's1', true)
-    expect((await svc.abrirColeccion(CODIGO)).cancionesFavoritas).toEqual(['s1'])
+    await svc.marcarCancion(codigo, 's1', true)
+    expect((await svc.abrirColeccion(codigo)).cancionesFavoritas).toEqual(['s1'])
 
-    await svc.marcarCancion(CODIGO, 's1', false)
-    expect((await svc.abrirColeccion(CODIGO)).cancionesFavoritas).toEqual([])
+    await svc.marcarCancion(codigo, 's1', false)
+    expect((await svc.abrirColeccion(codigo)).cancionesFavoritas).toEqual([])
   })
 
   it('no se marca una canción que no existe', async () => {
-    await expect(svc.marcarCancion(CODIGO, 'fantasma', true)).rejects.toThrow(NotFoundException)
+    const codigo = await nuevaColeccion()
+    await expect(svc.marcarCancion(codigo, 'fantasma', true)).rejects.toThrow(NotFoundException)
   })
 
   it('cada código abre solo su colección', async () => {
+    const mio = await nuevaColeccion()
+    const ajeno = await nuevaColeccion()
     music.seed(nuevaCancion({ id: 's1' }))
-    await svc.marcarCancion(CODIGO, 's1', true)
+    await svc.marcarCancion(mio, 's1', true)
 
-    expect((await svc.abrirColeccion(OTRO)).cancionesFavoritas).toEqual([])
+    expect((await svc.abrirColeccion(ajeno)).cancionesFavoritas).toEqual([])
   })
 
   it('un código desconocido no abre nada', async () => {
-    await expect(svc.abrirColeccion('inexistente-9')).rejects.toThrow(NotFoundException)
+    await expect(svc.abrirColeccion('AAAAA-BBBBB')).rejects.toThrow(NotFoundException)
   })
 
-  it('dos personas no pueden compartir el mismo código', async () => {
-    await expect(svc.crearColeccion(CODIGO)).rejects.toThrow(ConflictException)
-  })
+  it('el código se acepta en minúsculas y con espacios de sobra', async () => {
+    const codigo = await nuevaColeccion()
 
-  it('un código corto se rechaza: sería adivinable', async () => {
-    await expect(svc.crearColeccion('abc')).rejects.toThrow(BadRequestException)
+    await expect(svc.abrirColeccion(`  ${codigo.toLowerCase()} `)).resolves.toBeDefined()
   })
 
   it('un álbum solo lo edita o borra quien tiene su código', async () => {
-    const album = await svc.crearAlbumPersonal(CODIGO, 'Para orar')
+    const mio = await nuevaColeccion()
+    const ajeno = await nuevaColeccion()
+    const { album } = await svc.crearAlbumPersonal('Para orar', mio)
 
     await expect(
-      svc.editarAlbumPersonal(OTRO, album.albumId, {
+      svc.editarAlbumPersonal(ajeno, album.albumId, {
         titulo: 'Mío',
         coverUrl: null,
         songIds: [],
       }),
     ).rejects.toThrow(NotFoundException)
-    await expect(svc.eliminarAlbumPersonal(OTRO, album.albumId)).rejects.toThrow(NotFoundException)
+    await expect(svc.eliminarAlbumPersonal(ajeno, album.albumId)).rejects.toThrow(NotFoundException)
   })
 
   it('editar sustituye título y contenido del álbum', async () => {
-    const album = await svc.crearAlbumPersonal(CODIGO, 'Para orar')
+    const codigo = await nuevaColeccion()
+    const { album } = await svc.crearAlbumPersonal('Para orar', codigo)
 
-    const editado = await svc.editarAlbumPersonal(CODIGO, album.albumId, {
+    const editado = await svc.editarAlbumPersonal(codigo, album.albumId, {
       titulo: 'Para caminar',
       coverUrl: 'https://portada/x.webp',
       songIds: ['s1', 's2'],
@@ -443,6 +460,6 @@ describe('colecciones: guardar sin cuenta, recuperar con un código', () => {
   })
 
   it('un álbum sin nombre no se crea', async () => {
-    await expect(svc.crearAlbumPersonal(CODIGO, '   ')).rejects.toThrow(BadRequestException)
+    await expect(svc.crearAlbumPersonal('   ')).rejects.toThrow(BadRequestException)
   })
 })
