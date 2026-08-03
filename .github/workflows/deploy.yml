@@ -45,7 +45,7 @@ jobs:
           WEB_URL: ${{ github.ref == 'refs/heads/main' && 'https://elcaminoangosto.up.railway.app' || 'https://web-staging-4f40.up.railway.app' }}
           # Base de los enlaces que Supabase pone en los correos. Solo se fija
           # desde `main`: staging comparte proyecto y le pisaría el valor.
-          SITE_URL: ${{ github.ref == 'refs/heads/main' && 'https://elcaminoangosto.up.railway.app' || '' }}
+          SITE_URL: ${{ github.ref == 'refs/heads/main' && 'https://www.elcaminoangosto.site' || '' }}
         run: |
           umask 077
           trap 'rm -f /tmp/elcamino-supabase-auth.json /tmp/elcamino-correo-*.html /tmp/elcamino-respuesta.json' EXIT
