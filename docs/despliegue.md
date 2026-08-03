@@ -43,7 +43,7 @@ La recuperación de contraseña está implementada en `/recuperar` y redirige a 
 | Servicio | Producción | Staging |
 |---|---|---|
 | `api` | https://api-production-f113.up.railway.app | https://api-staging-99c0.up.railway.app |
-| `web` | https://web-production-551e4.up.railway.app | https://web-staging-4f40.up.railway.app |
+| `web` | https://elcaminoangosto.up.railway.app | https://web-staging-4f40.up.railway.app |
 | `worker` | sin dominio; consume la cola | ídem |
 | `Redis` | interno, `${{Redis.REDIS_URL}}` | instancia propia |
 
