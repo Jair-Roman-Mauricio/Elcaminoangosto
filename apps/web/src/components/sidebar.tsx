@@ -20,52 +20,29 @@ export interface GrupoDeNav {
 }
 
 const PLATAFORMA: EnlaceDeNav[] = [
-  { to: '/discipulado', label: 'Discipulado' },
   { to: '/tarjetas', label: 'Tarjetas' },
   { to: '/videos', label: 'Videos cristianos' },
   { to: '/alabanza', label: 'Alabanza' },
-  { to: '/chat', label: 'Mentor' },
 ]
 
-/** Grupos del sidebar según el rol efectivo. */
+/**
+ * Grupos del sidebar. Todo el mundo ve lo mismo —la plataforma es abierta— y
+ * solo el admin suma su bloque de administración.
+ */
 export function gruposPara(role: Role | undefined): GrupoDeNav[] {
+  const grupos: GrupoDeNav[] = [{ titulo: 'Plataforma', enlaces: PLATAFORMA }]
+
   if (role === 'ADMIN') {
-    return [
-      {
-        titulo: 'Administración',
-        enlaces: [
-          { to: '/dashboard', label: 'Dashboard', exacto: true },
-          // Gobernanza del contenido primero (antes y después de publicar), y
-          // luego las cuentas.
-          { to: '/admin/revisiones', label: 'Revisiones' },
-          { to: '/admin/moderacion', label: 'Moderación' },
-          { to: '/admin/contenido', label: 'Contenido' },
-          { to: '/admin/estadisticas', label: 'Estadísticas' },
-          { to: '/admin/chat', label: 'Mensajes de profesores' },
-          { to: '/admin/usuarios', label: 'Usuarios' },
-        ],
-      },
-    ]
+    grupos.push({
+      titulo: 'Administración',
+      enlaces: [
+        { to: '/admin/contenido', label: 'Contenido' },
+        { to: '/admin/estadisticas', label: 'Estadísticas' },
+      ],
+    })
   }
 
-  if (role === 'MAESTRO') {
-    return [
-      {
-        titulo: 'Profesor',
-        enlaces: [
-          { to: '/dashboard', label: 'Dashboard', exacto: true },
-          { to: '/maestro/cursos', label: 'Mis cursos' },
-          // Debe ser exacta: la ruta de administración es hija y no puede
-          // activar este enlace ni dejar el selector en la fila anterior.
-          { to: '/maestro/chat', label: 'Chat con estudiantes', exacto: true },
-          { to: '/maestro/chat/administradores', label: 'Chat con administradores' },
-          { to: '/maestro/estudiantes', label: 'Mis estudiantes' },
-        ],
-      },
-    ]
-  }
-
-  return [{ titulo: 'Plataforma', enlaces: PLATAFORMA }]
+  return grupos
 }
 
 export interface SidebarProps {
@@ -85,7 +62,7 @@ export interface SidebarProps {
 export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }: SidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { rolReal, rolEfectivo, viendoComo, verComo } = useVistaComo()
+  const { rolEfectivo } = useVistaComo()
   const { data: perfil } = usePerfil()
 
   // Navegar cierra el cajón: en móvil taparía la página recién abierta.
@@ -133,10 +110,7 @@ export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }:
         </div>
 
         <nav className="flex flex-1 flex-col gap-aire-s overflow-y-auto px-0 py-aire-m scrollbar-none">
-          {gruposPara(rolEfectivo).map((grupo) => ({
-            ...grupo,
-            enlaces: invitado ? grupo.enlaces.filter(({ to }) => to !== '/chat') : grupo.enlaces,
-          })).map((grupo) => (
+          {gruposPara(rolEfectivo).map((grupo) => (
             <div key={grupo.titulo} className="relative flex flex-col gap-aire-xs">
               {(() => {
                 const indiceActivo = grupo.enlaces.findIndex(({ to, exacto }) =>
@@ -178,99 +152,41 @@ export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }:
         </nav>
 
         {invitado ? (
-          <div className="flex flex-col gap-aire-xs px-aire-m py-aire-m">
-            <Link to="/entrar" className="sidebar-nav-link flex h-[2.35rem] items-center justify-center border border-linea font-mono text-[0.6rem] uppercase tracking-[0.12em] text-contenido no-underline transition-colors duration-fade hover:border-vino hover:text-vino">Iniciar sesión</Link>
-            <Link to="/entrar?registro=1" className="flex h-[2.35rem] items-center justify-center border border-vino bg-vino font-mono text-[0.6rem] uppercase tracking-[0.12em] text-hueso no-underline transition-colors duration-fade hover:bg-vino/90">Registrarse</Link>
-          </div>
-        ) : <div className="flex flex-col gap-aire-s px-0 py-aire-m">
-          {rolReal === 'ADMIN' && <VerComo activo={viendoComo} onVer={verComo} />}
-
-          <div className="flex items-center px-aire-m">
-            <div className="flex min-w-0 flex-1 items-center gap-aire-xs font-mono text-[0.6rem] uppercase tracking-[0.12em] text-texto-tenue">
-              {perfil?.avatarUrl ? (
-                <img src={perfil.avatarUrl} alt="" className="size-7 rounded-full object-cover" />
-              ) : (
-                <span className="grid size-7 place-items-center rounded-full bg-vino font-ui text-[0.6rem] font-semibold text-hueso">
-                  {(perfil?.displayName ?? 'P').slice(0, 1).toUpperCase()}
-                </span>
-              )}
-              <span className="truncate">{perfil?.displayName ?? 'Perfil'}</span>
-            </div>
+          <div className="px-aire-m py-aire-m">
+            {/* Nadie más necesita entrar: no hay cuentas que crear. Se ofrece
+                discreto, como puerta de servicio y no como llamada a la acción. */}
             <Link
-              to="/perfil"
-              aria-label="Editar perfil"
-              title="Editar perfil"
-              className="grid size-7 shrink-0 place-items-center rounded border border-linea text-texto-tenue transition-colors duration-fade ease-camino hover:border-vino hover:text-vino"
+              to="/entrar"
+              className="sidebar-nav-link flex h-[2.35rem] items-center justify-center border border-linea font-mono text-[0.6rem] uppercase tracking-[0.12em] text-texto-tenue no-underline transition-colors duration-fade hover:border-vino hover:text-vino"
             >
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true">
-                <path d="m4 16.5-.8 4.3 4.3-.8L19.8 7.7a2.1 2.1 0 0 0-3-3L4 16.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-                <path d="m14.8 6.2 3 3" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
+              Ingresar como admin
             </Link>
           </div>
+        ) : (
+          <div className="flex flex-col gap-aire-s px-0 py-aire-m">
+            <div className="flex items-center px-aire-m">
+              <div className="flex min-w-0 flex-1 items-center gap-aire-xs font-mono text-[0.6rem] uppercase tracking-[0.12em] text-texto-tenue">
+                {perfil?.avatarUrl ? (
+                  <img src={perfil.avatarUrl} alt="" className="size-7 rounded-full object-cover" />
+                ) : (
+                  <span className="grid size-7 place-items-center rounded-full bg-vino font-ui text-[0.6rem] font-semibold text-hueso">
+                    {(perfil?.displayName ?? 'A').slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+                <span className="truncate">{perfil?.displayName ?? 'Administración'}</span>
+              </div>
+            </div>
 
-          <Boton
-            variante="nav"
-            onClick={() => void salir()}
-            className="w-full rounded-none border-vino bg-vino px-aire-m py-aire-xs font-mono text-[0.6rem] tracking-[0.12em] text-hueso hover:border-vino hover:bg-vino hover:text-hueso"
-          >
-            Cerrar sesión
-          </Boton>
-        </div>}
+            <Boton
+              variante="nav"
+              onClick={() => void salir()}
+              className="w-full rounded-none border-vino bg-vino px-aire-m py-aire-xs font-mono text-[0.6rem] tracking-[0.12em] text-hueso hover:border-vino hover:bg-vino hover:text-hueso"
+            >
+              Cerrar sesión
+            </Boton>
+          </div>
+        )}
       </aside>
     </>
-  )
-}
-
-/** Control «Ver como» del admin: simula la interfaz de alumno o de profesor. */
-function VerComo({ activo, onVer }: { activo: Role | null; onVer: (r: Role | null) => void }) {
-  const navigate = useNavigate()
-  const ver = (role: Role, destino: string) => {
-    onVer(role)
-    navigate(destino)
-  }
-
-  return (
-    <div className="flex flex-col gap-aire-xs">
-      <span className="px-aire-xs font-mono text-eyebrow uppercase tracking-label text-texto-debil">
-        Ver como
-      </span>
-      <div className="flex flex-row flex-wrap justify-center gap-aire-xs">
-        <BotonMini
-          activo={activo === 'ESTUDIANTE'}
-          onClick={() => ver('ESTUDIANTE', '/discipulado')}
-        >
-          Alumno
-        </BotonMini>
-        <BotonMini activo={activo === 'MAESTRO'} onClick={() => ver('MAESTRO', '/dashboard')}>
-          Profesor
-        </BotonMini>
-      </div>
-    </div>
-  )
-}
-
-function BotonMini({
-  activo,
-  onClick,
-  children,
-}: {
-  activo: boolean
-  onClick: () => void
-  children: string
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={activo}
-      className={cn(
-        'w-fit rounded-full border border-vino bg-vino px-[0.85rem] py-[0.4rem] text-center font-mono text-[0.55rem] uppercase tracking-label text-hueso',
-        'transition-[opacity,box-shadow] duration-fade ease-camino hover:opacity-90',
-        activo && 'ring-1 ring-hueso/60',
-      )}
-    >
-      {children}
-    </button>
   )
 }

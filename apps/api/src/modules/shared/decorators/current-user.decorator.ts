@@ -7,8 +7,6 @@ export interface CurrentUserContext {
   id: string
   email: string | null
   role: Role
-  /** `rank` del nivel actual. 0 si aún no tiene nivel asignado. */
-  levelRank: number
 }
 
 export const CurrentUser = createParamDecorator(

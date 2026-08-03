@@ -1,16 +1,18 @@
+import { createHash, randomBytes } from 'node:crypto'
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
 import {
-  FavoritesRepository,
+  ColeccionRepository,
   MusicRepository,
   type AlbumEntity,
   type SongEntity,
   type AlbumPersonalEntity,
-  type FavoritosEntity,
+  type ColeccionEntity,
   type TipoDeFondo,
   type Tono,
 } from '../domain/music.repository'
@@ -73,52 +75,138 @@ export class MusicService {
   constructor(
     private readonly music: MusicRepository,
     private readonly media: MediaService,
-    private readonly favoritos: FavoritesRepository,
+    private readonly colecciones: ColeccionRepository,
   ) {}
 
-  // ── Favoritos (HU-2.3) ────────────────────────────────────────────────────
+  // ── Colecciones: guardar música sin cuenta ───────────────────────────────
   //
-  // Guardar exige cuenta: antes vivía en el navegador y se perdía al cambiar de
-  // dispositivo. El actor siempre viene de la sesión, así que nadie puede tocar
-  // los favoritos de otra persona.
+  // Quien guarda no se registra. Al crear su primer álbum elige un código, y
+  // ese código es lo único que le devuelve su colección en otro dispositivo.
+  // Aquí solo se maneja su HUELLA: el código en claro no se guarda en ninguna
+  // parte, así que una filtración de la base no revela el de nadie.
+  //
+  // La contrapartida, que la interfaz debe dejar clarísima: un código perdido
+  // es una colección perdida. No hay correo con el que recuperarla.
 
-  async misFavoritos(actor: Actor): Promise<FavoritosEntity> {
-    return this.favoritos.favoritosDe(actor.id)
+  /**
+   * Alfabeto sin caracteres que se confunden al dictar o copiar a mano:
+   * nada de O/0, I/1/L. Quien apunte su código en un papel lo agradecerá.
+   */
+  private static readonly ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  private static readonly LARGO = 10
+
+  /**
+   * Crea una colección y devuelve su código EN CLARO. Es la única vez que se
+   * puede leer: de aquí en adelante solo existe su huella.
+   *
+   * El código lo genera el servidor y no lo elige quien guarda, por dos
+   * razones: uno elegido a mano tiende a ser corto y adivinable, y así nadie
+   * puede quedarse con el código que otro quería.
+   */
+  async crearColeccion(): Promise<{ coleccionId: string; codigo: string }> {
+    // Un choque es improbable (31^10 combinaciones), pero si ocurre se
+    // reintenta en vez de devolverle a alguien la colección de otro.
+    for (let intento = 0; intento < 5; intento += 1) {
+      const codigo = this.generarCodigo()
+      const id = await this.colecciones.crear(this.huellaDe(codigo))
+      if (id) return { coleccionId: id, codigo }
+    }
+    throw new ConflictException('No se pudo generar un código libre, inténtalo de nuevo')
   }
 
-  async marcarCancion(actor: Actor, songId: string, favorita: boolean): Promise<void> {
+  private generarCodigo(): string {
+    const bytes = randomBytes(MusicService.LARGO)
+    const letras = Array.from(bytes, (b) => MusicService.ALFABETO[b % MusicService.ALFABETO.length])
+    // En dos bloques: se lee, se dicta y se teclea mucho mejor que diez
+    // caracteres seguidos.
+    return `${letras.slice(0, 5).join('')}-${letras.slice(5).join('')}`
+  }
+
+  /** Abre una colección existente. Devuelve su contenido. */
+  async abrirColeccion(codigo: string): Promise<ColeccionEntity & { coleccionId: string }> {
+    const id = await this.exigirColeccion(codigo)
+    return { coleccionId: id, ...(await this.colecciones.contenido(id)) }
+  }
+
+  async marcarCancion(codigo: string, songId: string, favorita: boolean): Promise<void> {
+    const id = await this.exigirColeccion(codigo)
     const cancion = await this.music.findSongById(songId)
     if (!cancion) throw new NotFoundException('Canción no encontrada')
-    await this.favoritos.marcarCancion(actor.id, songId, favorita)
+    await this.colecciones.marcarCancion(id, songId, favorita)
   }
 
-  async crearAlbumPersonal(actor: Actor, titulo: string): Promise<AlbumPersonalEntity> {
-    const nombre = titulo.trim()
-    if (nombre.length < 1) throw new BadRequestException('El álbum necesita un nombre')
-    return this.favoritos.crearAlbumPersonal(actor.id, nombre)
+  /**
+   * Crea un álbum. Si quien lo crea todavía no tiene colección —su primer
+   * álbum—, se le abre una y se le devuelve el código: es el momento natural
+   * para pedirle que lo guarde, porque acaba de crear algo que perder.
+   */
+  async crearAlbumPersonal(
+    titulo: string,
+    codigo?: string | null,
+  ): Promise<{ album: AlbumPersonalEntity; codigo: string | null }> {
+    const nombre = this.exigirNombre(titulo)
+
+    if (codigo) {
+      const id = await this.exigirColeccion(codigo)
+      return { album: await this.colecciones.crearAlbum(id, nombre), codigo: null }
+    }
+
+    const nueva = await this.crearColeccion()
+    return {
+      album: await this.colecciones.crearAlbum(nueva.coleccionId, nombre),
+      codigo: nueva.codigo,
+    }
   }
 
   async editarAlbumPersonal(
-    actor: Actor,
+    codigo: string,
     albumId: string,
     cambios: { titulo: string; coverUrl: string | null; songIds: string[] },
   ): Promise<AlbumPersonalEntity> {
-    await this.exigirAlbumPropio(actor, albumId)
-    const nombre = cambios.titulo.trim()
-    if (nombre.length < 1) throw new BadRequestException('El álbum necesita un nombre')
-    return this.favoritos.actualizarAlbumPersonal(actor.id, albumId, { ...cambios, titulo: nombre })
+    const id = await this.exigirColeccion(codigo)
+    await this.exigirAlbumDeLaColeccion(id, albumId)
+    return this.colecciones.actualizarAlbum(id, albumId, {
+      ...cambios,
+      titulo: this.exigirNombre(cambios.titulo),
+    })
   }
 
-  async eliminarAlbumPersonal(actor: Actor, albumId: string): Promise<void> {
-    await this.exigirAlbumPropio(actor, albumId)
-    await this.favoritos.eliminarAlbumPersonal(actor.id, albumId)
+  async eliminarAlbumPersonal(codigo: string, albumId: string): Promise<void> {
+    const id = await this.exigirColeccion(codigo)
+    await this.exigirAlbumDeLaColeccion(id, albumId)
+    await this.colecciones.eliminarAlbum(id, albumId)
   }
 
-  /** Un álbum personal solo lo toca su dueño; para el resto no existe. */
-  private async exigirAlbumPropio(actor: Actor, albumId: string): Promise<void> {
-    if (!(await this.favoritos.esDe(actor.id, albumId))) {
+  /**
+   * Huella determinista del código: hay que poder buscar por ella, así que no
+   * lleva sal. Lo que protege de que alguien pruebe códigos a lo bruto es su
+   * tamaño —31^10 combinaciones— y el límite de peticiones del servidor.
+   *
+   * Se normaliza a mayúsculas y sin espacios: quien lo teclea a mano no tiene
+   * por qué acertar el formato exacto.
+   */
+  private huellaDe(codigo: string): string {
+    const limpio = codigo.trim().toUpperCase()
+    if (!limpio) throw new BadRequestException('Falta el código de la colección')
+    return createHash('sha256').update(limpio).digest('hex')
+  }
+
+  private async exigirColeccion(codigo: string): Promise<string> {
+    const id = await this.colecciones.buscarPorHuella(this.huellaDe(codigo))
+    if (!id) throw new NotFoundException('No hay ninguna colección con ese código')
+    return id
+  }
+
+  private async exigirAlbumDeLaColeccion(coleccionId: string, albumId: string): Promise<void> {
+    if (!(await this.colecciones.esDe(coleccionId, albumId))) {
       throw new NotFoundException('Álbum no encontrado')
     }
+  }
+
+  private exigirNombre(titulo: string): string {
+    const nombre = titulo.trim()
+    if (!nombre) throw new BadRequestException('El álbum necesita un nombre')
+    return nombre
   }
 
   /** Catálogo de Alabanza: álbumes y canciones publicadas, para cualquiera. */

@@ -40,7 +40,7 @@ const PeriodoSchema = z.object({
   orden: z.enum(['vistas', 'visitantes']).optional(),
 })
 
-const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank: u.levelRank })
+const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role })
 
 @ApiTags('analytics')
 @ApiBearerAuth()

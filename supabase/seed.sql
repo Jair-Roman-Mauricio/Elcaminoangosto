@@ -3,14 +3,8 @@
 --
 -- Se aplica con `supabase db reset` en local. NUNCA en producción.
 -- Contraseña de todos los usuarios: `camino123`
+-- Solo quedan cuentas: el contenido se publica desde el panel de admin.
 -- ═══════════════════════════════════════════════════════════════════════════
-
--- ─── Niveles 1..3 ──────────────────────────────────────────────────────────
-insert into public.levels (id, name, rank, description) values
-  ('11111111-1111-4111-8111-000000000001', 'Nuevo en el camino', 1, 'Primeros pasos en la fe.'),
-  ('11111111-1111-4111-8111-000000000002', 'Creciendo',          2, 'Fundamentos y disciplinas.'),
-  ('11111111-1111-4111-8111-000000000003', 'Discipulando',       3, 'Madurez y servicio.')
-on conflict (rank) do nothing;
 
 -- ─── Usuarios ──────────────────────────────────────────────────────────────
 -- El ADMIN y el MAESTRO los crea la migración `20260802000100`, porque deben
@@ -60,60 +54,5 @@ where id in (
 )
 on conflict do nothing;
 
--- ─── Niveles ───────────────────────────────────────────────────────────────
--- Los roles de ADMIN y MAESTRO ya los fijó la migración al crear las cuentas.
--- Todo estudiante comienza en el nivel base (nivel 1).
-update public.profiles
-set current_level_id = '11111111-1111-4111-8111-000000000001'
-where role = 'ESTUDIANTE';
-
--- ─── Mentoría ──────────────────────────────────────────────────────────────
--- El id del maestro lo decide la migración: se busca por correo.
-insert into public.mentorships (mentor_id, student_id)
-select u.id, e.id
-from auth.users u
-cross join (values
-  ('22222222-2222-4222-8222-000000000003'::uuid),
-  ('22222222-2222-4222-8222-000000000004'::uuid)
-) as e(id)
-where u.email = 'maestro@elcaminoangosto.test'
-on conflict do nothing;
-
--- ─── Curso publicado de ejemplo ────────────────────────────────────────────
--- Nivel requerido 1 → ambos estudiantes lo ven.
-insert into public.courses (
-  id, teacher_id, title, slug, description,
-  required_level_id, is_free, status, planned_modules, published_at
-)
-select
-  '33333333-3333-4333-8333-000000000001',
-  u.id,
-  'La puerta angosta',
-  'la-puerta-angosta',
-  'Un recorrido por Mateo 7 y lo que significa entrar por la puerta angosta.',
-  '11111111-1111-4111-8111-000000000001',
-  true, 'PUBLISHED', 2, now()
-from auth.users u
-where u.email = 'maestro@elcaminoangosto.test'
-on conflict (id) do nothing;
-
-insert into public.course_modules (id, course_id, title, order_index) values
-  ('44444444-4444-4444-8444-000000000001', '33333333-3333-4333-8333-000000000001', 'El llamado', 0),
-  ('44444444-4444-4444-8444-000000000002', '33333333-3333-4333-8333-000000000001', 'El costo',   1)
-on conflict (id) do nothing;
-
--- Solo lecciones de texto: una lección VIDEO exigiría un `media_assets` real
--- (restricción `lessons_contenido_coherente`).
-insert into public.lessons (module_id, title, type, content, order_index) values
-  ('44444444-4444-4444-8444-000000000001', 'Entrad por la puerta angosta', 'TEXT',
-   'Mateo 7:13–14. Angosta es la puerta, y angosto el camino que lleva a la vida.', 0),
-  ('44444444-4444-4444-8444-000000000001', '¿Por qué son pocos los que la hallan?', 'TEXT',
-   'Reflexión sobre la exclusividad del camino y la gracia que lo hace posible.', 1),
-  ('44444444-4444-4444-8444-000000000002', 'Contad el costo', 'TEXT',
-   'Lucas 14:28. Nadie edifica una torre sin sentarse primero a calcular los gastos.', 0)
-on conflict do nothing;
-
--- Ester ya está inscrita.
-insert into public.enrollments (student_id, course_id) values
-  ('22222222-2222-4222-8222-000000000003', '33333333-3333-4333-8333-000000000001')
-on conflict do nothing;
+-- El discipulado (cursos, lecciones, inscripciones), la mentoría y los niveles
+-- se eliminaron del producto; con ellos se fueron sus datos de ejemplo.

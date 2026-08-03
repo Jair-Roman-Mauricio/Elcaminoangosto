@@ -1,7 +1,14 @@
 import { create } from 'zustand'
+import {
+  abrirColeccion,
+  crearAlbumEnServidor,
+  editarAlbumEnServidor,
+  marcarCancionEnServidor,
+} from '../modules/music/coleccion-api'
 
 const CLAVE_FAVORITOS = 'elcamino:alabanzas:favoritos'
 const CLAVE_ALBUMES = 'elcamino:alabanzas:albumes-favoritos'
+const CLAVE_CODIGO = 'elcamino:alabanzas:codigo'
 
 export interface AlbumFavoritoDelUsuario {
   albumId: string
@@ -21,10 +28,26 @@ interface EstadoDeFavoritos {
   cancionesFavoritas: string[]
   albumesFavoritos: AlbumFavoritoDelUsuario[]
   hidratado: boolean
+  /** Código de respaldo. `null` mientras no se haya creado ningún álbum. */
+  codigo: string | null
+  /** Se pone al crear la colección, para enseñarlo una sola vez. */
+  codigoReciente: string | null
   hidratarFavoritos: () => void
   crearAlbumFavorito: (titulo: string) => string | null
   editarAlbumFavorito: (albumId: string, cambios: CambiosDeAlbumFavorito) => boolean
   actualizarDestinos: (songId: string, guardarEnFavoritos: boolean, albumIds: string[]) => void
+  olvidarCodigoReciente: () => void
+  /** Trae la colección de ese código y sustituye la de este navegador. */
+  restaurarConCodigo: (codigo: string) => Promise<boolean>
+}
+
+function guardarCodigo(codigo: string | null) {
+  try {
+    if (codigo) window.localStorage.setItem(CLAVE_CODIGO, codigo)
+    else window.localStorage.removeItem(CLAVE_CODIGO)
+  } catch {
+    // Sin almacenamiento el respaldo no persiste, pero la sesión sigue.
+  }
 }
 
 function guardarFavoritos(ids: string[]) {
@@ -65,6 +88,8 @@ export const useFavoriteSongsStore = create<EstadoDeFavoritos>((set, get) => ({
   cancionesFavoritas: [],
   albumesFavoritos: [],
   hidratado: false,
+  codigo: null,
+  codigoReciente: null,
 
   hidratarFavoritos: () => {
     if (get().hidratado) return
@@ -79,7 +104,8 @@ export const useFavoriteSongsStore = create<EstadoDeFavoritos>((set, get) => ({
           .map(normalizarAlbumFavorito)
           .filter((album): album is AlbumFavoritoDelUsuario => album !== null)
         : []
-      set({ cancionesFavoritas, albumesFavoritos, hidratado: true })
+      const codigo = window.localStorage.getItem(CLAVE_CODIGO)
+      set({ cancionesFavoritas, albumesFavoritos, hidratado: true, codigo })
     } catch {
       set({ hidratado: true })
     }
@@ -91,6 +117,8 @@ export const useFavoriteSongsStore = create<EstadoDeFavoritos>((set, get) => ({
     const existente = get().albumesFavoritos.find((album) => album.titulo.toLocaleLowerCase() === nombre.toLocaleLowerCase())
     if (existente) return existente.albumId
 
+    // El álbum aparece al instante con un id local: crear una lista no debe
+    // esperar a la red. El servidor manda su id de vuelta y se sustituye.
     const albumId = `favoritos-${crypto.randomUUID()}`
     const albumesFavoritos = [
       ...get().albumesFavoritos,
@@ -98,6 +126,24 @@ export const useFavoriteSongsStore = create<EstadoDeFavoritos>((set, get) => ({
     ]
     set({ albumesFavoritos })
     guardarAlbumes(albumesFavoritos)
+
+    void crearAlbumEnServidor(nombre, get().codigo)
+      .then(({ album, codigo }) => {
+        const conIdDelServidor = get().albumesFavoritos.map((a) =>
+          a.albumId === albumId ? { ...a, albumId: album.albumId } : a,
+        )
+        set({ albumesFavoritos: conIdDelServidor })
+        guardarAlbumes(conIdDelServidor)
+        if (codigo) {
+          guardarCodigo(codigo)
+          set({ codigo, codigoReciente: codigo })
+        }
+      })
+      .catch(() => {
+        // El respaldo es una mejora: si el servidor no responde, el álbum
+        // sigue existiendo en este navegador.
+      })
+
     return albumId
   },
 
@@ -120,6 +166,15 @@ export const useFavoriteSongsStore = create<EstadoDeFavoritos>((set, get) => ({
       : album)
     set({ albumesFavoritos })
     guardarAlbumes(albumesFavoritos)
+
+    const codigo = get().codigo
+    if (codigo) {
+      void editarAlbumEnServidor(codigo, albumId, {
+        titulo,
+        coverUrl: cambios.coverUrl?.trim() || null,
+        songIds: Array.from(new Set(cambios.songIds)),
+      }).catch(() => undefined)
+    }
     return true
   },
 
@@ -136,6 +191,47 @@ export const useFavoriteSongsStore = create<EstadoDeFavoritos>((set, get) => ({
     }))
     guardarFavoritos(cancionesFavoritas)
     guardarAlbumes(albumesFavoritos)
+
+    if (estado.codigo) {
+      void marcarCancionEnServidor(estado.codigo, songId, guardarEnFavoritos).catch(() => undefined)
+      for (const album of albumesFavoritos) {
+        void editarAlbumEnServidor(estado.codigo, album.albumId, {
+          titulo: album.titulo,
+          coverUrl: album.coverUrl,
+          songIds: album.songIds,
+        }).catch(() => undefined)
+      }
+    }
     return { cancionesFavoritas, albumesFavoritos }
   }),
+
+  olvidarCodigoReciente: () => set({ codigoReciente: null }),
+
+  restaurarConCodigo: async (codigo) => {
+    const limpio = codigo.trim().toUpperCase()
+    if (!limpio) return false
+    try {
+      const contenido = await abrirColeccion(limpio)
+      const albumesFavoritos: AlbumFavoritoDelUsuario[] = contenido.albumesPersonales.map(
+        (album, indice) => ({
+          albumId: album.albumId,
+          titulo: album.titulo,
+          coverUrl: album.coverUrl,
+          songIds: album.songIds,
+          creadoEn: Date.now() + indice,
+        }),
+      )
+      set({
+        cancionesFavoritas: contenido.cancionesFavoritas,
+        albumesFavoritos,
+        codigo: limpio,
+      })
+      guardarFavoritos(contenido.cancionesFavoritas)
+      guardarAlbumes(albumesFavoritos)
+      guardarCodigo(limpio)
+      return true
+    } catch {
+      return false
+    }
+  },
 }))
