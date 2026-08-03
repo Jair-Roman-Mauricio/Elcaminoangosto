@@ -347,8 +347,12 @@ function ListadoDeTarjetas({
           centrada, sin dejar dos a medias.
           Los márgenes negativos cancelan TODO el relleno del layout —también el
           superior— y el relleno propio de 3.75rem vuelve a dejar sitio a la
-          cabecera fija. Así la tarjeta llega a los cuatro bordes del main sin
-          taparla ni dejar franjas en blanco. */}
+          cabecera fija: la pieza ocupa el main entero sin tapar la cabecera.
+
+          La imagen va `contain` y no `cover`: las tarjetas llevan texto hasta
+          el borde y recortarlas se come palabras. Como una proporción distinta
+          a la de la pantalla deja bandas, el hueco se pinta de negro y pasa a
+          leerse como el marco de un visor en vez de como un fallo. */}
       <div className="-mx-gutter -mb-32 -mt-[5.5rem] pt-[3.75rem] cine:hidden">
         {error && (
           <p className="px-gutter font-ui text-body text-vino">
@@ -363,13 +367,13 @@ function ListadoDeTarjetas({
           {ordenadas.map((card) => (
             <li
               key={card.id}
-              className="h-[calc(100dvh-3.75rem)] snap-start snap-always"
+              className="flex h-[calc(100dvh-3.75rem)] snap-start snap-always items-center justify-center bg-negro"
             >
               <img
                 src={card.posterUrl ?? card.mediaUrl}
                 alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
                 loading="lazy"
-                className="h-full w-full object-cover"
+                className="max-h-full max-w-full object-contain"
               />
             </li>
           ))}
