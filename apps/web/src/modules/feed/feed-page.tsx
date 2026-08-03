@@ -1,18 +1,86 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { Eyebrow, Field, Input } from '@elcamino/ui'
 import { BrandLogo } from '@elcamino/ui/static'
-import { usePerfil } from '../../auth/session'
 import { useFeed, type FeedCard } from './feed-api'
 import { useRegistrarVista, useRegistrarVisita } from '../../lib/analitica'
+
+type FichaTarjeta = {
+  titulo: string
+  manifiesto: string
+  relato: [string, string]
+  origen: string
+  referencia: string
+}
+
+const fichasMuestra: Record<string, FichaTarjeta> = {
+  'muestra-templo-luz': {
+    titulo: 'LUZ ENTRE COLUMNAS',
+    manifiesto: 'La luz encuentra camino donde el corazón aprende a hacer silencio.',
+    relato: [
+      'Esta memoria contempla la luz que atraviesa el templo como una imagen de la gracia: no borra la estructura ni la historia, sino que las revela de una manera nueva.',
+      'La fe también se recibe así. Entra por una abertura pequeña, alcanza lo cotidiano y nos invita a caminar con atención hacia aquello que antes no podíamos ver.',
+    ],
+    origen: 'Santuario de la comunidad',
+    referencia: 'Juan 8:12',
+  },
+  'muestra-siguiente-paso': {
+    titulo: 'EL SIGUIENTE PASO',
+    manifiesto: 'La fe no exige ver el camino completo; invita a confiar en el siguiente paso.',
+    relato: [
+      'Esta tarjeta contempla el momento en el que la claridad todavía no alcanza todo el recorrido, pero sí ofrece luz suficiente para continuar.',
+      'Caminar por fe es responder a esa luz presente: avanzar con confianza hacia Cristo, aun cuando el horizonte conserve parte de su misterio.',
+    ],
+    origen: 'El Camino Angosto',
+    referencia: '2 Corintios 5:7',
+  },
+  'muestra-biblia-sol': {
+    titulo: 'PALABRA ABIERTA',
+    manifiesto: 'Una palabra abierta puede iluminar el siguiente paso.',
+    relato: [
+      'La Escritura abierta no funciona como un objeto distante, sino como una conversación que espera ser recibida. La luz sobre sus páginas representa una verdad que se deja encontrar.',
+      'Volver a la Palabra es volver al origen del camino: escuchar, discernir y convertir lo leído en una decisión concreta para el día presente.',
+    ],
+    origen: 'Mesa de contemplación',
+    referencia: 'Salmo 119:105',
+  },
+  'muestra-puerta': {
+    titulo: 'LA PUERTA ANGOSTA',
+    manifiesto: 'Toda puerta recuerda que la fe también es una decisión.',
+    relato: [
+      'La puerta angosta no representa una vida reducida, sino una elección consciente. Entrar demanda dejar atrás aquello que impide avanzar con libertad y verdad.',
+      'Esta pieza conserva el instante previo al paso: ese momento en el que la invitación ya fue escuchada y el corazón debe decidir si comienza el recorrido.',
+    ],
+    origen: 'Umbral del recorrido',
+    referencia: 'Mateo 7:13–14',
+  },
+  'muestra-santuario': {
+    titulo: 'SANTUARIO INTERIOR',
+    manifiesto: 'Hay espacios que invitan al corazón a guardar silencio.',
+    relato: [
+      'El santuario señala una pausa dentro del ruido. Sus formas elevadas recuerdan que la oración también puede ordenar la mirada y devolver perspectiva.',
+      'La arquitectura visible conduce hacia una práctica invisible: detenerse, reconocer la presencia de Dios y permitir que el silencio prepare una respuesta.',
+    ],
+    origen: 'Casa de oración',
+    referencia: 'Salmo 46:10',
+  },
+  'muestra-vitral': {
+    titulo: 'GRACIA EN COLOR',
+    manifiesto: 'La gracia transforma fragmentos en una historia de luz.',
+    relato: [
+      'Un vitral no oculta sus divisiones. Las integra para que cada fragmento participe de una imagen mayor y la luz pueda atravesarlo sin negar su historia.',
+      'Así opera la restauración: no elimina el pasado, pero le concede un nuevo lugar dentro de una obra que anuncia esperanza.',
+    ],
+    origen: 'Nave de los vitrales',
+    referencia: '2 Corintios 5:17',
+  },
+}
 
 const formatoFecha = new Intl.DateTimeFormat('es-PE', {
   day: '2-digit',
   month: 'short',
   year: 'numeric',
 })
-
-type Punto = { x: number; y: number }
 
 /**
  * Tarjetas de muestra: solo se ven cuando el feed real está vacío. No traen
@@ -110,14 +178,6 @@ const tarjetasMuestra: FeedCard[] = [
   },
 ]
 
-const patronMosaico = [
-  { columna: 1, fila: 1, columnas: 6, filas: 2, formato: 'extraancha' },
-  { columna: 1, fila: 3, columnas: 2, filas: 4, formato: 'vertical' },
-  { columna: 3, fila: 3, columnas: 4, filas: 2, formato: 'panoramica' },
-  { columna: 3, fila: 5, columnas: 2, filas: 2, formato: 'cuadrada' },
-  { columna: 5, fila: 5, columnas: 2, filas: 2, formato: 'cuadrada' },
-] as const
-
 function urlUnsplash(mediaUrl: string, ancho: number): string {
   const base = mediaUrl.split('?')[0]
   return `${base}?auto=format&fit=max&w=${ancho}&q=72`
@@ -143,7 +203,6 @@ function atributosImagen(mediaUrl: string) {
 export function FeedPage() {
   const { data, isPending, isError } = useFeed()
   useRegistrarVisita('tarjetas')
-  const { data: perfil } = usePerfil()
   const cardsPublicadas = data?.pages.flat() ?? []
   // La colección de muestra es un placeholder visual inmediato. Así el LCP no
   // queda encadenado a /api/feed cuando el archivo público todavía está vacío.
@@ -155,7 +214,6 @@ export function FeedPage() {
   const [telon, setTelon] = useState<{ clave: number } | null>(null)
   const telonActivoRef = useRef(false)
   const telonTimersRef = useRef<number[]>([])
-  const puedePublicar = perfil?.role === 'MAESTRO' || perfil?.role === 'ADMIN'
 
   useEffect(() => () => {
     telonTimersRef.current.forEach((timer) => window.clearTimeout(timer))
@@ -196,11 +254,10 @@ export function FeedPage() {
     )
   } else {
     contenido = (
-      <MuseoTarjetas
+      <ListadoDeTarjetas
         cards={cards}
         cargando={isPending && !usaMuestra}
         error={isError}
-        puedePublicar={puedePublicar}
         onSeleccionar={(card) => cambiarConTelon(card)}
       />
     )
@@ -234,321 +291,113 @@ function TelonTarjeta() {
   )
 }
 
-function MuseoTarjetas({
+/**
+ * Listado de Tarjetas de Fe.
+ *
+ * Antes era un mosaico que se arrastraba: llamaba la atención, pero obligaba a
+ * buscar a ojo y recortaba las piezas. Ahora cada tarjeta se ve entera, una
+ * debajo de otra y de la más nueva a la más antigua, con un buscador y nada
+ * más: cualquier otro filtro sobra cuando el orden ya es el esperado.
+ */
+function ListadoDeTarjetas({
   cards,
   cargando,
   error,
-  puedePublicar,
   onSeleccionar,
 }: {
   cards: FeedCard[]
   cargando: boolean
   error: boolean
-  puedePublicar: boolean
   onSeleccionar: (card: FeedCard) => void
 }) {
-  const viewportRef = useRef<HTMLDivElement>(null)
-  const worldRef = useRef<HTMLDivElement>(null)
-  const cursorRef = useRef<HTMLDivElement>(null)
-  const posicionRef = useRef<Punto>({ x: 0, y: 0 })
-  const velocidadRef = useRef<Punto>({ x: 0, y: 0 })
-  const arrastreRef = useRef<{ pointerId: number; x: number; y: number; origenX: number; origenY: number } | null>(null)
-  const movidoRef = useRef(false)
-  const periodoRef = useRef({ ancho: 0, alto: 0 })
-  const activarMovimientoRef = useRef<() => void>(() => undefined)
+  const [busqueda, setBusqueda] = useState('')
 
-  const piezas = useMemo(() => {
-    if (cards.length === 0) return []
-    const gruposNecesarios = Math.max(4, Math.ceil(cards.length / patronMosaico.length))
-    const grupos = gruposNecesarios + (gruposNecesarios % 2)
-    const total = grupos * patronMosaico.length
-    return Array.from({ length: total }, (_, indice) => cards[indice % cards.length] as FeedCard)
-  }, [cards])
-
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current
-    const world = worldRef.current
-    const hoja = world?.querySelector<HTMLElement>('.faith-museum__sheet')
-    if (!viewport || !world || !hoja || piezas.length === 0) return
-
-    let frame = 0
-    let inicializado = false
-
-    const medir = () => {
-      const vw = viewport.clientWidth
-      const vh = viewport.clientHeight
-      const ancho = hoja.offsetWidth
-      const alto = hoja.offsetHeight
-      periodoRef.current = { ancho, alto }
-      if (!inicializado) {
-        posicionRef.current = {
-          x: -ancho + (vw - ancho) / 2,
-          y: -alto + (vh - alto) / 2,
-        }
-        world.style.transform = `translate3d(${posicionRef.current.x}px, ${posicionRef.current.y}px, 0)`
-        world.classList.add('is-ready')
-        inicializado = true
-      }
-    }
-
-    const solicitarDibujo = () => {
-      if (frame === 0) frame = window.requestAnimationFrame(dibujar)
-    }
-
-    const dibujar = () => {
-      frame = 0
-      const periodo = periodoRef.current
-      const posicion = posicionRef.current
-      const velocidad = velocidadRef.current
-
-      posicion.x += velocidad.x
-      posicion.y += velocidad.y
-      if (periodo.ancho > 0) {
-        while (posicion.x > 0) posicion.x -= periodo.ancho
-        while (posicion.x <= -periodo.ancho * 2) posicion.x += periodo.ancho
-      }
-      if (periodo.alto > 0) {
-        while (posicion.y > 0) posicion.y -= periodo.alto
-        while (posicion.y <= -periodo.alto * 2) posicion.y += periodo.alto
-      }
-      velocidad.x *= 0.865
-      velocidad.y *= 0.865
-      if (Math.abs(velocidad.x) < 0.01) velocidad.x = 0
-      if (Math.abs(velocidad.y) < 0.01) velocidad.y = 0
-
-      world.style.transform = `translate3d(${posicion.x}px, ${posicion.y}px, 0)`
-      if (velocidad.x !== 0 || velocidad.y !== 0 || arrastreRef.current) solicitarDibujo()
-    }
-
-    const rueda = (event: WheelEvent) => {
-      event.preventDefault()
-      velocidadRef.current.x += -event.deltaX * 0.0825
-      velocidadRef.current.y += -event.deltaY * 0.0825
-      solicitarDibujo()
-    }
-
-    const resize = new ResizeObserver(medir)
-    resize.observe(viewport)
-    resize.observe(world)
-    resize.observe(hoja)
-    medir()
-    viewport.addEventListener('wheel', rueda, { passive: false })
-    activarMovimientoRef.current = solicitarDibujo
-
-    return () => {
-      activarMovimientoRef.current = () => undefined
-      resize.disconnect()
-      viewport.removeEventListener('wheel', rueda)
-      window.cancelAnimationFrame(frame)
-    }
-  }, [piezas.length])
-
-  const actualizarCursor = (event: React.PointerEvent<HTMLDivElement>) => {
-    const cursor = cursorRef.current
-    const viewport = viewportRef.current
-    if (!cursor || !viewport) return
-    const rect = viewport.getBoundingClientRect()
-    cursor.style.transform = `translate3d(${event.clientX - rect.left}px, ${event.clientY - rect.top}px, 0)`
-  }
+  const visibles = useMemo(() => {
+    const orden = [...cards].sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+    const termino = busqueda.trim().toLocaleLowerCase()
+    if (!termino) return orden
+    // Busca en todo lo que la tarjeta enseña, no solo en el título: quien
+    // recuerda una frase del relato debe poder llegar por ahí.
+    return orden.filter((card) =>
+      [card.title, card.caption, card.manifesto, card.story, card.reference, card.origin]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(termino),
+    )
+  }, [busqueda, cards])
 
   return (
-    <section className="faith-museum" aria-label="Museo de Tarjetas de Fe">
-      <div
-        ref={viewportRef}
-        className="faith-museum__viewport"
-        tabIndex={0}
-        onPointerMove={(event) => {
-          actualizarCursor(event)
-          const arrastre = arrastreRef.current
-          if (!arrastre || arrastre.pointerId !== event.pointerId) return
-          const dx = event.clientX - arrastre.x
-          const dy = event.clientY - arrastre.y
-          arrastre.x = event.clientX
-          arrastre.y = event.clientY
-          if (Math.hypot(event.clientX - arrastre.origenX, event.clientY - arrastre.origenY) > 8) {
-            movidoRef.current = true
-            // Capturar únicamente cuando el gesto ya es un arrastre. Si se
-            // captura al presionar, el click deja de pertenecer a la tarjeta.
-            if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
-              event.currentTarget.setPointerCapture(event.pointerId)
-            }
-          }
-          posicionRef.current.x += dx * 0.73
-          posicionRef.current.y += dy * 0.73
-          velocidadRef.current.x += dx * 0.18
-          velocidadRef.current.y += dy * 0.18
-          activarMovimientoRef.current()
-        }}
-        onPointerDown={(event) => {
-          arrastreRef.current = {
-            pointerId: event.pointerId,
-            x: event.clientX,
-            y: event.clientY,
-            origenX: event.clientX,
-            origenY: event.clientY,
-          }
-          movidoRef.current = false
-        }}
-        onPointerUp={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-          arrastreRef.current = null
-        }}
-        onPointerCancel={() => {
-          arrastreRef.current = null
-        }}
-        onKeyDown={(event) => {
-          const paso = event.shiftKey ? 96 : 48
-          const esFlecha = event.key.startsWith('Arrow')
-          if (event.key === 'ArrowLeft') velocidadRef.current.x += paso
-          if (event.key === 'ArrowRight') velocidadRef.current.x -= paso
-          if (event.key === 'ArrowUp') velocidadRef.current.y += paso
-          if (event.key === 'ArrowDown') velocidadRef.current.y -= paso
-          if (esFlecha) activarMovimientoRef.current()
-        }}
-      >
-        <div className="faith-museum__grain" aria-hidden="true" />
+    <section className="mx-auto flex w-full max-w-3xl flex-col gap-aire-m">
+      <header className="flex flex-col gap-aire-xs">
+        <Eyebrow>Tarjetas de fe</Eyebrow>
+        <Field label="Buscar" htmlFor="buscar-tarjetas">
+          <Input
+            id="buscar-tarjetas"
+            type="search"
+            value={busqueda}
+            onChange={(evento) => setBusqueda(evento.target.value)}
+            placeholder="Título, versículo o una frase del relato"
+            autoComplete="off"
+          />
+        </Field>
+      </header>
 
-        {cargando ? (
-          <div className="faith-museum__message"><span>Cargando el archivo…</span></div>
-        ) : error ? (
-          <div className="faith-museum__message">
-            <span>Archivo temporalmente cerrado</span>
-            <p>No pudimos recuperar las tarjetas de la comunidad.</p>
-          </div>
-        ) : piezas.length === 0 ? (
-          <div className="faith-museum__message faith-museum__message--empty">
-            <span>El archivo espera su primera historia</span>
-            <p>Imágenes, palabras y testimonios para caminar con un corazón nuevo.</p>
-            {puedePublicar && <Link to="/tarjetas/publicar">Publicar la primera pieza ＋</Link>}
-          </div>
-        ) : (
-          <div ref={worldRef} className="faith-museum__world" aria-label="Colección de tarjetas infinita">
-            {Array.from({ length: 9 }, (_, hojaIndice) => (
-              <div
-                key={`hoja-${hojaIndice}`}
-                className="faith-museum__sheet"
-                aria-hidden={hojaIndice === 4 ? undefined : true}
-              >
-                {piezas.map((card, indice) => {
-                  const posicion = posicionMosaico(indice)
-                  const esLcp = hojaIndice === 4 && indice === 6
-                  return (
-                    <button
-                      key={`${hojaIndice}-${card.id}-${indice}`}
-                      type="button"
-                      tabIndex={hojaIndice === 4 ? 0 : -1}
-                      className={`faith-museum__tile faith-museum__tile--${posicion.formato}`}
-                      style={posicion.style}
-                      aria-label={`Contemplar ${card.caption || `tarjeta de ${card.authorName}`}`}
-                      onPointerEnter={() => cursorRef.current?.classList.add('is-visible')}
-                      onPointerLeave={() => cursorRef.current?.classList.remove('is-visible')}
-                      onClick={() => {
-                        if (!movidoRef.current) onSeleccionar(card)
-                      }}
-                    >
-                      {card.type === 'VIDEO' ? (
-                        <video
-                          src={card.mediaUrl}
-                          poster={card.posterUrl ?? undefined}
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
-                      ) : (
-                        <img
-                          {...atributosImagen(card.mediaUrl)}
-                          alt=""
-                          draggable={false}
-                          loading={esLcp ? 'eager' : 'lazy'}
-                          fetchPriority={esLcp ? 'high' : 'auto'}
-                          decoding="async"
-                        />
-                      )}
-                      <span>{numero((indice % cards.length) + 1)}</span>
-                    </button>
-                  )
-                })}
+      {error && (
+        <p className="m-0 font-ui text-body text-vino">
+          No se pudieron cargar las tarjetas. Vuelve a intentarlo en un momento.
+        </p>
+      )}
+      {cargando && !error && (
+        <p className="m-0 font-ui text-body text-texto-tenue">Cargando tarjetas…</p>
+      )}
+      {!cargando && !error && visibles.length === 0 && (
+        <p className="m-0 font-ui text-body text-texto-tenue">
+          {busqueda.trim()
+            ? 'Ninguna tarjeta coincide con esa búsqueda.'
+            : 'Todavía no hay tarjetas publicadas.'}
+        </p>
+      )}
+
+      <ul className="m-0 flex list-none flex-col gap-aire-m p-0">
+        {visibles.map((card) => (
+          <li key={card.id}>
+            <button
+              type="button"
+              onClick={() => onSeleccionar(card)}
+              className="group block w-full overflow-hidden rounded border border-linea bg-superficie-1 text-left transition-colors duration-fade ease-camino hover:border-vino"
+            >
+              {/* La tarjeta se ve completa: `object-contain` y sin alto fijo,
+                  porque recortarla sería mutilar la pieza. */}
+              <img
+                src={card.posterUrl ?? card.mediaUrl}
+                alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
+                loading="lazy"
+                className="block w-full bg-superficie-2 object-contain"
+              />
+              <div className="flex flex-col gap-aire-xs px-aire-s py-aire-s">
+                {card.title && (
+                  <h3 className="m-0 font-ui text-h-s font-medium tracking-titulo text-contenido">
+                    {card.title}
+                  </h3>
+                )}
+                {card.reference && (
+                  <p className="m-0 font-mono text-eyebrow uppercase tracking-label text-vino">
+                    {card.reference}
+                  </p>
+                )}
+                {(card.manifesto ?? card.caption) && (
+                  <p className="m-0 font-ui text-body-s leading-relaxed text-texto-tenue">
+                    {card.manifesto ?? card.caption}
+                  </p>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-
-        <div ref={cursorRef} className="faith-museum__cursor" aria-hidden="true">Contemplar</div>
-      </div>
-
+            </button>
+          </li>
+        ))}
+      </ul>
     </section>
   )
-}
-
-type FichaTarjeta = {
-  titulo: string
-  manifiesto: string
-  relato: [string, string]
-  origen: string
-  referencia: string
-}
-
-const fichasMuestra: Record<string, FichaTarjeta> = {
-  'muestra-templo-luz': {
-    titulo: 'LUZ ENTRE COLUMNAS',
-    manifiesto: 'La luz encuentra camino donde el corazón aprende a hacer silencio.',
-    relato: [
-      'Esta memoria contempla la luz que atraviesa el templo como una imagen de la gracia: no borra la estructura ni la historia, sino que las revela de una manera nueva.',
-      'La fe también se recibe así. Entra por una abertura pequeña, alcanza lo cotidiano y nos invita a caminar con atención hacia aquello que antes no podíamos ver.',
-    ],
-    origen: 'Santuario de la comunidad',
-    referencia: 'Juan 8:12',
-  },
-  'muestra-siguiente-paso': {
-    titulo: 'EL SIGUIENTE PASO',
-    manifiesto: 'La fe no exige ver el camino completo; invita a confiar en el siguiente paso.',
-    relato: [
-      'Esta tarjeta contempla el momento en el que la claridad todavía no alcanza todo el recorrido, pero sí ofrece luz suficiente para continuar.',
-      'Caminar por fe es responder a esa luz presente: avanzar con confianza hacia Cristo, aun cuando el horizonte conserve parte de su misterio.',
-    ],
-    origen: 'El Camino Angosto',
-    referencia: '2 Corintios 5:7',
-  },
-  'muestra-biblia-sol': {
-    titulo: 'PALABRA ABIERTA',
-    manifiesto: 'Una palabra abierta puede iluminar el siguiente paso.',
-    relato: [
-      'La Escritura abierta no funciona como un objeto distante, sino como una conversación que espera ser recibida. La luz sobre sus páginas representa una verdad que se deja encontrar.',
-      'Volver a la Palabra es volver al origen del camino: escuchar, discernir y convertir lo leído en una decisión concreta para el día presente.',
-    ],
-    origen: 'Mesa de contemplación',
-    referencia: 'Salmo 119:105',
-  },
-  'muestra-puerta': {
-    titulo: 'LA PUERTA ANGOSTA',
-    manifiesto: 'Toda puerta recuerda que la fe también es una decisión.',
-    relato: [
-      'La puerta angosta no representa una vida reducida, sino una elección consciente. Entrar demanda dejar atrás aquello que impide avanzar con libertad y verdad.',
-      'Esta pieza conserva el instante previo al paso: ese momento en el que la invitación ya fue escuchada y el corazón debe decidir si comienza el recorrido.',
-    ],
-    origen: 'Umbral del recorrido',
-    referencia: 'Mateo 7:13–14',
-  },
-  'muestra-santuario': {
-    titulo: 'SANTUARIO INTERIOR',
-    manifiesto: 'Hay espacios que invitan al corazón a guardar silencio.',
-    relato: [
-      'El santuario señala una pausa dentro del ruido. Sus formas elevadas recuerdan que la oración también puede ordenar la mirada y devolver perspectiva.',
-      'La arquitectura visible conduce hacia una práctica invisible: detenerse, reconocer la presencia de Dios y permitir que el silencio prepare una respuesta.',
-    ],
-    origen: 'Casa de oración',
-    referencia: 'Salmo 46:10',
-  },
-  'muestra-vitral': {
-    titulo: 'GRACIA EN COLOR',
-    manifiesto: 'La gracia transforma fragmentos en una historia de luz.',
-    relato: [
-      'Un vitral no oculta sus divisiones. Las integra para que cada fragmento participe de una imagen mayor y la luz pueda atravesarlo sin negar su historia.',
-      'Así opera la restauración: no elimina el pasado, pero le concede un nuevo lugar dentro de una obra que anuncia esperanza.',
-    ],
-    origen: 'Nave de los vitrales',
-    referencia: '2 Corintios 5:17',
-  },
 }
 
 function EstudiarTarjeta({
@@ -898,20 +747,6 @@ function tiempo(segundos: number) {
   if (!Number.isFinite(segundos) || segundos <= 0) return '0:00'
   const minutos = Math.floor(segundos / 60)
   return `${minutos}:${String(Math.floor(segundos % 60)).padStart(2, '0')}`
-}
-
-function posicionMosaico(indice: number): { formato: string; style: CSSProperties } {
-  const grupo = Math.floor(indice / patronMosaico.length)
-  const pieza = patronMosaico[indice % patronMosaico.length] as (typeof patronMosaico)[number]
-  const columnaBase = (grupo % 2) * 6
-  const filaBase = Math.floor(grupo / 2) * 6
-  return {
-    formato: pieza.formato,
-    style: {
-      gridColumn: `${columnaBase + pieza.columna} / span ${pieza.columnas}`,
-      gridRow: `${filaBase + pieza.fila} / span ${pieza.filas}`,
-    },
-  }
 }
 
 function numero(valor: number) {

@@ -8,6 +8,7 @@ import {
 } from '../modules/music/alabanza-catalog'
 import { useFavoriteSongsStore } from '../stores/favorite-songs.store'
 import { usePlayerStore } from '../stores/player.store'
+import { AvisoDeCodigoNuevo } from '../modules/music/codigo-de-coleccion'
 import { PageTransition } from '../components/page-transition'
 import { Sidebar } from '../components/sidebar'
 import { BrandLogo, cn } from '@elcamino/ui/static'
@@ -97,6 +98,10 @@ export function AppLayout() {
       paginaVideos && 'videos-app-shell',
     )}>
       <Sidebar abierto={menuAbierto} onCerrar={cerrarMenu} invitado={!session} />
+
+      {/* El código del respaldo se enseña una sola vez, se cree el álbum donde
+          se cree: por eso vive en el layout y no en la pantalla de Alabanza. */}
+      <AvisoDeCodigoNuevo />
 
       {/* Cabecera solo en móvil: bajo `cine` el sidebar es un cajón. */}
       <header className={cn('fixed inset-x-0 top-0 z-30 flex items-center gap-aire-s border-b border-linea bg-fondo px-aire-s py-aire-xs cine:hidden')}>

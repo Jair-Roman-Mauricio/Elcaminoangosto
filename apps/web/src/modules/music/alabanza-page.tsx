@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlbumSleeve } from '../../components/album-sleeve'
 import { VinylDisc } from '../../components/vinyl-disc'
+import { RestaurarConCodigo } from './codigo-de-coleccion'
 import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
 import { useRegistrarVisita } from '../../lib/analitica'
 import { usePlayerStore } from '../../stores/player.store'
@@ -500,6 +501,13 @@ export function AlabanzaPage() {
                   ? 'Todavía no has creado álbumes de favoritos.'
                   : 'No encontramos categorías para esta búsqueda.'}
               </p>
+            )}
+            {/* Traer una colección de otro dispositivo solo tiene sentido aquí,
+                que es donde vive lo guardado. */}
+            {categoriaAlbum === CATEGORIA_ALBUMES_FAVORITOS && (
+              <div className="mx-auto mt-aire-l w-full max-w-sm">
+                <RestaurarConCodigo />
+              </div>
             )}
           </>
         ) : (

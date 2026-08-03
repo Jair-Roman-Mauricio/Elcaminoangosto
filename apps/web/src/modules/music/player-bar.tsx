@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { PlayPause, ProgressBar, formatTime, Eyebrow, ModalConfirmacion } from '@elcamino/ui'
+import { PlayPause, ProgressBar, formatTime, Eyebrow } from '@elcamino/ui'
 import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
 import { usePlayerStore } from '../../stores/player.store'
 import { buscarAlbum, rutaDeReproduccion, useCatalogoDeAlabanza } from './alabanza-catalog'
 import { useRegistrarVista } from '../../lib/analitica'
-import { useSession } from '../../auth/session'
 
 /**
  * Barra inferior de Alabanza. Se monta una sola vez, fuera del <Outlet />,
@@ -15,12 +14,10 @@ import { useSession } from '../../auth/session'
  * cambios de ruta igual que el estado de Zustand.
  */
 export function PlayerBar() {
-  const { session } = useSession()
   const audioRef = useRef<HTMLAudioElement>(null)
   const ultimoVolumen = useRef(0.8)
   const [confirmandoFavorito, setConfirmandoFavorito] = useState(false)
   const [guardarEnFavoritos, setGuardarEnFavoritos] = useState(false)
-  const [pidiendoCuenta, setPidiendoCuenta] = useState(false)
   const [albumesSeleccionados, setAlbumesSeleccionados] = useState<string[]>([])
   const {
     pista,
@@ -134,12 +131,6 @@ export function PlayerBar() {
 
   function abrirGuardado() {
     if (!pista || !enVistaCompleta) return
-    // Guardar vive en la cuenta, no en el navegador: sin sesión no hay dónde
-    // poner la canción, así que se invita a crearla en vez de fallar en silencio.
-    if (!session) {
-      setPidiendoCuenta(true)
-      return
-    }
     setGuardarEnFavoritos(cancionesFavoritas.includes(pista.songId))
     setAlbumesSeleccionados(
       albumesFavoritos
@@ -337,20 +328,6 @@ export function PlayerBar() {
           </div>
         </div>
       )}
-      {/* Sin sesión no hay dónde guardar: se invita a crear la cuenta en vez
-          de dejar el botón muerto. */}
-      <ModalConfirmacion
-        abierto={pidiendoCuenta}
-        titulo="Crea una cuenta para guardar"
-        descripcion="Las canciones guardadas viven en tu cuenta, así las encuentras también desde otro dispositivo."
-        textoConfirmar="Crear cuenta"
-        textoCancelar="Ahora no"
-        onConfirmar={() => {
-          setPidiendoCuenta(false)
-          navigate('/entrar')
-        }}
-        onCancelar={() => setPidiendoCuenta(false)}
-      />
     </>
   )
 }
