@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Eyebrow, Field, Input } from '@elcamino/ui'
+import { Eyebrow } from '@elcamino/ui'
 import { BrandLogo } from '@elcamino/ui/static'
 import { useFeed, type FeedCard } from './feed-api'
 import { useRegistrarVista, useRegistrarVisita } from '../../lib/analitica'
@@ -334,16 +334,28 @@ function ListadoDeTarjetas({
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-aire-m">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Tarjetas de fe</Eyebrow>
-        <Field label="Buscar" htmlFor="buscar-tarjetas">
-          <Input
-            id="buscar-tarjetas"
+        {/* Mismo buscador que tenía el catálogo de cursos: la etiqueta la lee
+            el lector de pantalla, y a la vista queda la lupa dentro del campo. */}
+        <label className="relative block w-full">
+          <span className="sr-only">Buscar tarjetas</span>
+          <svg
+            className="pointer-events-none absolute left-aire-s top-1/2 size-5 -translate-y-1/2 text-texto-tenue"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+            <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <input
             type="search"
             value={busqueda}
             onChange={(evento) => setBusqueda(evento.target.value)}
             placeholder="Título, versículo o una frase del relato"
             autoComplete="off"
+            className="h-14 w-full rounded-full border border-linea-fuerte bg-superficie-1 pl-12 pr-aire-s font-ui text-body text-contenido shadow-[inset_0_0_0_1px_var(--linea)] outline-none transition-[border-color,box-shadow] placeholder:text-texto-tenue focus:border-vino focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--vino)_12%,transparent)]"
           />
-        </Field>
+        </label>
       </header>
 
       {error && (
