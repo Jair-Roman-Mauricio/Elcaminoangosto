@@ -56,15 +56,18 @@ const EditarAlbumSchema = z.object({
 
 const PublicarSchema = z.object({ isPublished: z.boolean() })
 
-const FavoritaSchema = z.object({ favorita: z.boolean() })
-const AlbumPersonalSchema = z.object({ titulo: z.string().min(1).max(120) })
-const EditarAlbumPersonalSchema = z.object({
+// El código viaja siempre en el cuerpo: en la URL acabaría en los registros
+// del servidor y en el historial del navegador.
+const CodigoSchema = z.object({ codigo: z.string().min(6).max(64) })
+const MarcarSchema = CodigoSchema.extend({ favorita: z.boolean() })
+const CrearAlbumSchema = CodigoSchema.extend({ titulo: z.string().min(1).max(120) })
+const EditarAlbumDeColeccionSchema = CodigoSchema.extend({
   titulo: z.string().min(1).max(120),
   coverUrl: z.string().max(500).nullable().default(null),
   songIds: z.array(z.string().uuid()).max(500).default([]),
 })
 
-const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank: u.levelRank })
+const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role })
 
 @ApiTags('music')
 @ApiBearerAuth()
@@ -80,49 +83,69 @@ export class MusicController {
     return this.music.catalogo()
   }
 
-  // ── Favoritos (exigen cuenta) ─────────────────────────────────────────────
+  // ── Colecciones: guardar sin cuenta ──────────────────────────────────────
+  //
+  // Rutas públicas: la llave es el código, no una sesión. Va en el cuerpo y
+  // nunca en la URL, que acaba escrita en los registros del servidor.
 
-  @Get('favorites')
-  @ApiOperation({ summary: 'Mis canciones favoritas y mis álbumes personales' })
-  async misFavoritos(@CurrentUser() u: CurrentUserContext) {
-    return this.music.misFavoritos(actorDe(u))
+  @Post('collections')
+  @Public()
+  @ApiOperation({ summary: 'Crear una colección con un código propio' })
+  async crearColeccion(
+    @Body(new ZodValidationPipe(CodigoSchema)) body: z.infer<typeof CodigoSchema>,
+  ) {
+    return this.music.crearColeccion(body.codigo)
   }
 
-  @Patch('songs/:id/favorite')
-  @ApiOperation({ summary: 'Marcar o desmarcar una canción como favorita' })
-  async marcarFavorita(
-    @CurrentUser() u: CurrentUserContext,
-    @Param('id') id: string,
-    @Body(new ZodValidationPipe(FavoritaSchema)) body: z.infer<typeof FavoritaSchema>,
+  @Post('collections/open')
+  @Public()
+  @ApiOperation({ summary: 'Recuperar una colección a partir de su código' })
+  async abrirColeccion(
+    @Body(new ZodValidationPipe(CodigoSchema)) body: z.infer<typeof CodigoSchema>,
   ) {
-    await this.music.marcarCancion(actorDe(u), id, body.favorita)
+    return this.music.abrirColeccion(body.codigo)
+  }
+
+  @Post('collections/songs/:id')
+  @Public()
+  @ApiOperation({ summary: 'Marcar o desmarcar una canción en mi colección' })
+  async marcarFavorita(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(MarcarSchema)) body: z.infer<typeof MarcarSchema>,
+  ) {
+    await this.music.marcarCancion(body.codigo, id, body.favorita)
     return { ok: true }
   }
 
-  @Post('my-albums')
-  @ApiOperation({ summary: 'Crear un álbum personal' })
+  @Post('collections/albums')
+  @Public()
+  @ApiOperation({ summary: 'Crear un álbum en mi colección' })
   async crearAlbumPersonal(
-    @CurrentUser() u: CurrentUserContext,
-    @Body(new ZodValidationPipe(AlbumPersonalSchema)) body: z.infer<typeof AlbumPersonalSchema>,
+    @Body(new ZodValidationPipe(CrearAlbumSchema)) body: z.infer<typeof CrearAlbumSchema>,
   ) {
-    return this.music.crearAlbumPersonal(actorDe(u), body.titulo)
+    return this.music.crearAlbumPersonal(body.codigo, body.titulo)
   }
 
-  @Patch('my-albums/:id')
-  @ApiOperation({ summary: 'Editar un álbum personal' })
+  @Patch('collections/albums/:id')
+  @Public()
+  @ApiOperation({ summary: 'Editar un álbum de mi colección' })
   async editarAlbumPersonal(
-    @CurrentUser() u: CurrentUserContext,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(EditarAlbumPersonalSchema))
-    body: z.infer<typeof EditarAlbumPersonalSchema>,
+    @Body(new ZodValidationPipe(EditarAlbumDeColeccionSchema))
+    body: z.infer<typeof EditarAlbumDeColeccionSchema>,
   ) {
-    return this.music.editarAlbumPersonal(actorDe(u), id, body)
+    const { codigo, ...cambios } = body
+    return this.music.editarAlbumPersonal(codigo, id, cambios)
   }
 
-  @Delete('my-albums/:id')
-  @ApiOperation({ summary: 'Eliminar un álbum personal' })
-  async eliminarAlbumPersonal(@CurrentUser() u: CurrentUserContext, @Param('id') id: string) {
-    await this.music.eliminarAlbumPersonal(actorDe(u), id)
+  @Post('collections/albums/:id/delete')
+  @Public()
+  @ApiOperation({ summary: 'Eliminar un álbum de mi colección' })
+  async eliminarAlbumPersonal(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(CodigoSchema)) body: z.infer<typeof CodigoSchema>,
+  ) {
+    await this.music.eliminarAlbumPersonal(body.codigo, id)
     return { ok: true }
   }
 

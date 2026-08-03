@@ -88,8 +88,8 @@ class FakeMedia {
   }
 }
 
-const admin = { id: 'a1', role: 'ADMIN' as const, levelRank: 0 }
-const maestro = { id: 'm1', role: 'MAESTRO' as const, levelRank: 0 }
+const admin = { id: 'a1', role: 'ADMIN' as const }
+const maestro = { id: 'm1', role: 'MAESTRO' as const }
 
 let videos: FakeVideoRepo
 let media: FakeMedia

@@ -12,7 +12,7 @@ import {
 
 const CrearSubidaSchema = z.object({ kind: MediaKindSchema, bucket: BucketSchema })
 
-const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role, levelRank: u.levelRank })
+const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role })
 
 @ApiTags('media')
 @ApiBearerAuth()

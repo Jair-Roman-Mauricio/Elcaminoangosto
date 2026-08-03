@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { MusicService } from './music.service'
 import {
-  FavoritesRepository,
+  ColeccionRepository,
   MusicRepository,
   type AlbumEntity,
   type ArtistEntity,
@@ -123,45 +123,63 @@ class FakeMusicRepo extends MusicRepository {
   }
 }
 
-/** Favoritos en memoria: canciones marcadas y álbumes personales. */
-class FakeFavoritesRepo extends FavoritesRepository {
-  marcadas = new Map<string, Set<string>>()
-  albumes = new Map<string, { albumId: string; titulo: string; coverUrl: string | null; songIds: string[]; owner: string }>()
+/** Colecciones en memoria, indexadas por la huella del código. */
+class FakeColeccionRepo extends ColeccionRepository {
+  porHuella = new Map<string, string>()
+  favoritas = new Map<string, Set<string>>()
+  albumes = new Map<
+    string,
+    { albumId: string; titulo: string; coverUrl: string | null; songIds: string[]; coleccion: string }
+  >()
 
-  async favoritosDe(userId: string) {
+  async buscarPorHuella(huella: string) {
+    return this.porHuella.get(huella) ?? null
+  }
+  async crear(huella: string) {
+    if (this.porHuella.has(huella)) return null
+    const id = `c${this.porHuella.size + 1}`
+    this.porHuella.set(huella, id)
+    return id
+  }
+  async contenido(coleccionId: string) {
     return {
-      cancionesFavoritas: [...(this.marcadas.get(userId) ?? [])],
+      cancionesFavoritas: [...(this.favoritas.get(coleccionId) ?? [])],
       albumesPersonales: [...this.albumes.values()]
-        .filter((a) => a.owner === userId)
-        .map(({ owner: _owner, ...album }) => album),
+        .filter((a) => a.coleccion === coleccionId)
+        .map(({ coleccion: _c, ...album }) => album),
     }
   }
-  async marcarCancion(userId: string, songId: string, favorita: boolean) {
-    const set = this.marcadas.get(userId) ?? new Set<string>()
+  async marcarCancion(coleccionId: string, songId: string, favorita: boolean) {
+    const set = this.favoritas.get(coleccionId) ?? new Set<string>()
     if (favorita) set.add(songId)
     else set.delete(songId)
-    this.marcadas.set(userId, set)
+    this.favoritas.set(coleccionId, set)
   }
-  async crearAlbumPersonal(userId: string, titulo: string) {
-    const album = { albumId: `p${this.albumes.size + 1}`, titulo, coverUrl: null, songIds: [], owner: userId }
+  async crearAlbum(coleccionId: string, titulo: string) {
+    const album = {
+      albumId: `p${this.albumes.size + 1}`,
+      titulo,
+      coverUrl: null,
+      songIds: [],
+      coleccion: coleccionId,
+    }
     this.albumes.set(album.albumId, album)
-    const { owner: _owner, ...sinDueno } = album
-    return sinDueno
+    const { coleccion: _c, ...sinColeccion } = album
+    return sinColeccion
   }
-  async actualizarAlbumPersonal(
-    userId: string,
+  async actualizarAlbum(
+    _coleccionId: string,
     albumId: string,
     cambios: { titulo: string; coverUrl: string | null; songIds: string[] },
   ) {
-    const album = this.albumes.get(albumId)!
-    Object.assign(album, cambios)
+    Object.assign(this.albumes.get(albumId)!, cambios)
     return { albumId, ...cambios }
   }
-  async eliminarAlbumPersonal(_userId: string, albumId: string) {
+  async eliminarAlbum(_coleccionId: string, albumId: string) {
     this.albumes.delete(albumId)
   }
-  async esDe(userId: string, albumId: string) {
-    return this.albumes.get(albumId)?.owner === userId
+  async esDe(coleccionId: string, albumId: string) {
+    return this.albumes.get(albumId)?.coleccion === coleccionId
   }
 }
 
@@ -183,12 +201,12 @@ class FakeMedia {
   }
 }
 
-const admin = { id: 'a1', role: 'ADMIN' as const, levelRank: 0 }
-const maestro = { id: 'm1', role: 'MAESTRO' as const, levelRank: 0 }
+const admin = { id: 'a1', role: 'ADMIN' as const }
+const maestro = { id: 'm1', role: 'MAESTRO' as const }
 
 let music: FakeMusicRepo
 let media: FakeMedia
-let favoritos: FakeFavoritesRepo
+let colecciones: FakeColeccionRepo
 let svc: MusicService
 
 beforeEach(() => {
@@ -197,8 +215,8 @@ beforeEach(() => {
   media.assets.set('audio-nuevo', { ownerId: 'a1', kind: 'AUDIO' })
   media.assets.set('video-nuevo', { ownerId: 'a1', kind: 'VIDEO' })
   media.assets.set('audio-ajeno', { ownerId: 'otro', kind: 'AUDIO' })
-  favoritos = new FakeFavoritesRepo()
-  svc = new MusicService(music, media as never, favoritos)
+  colecciones = new FakeColeccionRepo()
+  svc = new MusicService(music, media as never, colecciones)
 })
 
 const cancionMinima = {
@@ -356,45 +374,65 @@ describe('administración de música (módulo Contenido)', () => {
   })
 })
 
-describe('favoritos: guardar exige cuenta y viaja con ella (HU-2.3)', () => {
-  const oyente = { id: 'e1', role: 'ESTUDIANTE' as const, levelRank: 1 }
+describe('colecciones: guardar sin cuenta, recuperar con un código', () => {
+  const CODIGO = 'mi-codigo-1'
+  const OTRO = 'otro-codigo-2'
+
+  beforeEach(async () => {
+    await svc.crearColeccion(CODIGO)
+    await svc.crearColeccion(OTRO)
+  })
 
   it('marcar y desmarcar una canción', async () => {
     music.seed(nuevaCancion({ id: 's1' }))
 
-    await svc.marcarCancion(oyente, 's1', true)
-    expect((await svc.misFavoritos(oyente)).cancionesFavoritas).toEqual(['s1'])
+    await svc.marcarCancion(CODIGO, 's1', true)
+    expect((await svc.abrirColeccion(CODIGO)).cancionesFavoritas).toEqual(['s1'])
 
-    await svc.marcarCancion(oyente, 's1', false)
-    expect((await svc.misFavoritos(oyente)).cancionesFavoritas).toEqual([])
+    await svc.marcarCancion(CODIGO, 's1', false)
+    expect((await svc.abrirColeccion(CODIGO)).cancionesFavoritas).toEqual([])
   })
 
   it('no se marca una canción que no existe', async () => {
-    await expect(svc.marcarCancion(oyente, 'fantasma', true)).rejects.toThrow(NotFoundException)
+    await expect(svc.marcarCancion(CODIGO, 'fantasma', true)).rejects.toThrow(NotFoundException)
   })
 
-  it('los favoritos son de cada quien: nadie ve los de otro', async () => {
-    const otro = { id: 'e2', role: 'ESTUDIANTE' as const, levelRank: 1 }
+  it('cada código abre solo su colección', async () => {
     music.seed(nuevaCancion({ id: 's1' }))
-    await svc.marcarCancion(oyente, 's1', true)
+    await svc.marcarCancion(CODIGO, 's1', true)
 
-    expect((await svc.misFavoritos(otro)).cancionesFavoritas).toEqual([])
+    expect((await svc.abrirColeccion(OTRO)).cancionesFavoritas).toEqual([])
   })
 
-  it('un álbum personal solo lo edita o borra su dueño', async () => {
-    const otro = { id: 'e2', role: 'ESTUDIANTE' as const, levelRank: 1 }
-    const album = await svc.crearAlbumPersonal(oyente, 'Para orar')
+  it('un código desconocido no abre nada', async () => {
+    await expect(svc.abrirColeccion('inexistente-9')).rejects.toThrow(NotFoundException)
+  })
+
+  it('dos personas no pueden compartir el mismo código', async () => {
+    await expect(svc.crearColeccion(CODIGO)).rejects.toThrow(ConflictException)
+  })
+
+  it('un código corto se rechaza: sería adivinable', async () => {
+    await expect(svc.crearColeccion('abc')).rejects.toThrow(BadRequestException)
+  })
+
+  it('un álbum solo lo edita o borra quien tiene su código', async () => {
+    const album = await svc.crearAlbumPersonal(CODIGO, 'Para orar')
 
     await expect(
-      svc.editarAlbumPersonal(otro, album.albumId, { titulo: 'Mío', coverUrl: null, songIds: [] }),
+      svc.editarAlbumPersonal(OTRO, album.albumId, {
+        titulo: 'Mío',
+        coverUrl: null,
+        songIds: [],
+      }),
     ).rejects.toThrow(NotFoundException)
-    await expect(svc.eliminarAlbumPersonal(otro, album.albumId)).rejects.toThrow(NotFoundException)
+    await expect(svc.eliminarAlbumPersonal(OTRO, album.albumId)).rejects.toThrow(NotFoundException)
   })
 
   it('editar sustituye título y contenido del álbum', async () => {
-    const album = await svc.crearAlbumPersonal(oyente, 'Para orar')
+    const album = await svc.crearAlbumPersonal(CODIGO, 'Para orar')
 
-    const editado = await svc.editarAlbumPersonal(oyente, album.albumId, {
+    const editado = await svc.editarAlbumPersonal(CODIGO, album.albumId, {
       titulo: 'Para caminar',
       coverUrl: 'https://portada/x.webp',
       songIds: ['s1', 's2'],
@@ -405,6 +443,6 @@ describe('favoritos: guardar exige cuenta y viaja con ella (HU-2.3)', () => {
   })
 
   it('un álbum sin nombre no se crea', async () => {
-    await expect(svc.crearAlbumPersonal(oyente, '   ')).rejects.toThrow(BadRequestException)
+    await expect(svc.crearAlbumPersonal(CODIGO, '   ')).rejects.toThrow(BadRequestException)
   })
 })

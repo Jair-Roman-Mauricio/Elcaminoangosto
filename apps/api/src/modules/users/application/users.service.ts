@@ -1,54 +1,13 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common'
-import { EventEmitter2 } from '@nestjs/event-emitter'
-import { DOMAIN_EVENTS, type Role, type UserLevelChangedEvent } from '@elcamino/shared-types'
-import {
-  ProfileRepository,
-  type ProfileEntity,
-  type MenteeEntity,
-  type LevelEntity,
-} from '../domain/profile.repository'
-import { AuthAdminPort } from '../domain/auth-admin.port'
-import { puedeEditarRecurso, type Actor } from '../../shared'
+import { Injectable, NotFoundException } from '@nestjs/common'
+import { ProfileRepository, type ProfileEntity } from '../domain/profile.repository'
 
 /**
  * API pública del bounded context `users`.
- * Es el ÚNICO punto por el que otros módulos pueden pedir datos de perfil.
+ * Es el ÚNICO punto por el que otros módulos piden datos de perfil.
  */
 @Injectable()
 export class UsersService {
-  constructor(
-    private readonly profiles: ProfileRepository,
-    private readonly authAdmin: AuthAdminPort,
-    private readonly events: EventEmitter2,
-  ) {}
-
-  /**
-   * HU-1.2 — el ADMIN crea una cuenta con un rol (p. ej. un MAESTRO). Crea la
-   * identidad en Auth (ya confirmada); el trigger inserta el perfil como
-   * ESTUDIANTE y aquí se ajusta al rol pedido. La restricción a ADMIN la impone
-   * `RolesGuard`.
-   */
-  async crearCuenta(input: {
-    email: string
-    password: string
-    displayName: string
-    role: Role
-  }): Promise<ProfileEntity> {
-    const userId = await this.authAdmin.createUser({
-      email: input.email,
-      password: input.password,
-      displayName: input.displayName,
-    })
-    // El nombre viaja en user_metadata, pero lo fijamos también en el perfil
-    // por si el trigger usó el prefijo del correo.
-    await this.profiles.updateProfile(userId, { displayName: input.displayName })
-    return this.profiles.updateRole(userId, input.role)
-  }
+  constructor(private readonly profiles: ProfileRepository) {}
 
   async obtenerPerfil(id: string): Promise<ProfileEntity> {
     const perfil = await this.profiles.findById(id)
@@ -56,91 +15,15 @@ export class UsersService {
     return perfil
   }
 
-  /** `null` si el usuario aún no tiene fila en `profiles`. Usado por el guard. */
+  /** `null` si la cuenta aún no tiene fila en `profiles`. Lo usa el guard. */
   async buscarPerfil(id: string): Promise<ProfileEntity | null> {
     return this.profiles.findById(id)
   }
 
-  /** HU-1.1 — solo el dueño (o un admin) edita el perfil. */
   async actualizarPerfil(
-    actor: Actor,
-    perfilId: string,
-    cambios: Partial<Pick<ProfileEntity, 'displayName' | 'bio' | 'avatarUrl'>>,
+    id: string,
+    cambios: { displayName?: string; bio?: string | null; avatarUrl?: string | null },
   ): Promise<ProfileEntity> {
-    if (!puedeEditarRecurso(actor, { ownerId: perfilId })) {
-      throw new ForbiddenException('Solo puedes editar tu propio perfil')
-    }
-    return this.profiles.updateProfile(perfilId, cambios)
-  }
-
-  /** HU-1.2 — cambio de rol. La restricción a ADMIN la impone `RolesGuard`. */
-  async asignarRol(perfilId: string, role: Role): Promise<ProfileEntity> {
-    return this.profiles.updateRole(perfilId, role)
-  }
-
-  /** HU-1.3 — estudiantes bajo la mentoría de este maestro. */
-  async misEstudiantes(mentorId: string): Promise<MenteeEntity[]> {
-    return this.profiles.findMentees(mentorId)
-  }
-
-  /** HU-1.2 — todos los usuarios, para el panel del ADMIN. */
-  async listarTodos(): Promise<ProfileEntity[]> {
-    return this.profiles.findAll()
-  }
-
-  /** HU-7.1 — métricas de crecimiento y actividad para el dashboard del ADMIN. */
-  async estadisticasDePlataforma() {
-    return this.profiles.platformStats()
-  }
-
-  /** Ids de los administradores, para notificarles eventos de gobernanza. */
-  async idsDeAdmins(): Promise<string[]> {
-    return this.profiles.findAdminIds()
-  }
-
-  /** Catálogo de niveles (para el catálogo del estudiante y el panel admin). */
-  async niveles(): Promise<LevelEntity[]> {
-    return this.profiles.findLevels()
-  }
-
-  /**
-   * HU-1.2 — el admin asigna el nivel de un estudiante a mano, sin pasar por la
-   * solicitud al mentor (HU-6.2). Es la misma operación: reutiliza
-   * `cambiarNivel`, así que también emite `UserLevelChanged` y el catálogo del
-   * alumno se recalcula igual.
-   *
-   * El nivel solo tiene sentido en un ESTUDIANTE: es lo que abre o cierra
-   * cursos. En un maestro o un admin sería un dato muerto que confunde.
-   */
-  async asignarNivel(perfilId: string, levelId: string): Promise<ProfileEntity> {
-    const perfil = await this.obtenerPerfil(perfilId)
-    if (perfil.role !== 'ESTUDIANTE') {
-      throw new BadRequestException('Solo los estudiantes tienen nivel')
-    }
-    const niveles = await this.profiles.findLevels()
-    if (!niveles.some((nivel) => nivel.id === levelId)) {
-      throw new NotFoundException('Nivel no encontrado')
-    }
-    if (perfil.currentLevelId === levelId) return perfil
-
-    return this.cambiarNivel(perfilId, levelId)
-  }
-
-  /**
-   * HU-6.2 — reacción a `LevelUpRequestApproved`.
-   * Sube el nivel y anuncia el cambio para que `discipleship` recalcule el catálogo.
-   */
-  async cambiarNivel(perfilId: string, levelId: string): Promise<ProfileEntity> {
-    const antes = await this.obtenerPerfil(perfilId)
-    const despues = await this.profiles.updateLevel(perfilId, levelId)
-
-    const evento: UserLevelChangedEvent = {
-      userId: perfilId,
-      fromLevelRank: antes.levelRank,
-      toLevelRank: despues.levelRank,
-    }
-    this.events.emit(DOMAIN_EVENTS.USER_LEVEL_CHANGED, evento)
-
-    return despues
+    return this.profiles.updateProfile(id, cambios)
   }
 }

@@ -14,11 +14,8 @@ import { MusicModule } from './modules/music'
 import { FeedModule } from './modules/feed'
 import { VideosModule } from './modules/videos'
 import { AnalyticsModule } from './modules/analytics'
-import { DiscipleshipModule } from './modules/discipleship'
-import { ChatModule } from './modules/chat'
 import { MediaModule } from './modules/media'
 import { AdminModule } from './modules/admin'
-import { NotificationsModule } from './modules/notifications'
 
 /**
  * Monolito modular: un solo desplegable, fronteras internas explícitas.
@@ -55,10 +52,7 @@ import { NotificationsModule } from './modules/notifications'
     FeedModule,
     VideosModule,
     AnalyticsModule,
-    DiscipleshipModule,
-    ChatModule,
     AdminModule,
-    NotificationsModule,
   ],
   controllers: [HealthController],
   providers: [
