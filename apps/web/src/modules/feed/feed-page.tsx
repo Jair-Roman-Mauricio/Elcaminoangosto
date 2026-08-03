@@ -345,10 +345,11 @@ function ListadoDeTarjetas({
           Sin buscador y sin abrir ficha: aquí la tarjeta se contempla, no se
           estudia. El `scroll-snap` hace que cada gesto deje una pieza
           centrada, sin dejar dos a medias.
-          Los márgenes negativos cancelan el relleno del layout para llegar a
-          los bordes; la cabecera se respeta porque el alto descuenta su
-          espacio en vez de taparla. */}
-      <div className="-mx-gutter -mb-32 cine:hidden">
+          Los márgenes negativos cancelan TODO el relleno del layout —también el
+          superior— y el relleno propio de 3.75rem vuelve a dejar sitio a la
+          cabecera fija. Así la tarjeta llega a los cuatro bordes del main sin
+          taparla ni dejar franjas en blanco. */}
+      <div className="-mx-gutter -mb-32 -mt-[5.5rem] pt-[3.75rem] cine:hidden">
         {error && (
           <p className="px-gutter font-ui text-body text-vino">
             No se pudieron cargar las tarjetas.
@@ -358,17 +359,17 @@ function ListadoDeTarjetas({
           <p className="px-gutter font-ui text-body text-texto-tenue">Cargando tarjetas…</p>
         )}
 
-        <ul className="m-0 h-[calc(100dvh-5.5rem)] snap-y snap-mandatory list-none overflow-y-auto overscroll-contain p-0 scrollbar-none">
+        <ul className="m-0 h-[calc(100dvh-3.75rem)] snap-y snap-mandatory list-none overflow-y-auto overscroll-contain p-0 scrollbar-none">
           {ordenadas.map((card) => (
             <li
               key={card.id}
-              className="flex h-[calc(100dvh-5.5rem)] snap-start snap-always items-center justify-center px-aire-xs"
+              className="h-[calc(100dvh-3.75rem)] snap-start snap-always"
             >
               <img
                 src={card.posterUrl ?? card.mediaUrl}
                 alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
                 loading="lazy"
-                className="max-h-full w-full object-contain"
+                className="h-full w-full object-cover"
               />
             </li>
           ))}
