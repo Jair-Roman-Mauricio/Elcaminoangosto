@@ -5408,3 +5408,16 @@
     transform: none;
   }
 }
+
+/* Marco del visor de tarjetas en móvil.
+   Reutiliza la misma textura de papel que la sección de tarjetas de la
+   landing, para que las bandas que deja una imagen de otra proporción se lean
+   como el soporte donde reposa la pieza y no como un hueco vacío. */
+.tarjeta-visor {
+  background-color: #e9e5dd;
+  background-image:
+    linear-gradient(90deg, rgba(247, 246, 242, 0.25), rgba(247, 246, 242, 0) 52%),
+    url('/media/tarjetas-carrusel-textura-editorial-v1.png');
+  background-position: center;
+  background-size: cover;
+}

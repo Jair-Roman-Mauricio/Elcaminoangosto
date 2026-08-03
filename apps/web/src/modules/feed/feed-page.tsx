@@ -351,8 +351,9 @@ function ListadoDeTarjetas({
 
           La imagen va `contain` y no `cover`: las tarjetas llevan texto hasta
           el borde y recortarlas se come palabras. Como una proporción distinta
-          a la de la pantalla deja bandas, el hueco se pinta de negro y pasa a
-          leerse como el marco de un visor en vez de como un fallo. */}
+          a la de la pantalla deja bandas, el hueco lleva la misma textura de
+          papel que la sección de tarjetas de la landing: así se lee como el
+          soporte donde reposa la pieza, no como un hueco vacío. */}
       <div className="-mx-gutter -mb-32 -mt-[5.5rem] pt-[3.75rem] cine:hidden">
         {error && (
           <p className="px-gutter font-ui text-body text-vino">
@@ -367,7 +368,7 @@ function ListadoDeTarjetas({
           {ordenadas.map((card) => (
             <li
               key={card.id}
-              className="flex h-[calc(100dvh-3.75rem)] snap-start snap-always items-center justify-center bg-negro"
+              className="flex h-[calc(100dvh-3.75rem)] snap-start snap-always items-center justify-center tarjeta-visor"
             >
               <img
                 src={card.posterUrl ?? card.mediaUrl}
