@@ -185,3 +185,15 @@ alter table public.coleccion_album_canciones enable row level security;
 drop table if exists public.playlist_songs;
 drop table if exists public.playlists;
 drop table if exists public.song_likes;
+
+-- ─── 9. Permiso de tabla para quien no tiene cuenta ────────────────────────
+-- Una política no concede nada por sí sola: primero hace falta el GRANT. El rol
+-- `anon` solo tenía permisos residuales (TRIGGER, REFERENCES), así que sin esto
+-- un visitante recibiría «permission denied» y la plataforma abierta se vería
+-- vacía para todo el mundo que no iniciara sesión.
+grant select on public.posts        to anon;
+grant select on public.videos       to anon;
+grant select on public.songs        to anon;
+grant select on public.albums       to anon;
+grant select on public.artists      to anon;
+grant select on public.media_assets to anon;
