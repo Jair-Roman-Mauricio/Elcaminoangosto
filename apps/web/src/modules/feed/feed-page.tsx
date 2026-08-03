@@ -296,8 +296,11 @@ function TelonTarjeta() {
  *
  * Antes era un mosaico que se arrastraba: llamaba la atención, pero obligaba a
  * buscar a ojo y recortaba las piezas. Ahora cada tarjeta se ve entera, una
- * debajo de otra y de la más nueva a la más antigua, con un buscador y nada
+ * en una rejilla, de la más nueva a la más antigua, con un buscador y nada
  * más: cualquier otro filtro sobra cuando el orden ya es el esperado.
+ *
+ * La card es solo la imagen. Sin título ni pie: la tarjeta ya lleva su texto
+ * dentro, y repetirlo fuera competía con la pieza.
  */
 function ListadoDeTarjetas({
   cards,
@@ -328,7 +331,7 @@ function ListadoDeTarjetas({
   }, [busqueda, cards])
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-aire-m">
+    <section className="mx-auto flex w-full max-w-5xl flex-col gap-aire-m">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Tarjetas de fe</Eyebrow>
         <Field label="Buscar" htmlFor="buscar-tarjetas">
@@ -359,39 +362,24 @@ function ListadoDeTarjetas({
         </p>
       )}
 
-      <ul className="m-0 flex list-none flex-col gap-aire-m p-0">
+      {/* Rejilla de columnas, no de filas: cada tarjeta conserva su propia
+          proporción y las alturas distintas encajan sin dejar huecos. Con
+          `grid` habría que recortar las imágenes o igualar alturas, y la
+          tarjeta ES la imagen. */}
+      <ul className="m-0 list-none columns-1 gap-aire-m p-0 sm:columns-2 md:columns-3">
         {visibles.map((card) => (
-          <li key={card.id}>
+          <li key={card.id} className="mb-aire-m break-inside-avoid">
             <button
               type="button"
               onClick={() => onSeleccionar(card)}
-              className="group block w-full overflow-hidden rounded border border-linea bg-superficie-1 text-left transition-colors duration-fade ease-camino hover:border-vino"
+              className="block w-full overflow-hidden border border-linea bg-superficie-1 transition-colors duration-fade ease-camino hover:border-vino"
             >
-              {/* La tarjeta se ve completa: `object-contain` y sin alto fijo,
-                  porque recortarla sería mutilar la pieza. */}
               <img
                 src={card.posterUrl ?? card.mediaUrl}
                 alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
                 loading="lazy"
-                className="block w-full bg-superficie-2 object-contain"
+                className="block w-full"
               />
-              <div className="flex flex-col gap-aire-xs px-aire-s py-aire-s">
-                {card.title && (
-                  <h3 className="m-0 font-ui text-h-s font-medium tracking-titulo text-contenido">
-                    {card.title}
-                  </h3>
-                )}
-                {card.reference && (
-                  <p className="m-0 font-mono text-eyebrow uppercase tracking-label text-vino">
-                    {card.reference}
-                  </p>
-                )}
-                {(card.manifesto ?? card.caption) && (
-                  <p className="m-0 font-ui text-body-s leading-relaxed text-texto-tenue">
-                    {card.manifesto ?? card.caption}
-                  </p>
-                )}
-              </div>
             </button>
           </li>
         ))}
