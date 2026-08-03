@@ -146,7 +146,7 @@ Ninguna historia empezada. El esqueleto de módulos y las rutas placeholder ya s
 | Repositorio | https://github.com/Jair-Roman-Mauricio/Elcaminoangosto · `main` y `develop` protegidas |
 | Supabase | `gcxewueeidygglprxigx` (us-east-2) · 4 migraciones aplicadas · JWKS **ES256** |
 | Railway `api` | https://api-production-f113.up.railway.app · **Online** |
-| Railway `web` | https://web-production-551e4.up.railway.app · **Online** |
+| Railway `web` | https://elcaminoangosto.up.railway.app · **Online** |
 | Railway `worker` | **Online** |
 | Railway `Redis` | **Online** |
 

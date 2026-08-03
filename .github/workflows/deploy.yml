@@ -42,17 +42,17 @@ jobs:
           BREVO_SMTP_KEY: ${{ secrets.BREVO_SMTP_KEY }}
           # Las imágenes de un correo exigen URL absoluta: no hay página que
           # resuelva las relativas. Cada entorno sirve las suyas.
-          WEB_URL: ${{ github.ref == 'refs/heads/main' && 'https://web-production-551e4.up.railway.app' || 'https://web-staging-4f40.up.railway.app' }}
+          WEB_URL: ${{ github.ref == 'refs/heads/main' && 'https://elcaminoangosto.up.railway.app' || 'https://web-staging-4f40.up.railway.app' }}
           # Base de los enlaces que Supabase pone en los correos. Solo se fija
           # desde `main`: staging comparte proyecto y le pisaría el valor.
-          SITE_URL: ${{ github.ref == 'refs/heads/main' && 'https://www.elcaminoangosto.site' || '' }}
+          SITE_URL: ${{ github.ref == 'refs/heads/main' && 'https://elcaminoangosto.up.railway.app' || '' }}
         run: |
           umask 077
           trap 'rm -f /tmp/elcamino-supabase-auth.json /tmp/elcamino-correo-*.html /tmp/elcamino-respuesta.json' EXIT
           auth_url="https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth"
           current_allow_list=$(curl --fail --silent --show-error "$auth_url" \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.uri_allow_list // ""')
-          required_allow_list="http://localhost:5173/**,https://web-production-551e4.up.railway.app/**,https://web-staging-4f40.up.railway.app/**,https://www.elcaminoangosto.site/**"
+          required_allow_list="http://localhost:5173/**,https://elcaminoangosto.up.railway.app/**,https://web-staging-4f40.up.railway.app/**,https://www.elcaminoangosto.site/**"
           merged_allow_list=$(printf '%s,%s' "$current_allow_list" "$required_allow_list" | \
             tr ',' '\n' | sed '/^$/d' | sort -u | paste -sd, -)
           jq -n \
