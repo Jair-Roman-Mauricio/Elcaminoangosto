@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, desc, eq, gte, ilike, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, isNull, sql, type SQL } from 'drizzle-orm'
 import { DRIZZLE, type Database } from '../../shared'
 import { albums, contentViews, posts, siteVisits, songs, videos } from '../../shared/database/schema'
 import {
@@ -10,6 +10,20 @@ import {
   type OrdenDeRanking,
   type TipoDeContenido,
 } from '../domain/analytics.repository'
+
+/**
+ * Los informes miden al PÚBLICO, no a la casa.
+ *
+ * `viewer_id` solo se rellena cuando quien mira tiene sesión iniciada, y hoy la
+ * única cuenta que existe es la de administración. Esas filas son el admin
+ * revisando su propia plataforma: contarlas inflaba cada número sin que se
+ * notara. Se descuentan en todos los informes; el registro sigue guardándolas
+ * por si algún día vuelve a haber cuentas.
+ */
+const soloPublico = {
+  visitas: isNull(siteVisits.viewerId),
+  contenido: isNull(contentViews.viewerId),
+}
 
 @Injectable()
 export class DrizzleAnalyticsRepository extends AnalyticsRepository {
@@ -51,6 +65,7 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
     const filtros: SQL[] = [
       eq(contentViews.kind, input.kind),
       gte(contentViews.createdAt, input.desde),
+      soloPublico.contenido,
     ]
     if (input.busqueda) filtros.push(ilike(titulo, `%${input.busqueda}%`))
 
@@ -85,6 +100,7 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
     const filtros: SQL[] = [
       eq(contentViews.kind, 'SONG'),
       gte(contentViews.createdAt, input.desde),
+      soloPublico.contenido,
     ]
     if (input.busqueda) filtros.push(ilike(albums.title, `%${input.busqueda}%`))
 
@@ -106,37 +122,31 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
   }
 
   async flujoDeVisitantes(desde: Date): Promise<FlujoDeVisitantes> {
-    // Una sesión cuenta como registrada en cuanto aparece con `viewer_id`; el
-    // resto del tiempo es anónima. Por eso se agrupa por sesión primero.
-    const porSesion = this.db.$with('por_sesion').as(
-      this.db
-        .select({
-          sessionId: siteVisits.sessionId,
-          conCuenta: sql<boolean>`bool_or(${siteVisits.viewerId} is not null)`.as('con_cuenta'),
-          sinCuenta: sql<boolean>`bool_or(${siteVisits.viewerId} is null)`.as('sin_cuenta'),
-        })
-        .from(siteVisits)
-        .where(gte(siteVisits.createdAt, desde))
-        .groupBy(siteVisits.sessionId),
-    )
+    const enPeriodo = and(gte(siteVisits.createdAt, desde), soloPublico.visitas)
 
     const [resumen] = await this.db
-      .with(porSesion)
       .select({
-        visitantesAnonimos: sql<number>`count(*) filter (where ${porSesion.conCuenta} = false)`.mapWith(Number),
-        visitantesRegistrados: sql<number>`count(*) filter (where ${porSesion.conCuenta})`.mapWith(Number),
-        sesionesQueSeRegistraron: sql<number>`count(*) filter (where ${porSesion.conCuenta} and ${porSesion.sinCuenta})`.mapWith(Number),
+        visitantes: sql<number>`count(distinct ${siteVisits.sessionId})`.mapWith(Number),
+        visitas: sql<number>`count(*)`.mapWith(Number),
       })
-      .from(porSesion)
+      .from(siteVisits)
+      .where(enPeriodo)
+
+    // Las vistas de contenido viven en otra tabla: se cuentan aparte y no se
+    // suman a las visitas, que miden entrar a una sección, no abrir una pieza.
+    const [contenido] = await this.db
+      .select({ vistas: sql<number>`count(*)`.mapWith(Number) })
+      .from(contentViews)
+      .where(and(gte(contentViews.createdAt, desde), soloPublico.contenido))
 
     const porDia = await this.db
       .select({
         dia: sql<string>`to_char(date_trunc('day', ${siteVisits.createdAt}), 'YYYY-MM-DD')`,
-        anonimos: sql<number>`count(distinct ${siteVisits.sessionId}) filter (where ${siteVisits.viewerId} is null)`.mapWith(Number),
-        registrados: sql<number>`count(distinct ${siteVisits.sessionId}) filter (where ${siteVisits.viewerId} is not null)`.mapWith(Number),
+        visitantes: sql<number>`count(distinct ${siteVisits.sessionId})`.mapWith(Number),
+        visitas: sql<number>`count(*)`.mapWith(Number),
       })
       .from(siteVisits)
-      .where(gte(siteVisits.createdAt, desde))
+      .where(enPeriodo)
       .groupBy(sql`date_trunc('day', ${siteVisits.createdAt})`)
       .orderBy(sql`date_trunc('day', ${siteVisits.createdAt})`)
 
@@ -144,17 +154,17 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
       .select({
         seccion: siteVisits.section,
         visitas: sql<number>`count(*)`.mapWith(Number),
-        anonimos: sql<number>`count(distinct ${siteVisits.sessionId}) filter (where ${siteVisits.viewerId} is null)`.mapWith(Number),
+        visitantes: sql<number>`count(distinct ${siteVisits.sessionId})`.mapWith(Number),
       })
       .from(siteVisits)
-      .where(gte(siteVisits.createdAt, desde))
+      .where(enPeriodo)
       .groupBy(siteVisits.section)
       .orderBy(desc(sql`count(*)`))
 
     return {
-      visitantesAnonimos: resumen?.visitantesAnonimos ?? 0,
-      visitantesRegistrados: resumen?.visitantesRegistrados ?? 0,
-      sesionesQueSeRegistraron: resumen?.sesionesQueSeRegistraron ?? 0,
+      visitantes: resumen?.visitantes ?? 0,
+      visitas: resumen?.visitas ?? 0,
+      vistasDeContenido: contenido?.vistas ?? 0,
       porDia,
       porSeccion,
     }
