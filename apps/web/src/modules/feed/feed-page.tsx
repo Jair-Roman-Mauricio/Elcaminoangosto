@@ -458,6 +458,13 @@ function VisorDeTarjetas({
    * y el final se detecta por silencio: 150 ms sin un solo evento. La inercia
    * no tiene pausas, así que nunca desbloquea. Una rueda de ratón sí las tiene
    * entre clic y clic, y avanza tarjeta a tarjeta como se espera.
+   *
+   * El listener va en `window` y decide por COORDENADAS, no por el elemento
+   * del evento. Colgado del contenedor solo funcionaba una vez: al cambiar de
+   * tarjeta, React reemplaza la imagen —lleva `key` para animar la entrada— y
+   * el navegador conserva el elemento bajo el cursor hasta que el puntero se
+   * mueve. Los eventos siguientes apuntaban a algo que ya no estaba en el
+   * documento y no llegaban al visor: había que mover el ratón para revivirlo.
    */
   useEffect(() => {
     const zona = visorRef.current
@@ -476,6 +483,14 @@ function VisorDeTarjetas({
       // Un deslizamiento horizontal es del navegador —el gesto de volver
       // atrás—, no del visor. Frenarlo dejaba al usuario sin salida.
       if (Math.abs(evento.deltaY) <= Math.abs(evento.deltaX)) return
+
+      const caja = zona.getBoundingClientRect()
+      const dentro =
+        evento.clientX >= caja.left &&
+        evento.clientX <= caja.right &&
+        evento.clientY >= caja.top &&
+        evento.clientY <= caja.bottom
+      if (!dentro) return
 
       const ahora = evento.timeStamp
       if (ahora - ultimoEvento > PAUSA) {
@@ -496,8 +511,8 @@ function VisorDeTarjetas({
       mover(Math.sign(evento.deltaY))
     }
 
-    zona.addEventListener('wheel', alRodar, { passive: false })
-    return () => zona.removeEventListener('wheel', alRodar)
+    window.addEventListener('wheel', alRodar, { passive: false })
+    return () => window.removeEventListener('wheel', alRodar)
   }, [])
 
   return (
