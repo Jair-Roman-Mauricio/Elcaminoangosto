@@ -22,6 +22,8 @@ export interface HiloDetalle {
   oculto: boolean
   respuestas: {
     id: string
+    /** A qué respuesta contesta; `null` si contesta al hilo. */
+    respuestaPadreId: string | null
     cuerpo: string
     autor: string
     createdAt: string
@@ -74,6 +76,7 @@ export class CommunityService {
       oculto: hilo.estado === 'OCULTO',
       respuestas: respuestas.map((r) => ({
         id: r.id,
+        respuestaPadreId: r.respuestaPadreId,
         cuerpo: r.cuerpo,
         autor: alias.get(r.autorHuella)!,
         createdAt: r.createdAt.toISOString(),
@@ -96,17 +99,36 @@ export class CommunityService {
     return { id: hilo.id }
   }
 
+  /**
+   * Responder al hilo o a cualquier respuesta suya, contestación incluida.
+   *
+   * La profundidad es libre (ADR-014): topar la conversación en un nivel
+   * dejaba sin voz a quien recibía una contestación. Quien limita es la
+   * interfaz, que deja de sangrar a partir de cierta hondura. Aquí solo se
+   * exige que el padre exista, esté a la vista y sea del mismo hilo; el
+   * trigger de la base repite el cerrojo y además impide ciclos.
+   */
   async responder(input: {
     hiloId: string
+    respuestaPadreId?: string | null
     cuerpo: string
     autorId: string
   }): Promise<{ id: string }> {
     const hilo = await this.comunidad.buscarHilo(input.hiloId, false)
     if (!hilo) throw new NotFoundException('Ese hilo no existe')
 
+    const padreId = input.respuestaPadreId ?? null
+    if (padreId) {
+      const padre = await this.comunidad.buscarRespuesta(padreId)
+      if (!padre || padre.hiloId !== input.hiloId || padre.estado !== 'VISIBLE') {
+        throw new NotFoundException('Esa respuesta no existe en este hilo')
+      }
+    }
+
     const huella = await this.huellaConLimite(input.autorId)
     const respuesta = await this.comunidad.responder({
       hiloId: input.hiloId,
+      respuestaPadreId: padreId,
       cuerpo: this.exigirTexto(input.cuerpo, 2, 5000, 'La respuesta'),
       autorHuella: huella,
     })

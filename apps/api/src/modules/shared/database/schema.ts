@@ -10,6 +10,7 @@ import {
   bigint,
   primaryKey,
   index,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 
 /**
@@ -308,6 +309,12 @@ export const hiloRespuestas = pgTable('hilo_respuestas', {
   hiloId: uuid('hilo_id')
     .notNull()
     .references(() => hilos.id, { onDelete: 'cascade' }),
+  /* Respuesta a la que contesta esta; nula si contesta al hilo. Un solo nivel:
+     lo garantiza el trigger `hilo_respuestas_un_solo_nivel`. */
+  respuestaPadreId: uuid('respuesta_padre_id').references(
+    (): AnyPgColumn => hiloRespuestas.id,
+    { onDelete: 'cascade' },
+  ),
   cuerpo: text('cuerpo').notNull(),
   autorHuella: text('autor_huella').notNull(),
   estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),

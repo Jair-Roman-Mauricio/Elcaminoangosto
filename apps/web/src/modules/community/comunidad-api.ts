@@ -13,6 +13,8 @@ export interface HiloResumen {
 
 export interface Respuesta {
   id: string
+  /** Respuesta a la que contesta; `null` si contesta al hilo. */
+  respuestaPadreId: string | null
   cuerpo: string
   autor: string
   createdAt: string
@@ -81,13 +83,25 @@ export function useAbrirHilo() {
   })
 }
 
+/**
+ * Responder al hilo, o a una de sus respuestas si se pasa `respuestaPadreId`.
+ * La conversación admite un solo nivel; el servidor rechaza contestar a una
+ * contestación.
+ */
 export function useResponder(hiloId: string) {
   const cliente = useQueryClient()
   return useMutation({
-    mutationFn: (cuerpo: string) =>
+    mutationFn: ({
+      cuerpo,
+      respuestaPadreId,
+    }: {
+      cuerpo: string
+      respuestaPadreId?: string
+    }) =>
       apiClient.post<{ id: string }>(`/community/threads/${hiloId}/replies`, {
         cuerpo,
         autorId: idDeAutor(),
+        ...(respuestaPadreId ? { respuestaPadreId } : {}),
       }),
     onSuccess: () => {
       void cliente.invalidateQueries({ queryKey: ['comunidad', 'hilo', hiloId] })

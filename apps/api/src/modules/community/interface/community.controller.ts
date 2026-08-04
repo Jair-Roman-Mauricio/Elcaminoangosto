@@ -28,6 +28,8 @@ const AbrirHiloSchema = z.object({
 const ResponderSchema = z.object({
   cuerpo: z.string().min(2).max(5000),
   autorId: AutorSchema,
+  /** A qué respuesta contesta. Ausente = contesta al hilo. */
+  respuestaPadreId: z.string().uuid().optional(),
 })
 
 const ListarSchema = z.object({
@@ -80,12 +82,17 @@ export class CommunityController {
 
   @Post('threads/:id/replies')
   @Public()
-  @ApiOperation({ summary: 'Responder en un hilo' })
+  @ApiOperation({ summary: 'Responder al hilo o a una de sus respuestas' })
   async responder(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(ResponderSchema)) body: z.infer<typeof ResponderSchema>,
   ) {
-    return this.comunidad.responder({ hiloId: id, ...body })
+    const { respuestaPadreId, ...resto } = body
+    return this.comunidad.responder({
+      hiloId: id,
+      ...resto,
+      respuestaPadreId: respuestaPadreId ?? null,
+    })
   }
 
   // ── Moderación (solo ADMIN) ───────────────────────────────────────────────

@@ -64,6 +64,15 @@ export class DrizzleCommunityRepository extends CommunityRepository {
       .orderBy(asc(hiloRespuestas.createdAt))
   }
 
+  async buscarRespuesta(id: string): Promise<RespuestaEntity | null> {
+    const [fila] = await this.db
+      .select()
+      .from(hiloRespuestas)
+      .where(eq(hiloRespuestas.id, id))
+      .limit(1)
+    return fila ?? null
+  }
+
   async crearHilo(input: {
     titulo: string
     cuerpo: string
@@ -75,6 +84,7 @@ export class DrizzleCommunityRepository extends CommunityRepository {
 
   async responder(input: {
     hiloId: string
+    respuestaPadreId: string | null
     cuerpo: string
     autorHuella: string
   }): Promise<RespuestaEntity> {

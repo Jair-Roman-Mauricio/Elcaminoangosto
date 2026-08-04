@@ -49,7 +49,16 @@ class FakeComunidad extends CommunityRepository {
     return hilo
   }
 
-  async responder(input: { hiloId: string; cuerpo: string; autorHuella: string }) {
+  async buscarRespuesta(id: string) {
+    return this.respuestas.find((r) => r.id === id) ?? null
+  }
+
+  async responder(input: {
+    hiloId: string
+    respuestaPadreId: string | null
+    cuerpo: string
+    autorHuella: string
+  }) {
     const respuesta: RespuestaEntity = {
       id: `r${this.respuestas.length + 1}`,
       ...input,
@@ -107,6 +116,100 @@ describe('escribir en la comunidad', () => {
     const hilo = await svc.verHilo(null, id)
     expect(hilo.titulo).toBe('¿Cómo oran ustedes?')
     expect(hilo.respuestas).toHaveLength(1)
+  })
+
+  it('se contesta a una respuesta y queda colgada de ella', async () => {
+    const { id } = await svc.abrirHilo({
+      titulo: '¿Cómo oran ustedes?',
+      cuerpo: 'Llevo un tiempo buscando una forma de orar por las mañanas.',
+      autorId: ANA,
+    })
+    const { id: respuestaId } = await svc.responder({
+      hiloId: id,
+      cuerpo: 'Yo empiezo leyendo un salmo.',
+      autorId: BETO,
+    })
+    await svc.responder({
+      hiloId: id,
+      respuestaPadreId: respuestaId,
+      cuerpo: '¿Cuál salmo?',
+      autorId: ANA,
+    })
+
+    const hilo = await svc.verHilo(null, id)
+    expect(hilo.respuestas.map((r) => r.respuestaPadreId)).toEqual([null, respuestaId])
+  })
+
+  it('se contesta también a una contestación: la conversación no tiene tope', async () => {
+    const { id } = await svc.abrirHilo({
+      titulo: 'Un hilo con conversación',
+      cuerpo: 'Cuerpo con longitud suficiente para pasar.',
+      autorId: ANA,
+    })
+    const { id: raiz } = await svc.responder({ hiloId: id, cuerpo: 'Primera', autorId: BETO })
+    const { id: anidada } = await svc.responder({
+      hiloId: id,
+      respuestaPadreId: raiz,
+      cuerpo: 'Contesto a la primera',
+      autorId: ANA,
+    })
+    const { id: honda } = await svc.responder({
+      hiloId: id,
+      respuestaPadreId: anidada,
+      cuerpo: 'Y contesto a esa contestación',
+      autorId: BETO,
+    })
+
+    const hilo = await svc.verHilo(null, id)
+    const porId = new Map(hilo.respuestas.map((r) => [r.id, r]))
+    expect(porId.get(anidada)?.respuestaPadreId).toBe(raiz)
+    expect(porId.get(honda)?.respuestaPadreId).toBe(anidada)
+  })
+
+  it('no se contesta a una respuesta oculta', async () => {
+    const { id } = await svc.abrirHilo({
+      titulo: 'Un hilo con moderación',
+      cuerpo: 'Cuerpo con longitud suficiente para pasar.',
+      autorId: ANA,
+    })
+    const { id: retirada } = await svc.responder({ hiloId: id, cuerpo: 'Primera', autorId: BETO })
+    await svc.ocultarRespuesta(admin, retirada, true)
+
+    await expect(
+      svc.responder({
+        hiloId: id,
+        respuestaPadreId: retirada,
+        cuerpo: 'Contesto a lo retirado',
+        autorId: ANA,
+      }),
+    ).rejects.toThrow(NotFoundException)
+  })
+
+  it('no se contesta a una respuesta de otro hilo', async () => {
+    const primero = await svc.abrirHilo({
+      titulo: 'Hilo de la respuesta',
+      cuerpo: 'Cuerpo con longitud suficiente para pasar.',
+      autorId: ANA,
+    })
+    const segundo = await svc.abrirHilo({
+      titulo: 'Hilo distinto del anterior',
+      cuerpo: 'Otro cuerpo con longitud suficiente.',
+      autorId: BETO,
+    })
+    const { id: ajena } = await svc.responder({
+      hiloId: primero.id,
+      cuerpo: 'Respuesta del primer hilo',
+      autorId: BETO,
+    })
+
+    await expect(
+      svc.responder({
+        hiloId: segundo.id,
+        respuestaPadreId: ajena,
+        cuerpo: 'Cuelgo esto donde no toca',
+        autorId: ANA,
+      }),
+    ).rejects.toThrow(NotFoundException)
   })
 
   it('un título demasiado corto se rechaza', async () => {

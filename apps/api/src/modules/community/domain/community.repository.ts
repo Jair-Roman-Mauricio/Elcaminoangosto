@@ -16,6 +16,8 @@ export interface HiloEntity extends HiloResumen {
 export interface RespuestaEntity {
   id: string
   hiloId: string
+  /** Respuesta a la que contesta; `null` si contesta al hilo. */
+  respuestaPadreId: string | null
   cuerpo: string
   autorHuella: string
   estado: 'VISIBLE' | 'OCULTO'
@@ -41,6 +43,9 @@ export abstract class CommunityRepository {
 
   abstract respuestasDe(hiloId: string, incluirOcultas: boolean): Promise<RespuestaEntity[]>
 
+  /** Una respuesta suelta. Hace falta para validar a quién contesta otra. */
+  abstract buscarRespuesta(id: string): Promise<RespuestaEntity | null>
+
   abstract crearHilo(input: {
     titulo: string
     cuerpo: string
@@ -49,6 +54,7 @@ export abstract class CommunityRepository {
 
   abstract responder(input: {
     hiloId: string
+    respuestaPadreId: string | null
     cuerpo: string
     autorHuella: string
   }): Promise<RespuestaEntity>
