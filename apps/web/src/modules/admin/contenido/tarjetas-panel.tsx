@@ -66,7 +66,7 @@ export function TarjetasPanel() {
       )}
 
       {(cambiarEstado.isError || eliminar.isError) && (
-        <p role="alert" className="m-0 font-ui text-body-s text-vino">
+        <p role="alert" className="m-0 font-ui text-body-s text-peligro">
           {mensajeDeError(cambiarEstado.error ?? eliminar.error)}
         </p>
       )}
@@ -165,7 +165,7 @@ type Fase = 'elegir' | 'subiendo' | 'procesando' | 'publicando'
 const CLASE_ARCHIVO =
   'font-mono text-body-s text-texto-tenue file:mr-aire-s file:rounded file:border ' +
   'file:border-linea file:bg-superficie-2 file:px-aire-s file:py-1 file:font-mono ' +
-  'file:text-eyebrow file:uppercase file:tracking-label file:text-contenido hover:file:border-vino'
+  'file:text-eyebrow file:uppercase file:tracking-label file:text-contenido hover:file:border-acento'
 
 /** Campos de texto de la ficha. Vacío = no se envía (queda nulo). */
 const FICHA_VACIA = {
@@ -392,7 +392,7 @@ function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
           <p className="m-0 font-mono text-body-s text-texto-tenue">Publicando…</p>
         )}
         {error && (
-          <p role="alert" className="m-0 font-ui text-body-s text-vino">
+          <p role="alert" className="m-0 font-ui text-body-s text-peligro">
             {error}
           </p>
         )}

@@ -91,7 +91,7 @@ export function CampoDeImagen({
       </div>
 
       {error && (
-        <p role="alert" className="m-0 font-ui text-body-s text-vino">
+        <p role="alert" className="m-0 font-ui text-body-s text-peligro">
           {error}
         </p>
       )}

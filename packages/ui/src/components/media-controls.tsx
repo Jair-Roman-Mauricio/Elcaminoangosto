@@ -29,7 +29,7 @@ export function PlayPause({ reproduciendo, onToggle, size = 44, className }: Pla
       aria-pressed={reproduciendo}
       className={cn(
         'grid place-items-center rounded-full border border-linea-fuerte',
-        'transition-colors duration-fade ease-camino hover:border-vino hover:bg-vino',
+        'transition-colors duration-fade ease-camino hover:border-acento hover:bg-oro hover:brillo-oro hover:text-sobreoro',
         className,
       )}
       style={{ width: size, height: size }}
@@ -82,7 +82,9 @@ export function ProgressBar({ value, max, onSeek, className }: ProgressBarProps)
       aria-valuetext={`${formatTime(value)} de ${formatTime(max)}`}
       className={cn('h-1 w-full cursor-pointer appearance-none rounded bg-linea', className)}
       style={{
-        background: `linear-gradient(to right, var(--vino) ${pct}%, var(--linea) ${pct}%)`,
+        background: `linear-gradient(to right, var(--oro) ${pct}%, var(--linea) ${pct}%)`,
+        // El pulgar lo dibuja el navegador: sin esto se queda en su azul.
+        accentColor: 'var(--oro)',
       }}
     />
   )

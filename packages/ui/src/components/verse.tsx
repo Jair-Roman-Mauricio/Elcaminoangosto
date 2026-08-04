@@ -20,7 +20,7 @@ export function Verse({ children, referencia, className, variante = 'default' }:
         className={cn(
           'm-0 font-serif text-verse font-light',
           variante === 'login'
-            ? 'text-hueso underline decoration-vino decoration-2 underline-offset-[0.22em]'
+            ? 'text-hueso underline decoration-acento decoration-2 underline-offset-[0.22em]'
             : 'text-contenido/[0.88]',
         )}
       >

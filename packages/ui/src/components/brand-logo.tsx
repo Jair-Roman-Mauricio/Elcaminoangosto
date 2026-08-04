@@ -1,7 +1,7 @@
 import { cn } from '../lib/cn'
 
 export type BrandLogoLayout = 'horizontal' | 'stacked'
-export type BrandLogoTone = 'light' | 'dark' | 'wine' | 'adaptive'
+export type BrandLogoTone = 'light' | 'dark' | 'oro' | 'adaptive'
 export type BrandLogoSize = 'sm' | 'md' | 'lg'
 export type BrandLogoVariante = 'default' | 'sidebar'
 
@@ -19,7 +19,7 @@ export interface BrandLogoProps {
 const toneClasses: Record<BrandLogoTone, string> = {
   light: 'text-hueso',
   dark: 'text-negro',
-  wine: 'text-vino',
+  oro: 'text-acento',
   adaptive: 'text-contenido',
 }
 
@@ -78,7 +78,7 @@ export function BrandLogo({
       </svg>
       {mostrarNombre && (variante === 'sidebar' ? (
         <span className="font-ui text-body font-semibold leading-none tracking-boton">
-          <span className="text-vino">El</span>CaminoAngosto
+          <span className="text-acento">El</span>CaminoAngosto
         </span>
       ) : (
         <span

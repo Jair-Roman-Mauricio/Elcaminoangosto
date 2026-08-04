@@ -222,6 +222,65 @@ La transición DRAFT→PUBLISHED por llave **no pasa por `canTransition`**: es u
 - La bitácora conserva el título de la lección (`lesson_title`) y no tiene FK a `lessons`: la auditoría sobrevive al borrado del contenido.
 - Coste: una segunda dimensión de estado sobre las lecciones. Se acepta porque la alternativa —devolver el curso a revisión completa por cada cambio— paraliza cursos publicados.
 
+## ADR-012 — La plataforma cambia a negro y oro; el oscuro pasa a ser el tema base
+
+**Fecha:** 2026-08-04 · **Estado:** Aceptada (decidida por el responsable humano)
+
+**Contexto.** El acento de marca era `vino` (#b41e44), heredado de la landing (ADR-001). El emblema de El Camino Angosto —el sol sobre la cruz, el camino y el disco que los enmarca— no tiene nada de vino: es **oro sobre azul noche**. La plataforma y su propio logotipo decían dos cosas distintas. El responsable humano pidió alinearlas y, con ello, que el **tema oscuro** deje de ser la alternativa.
+
+**Decisión.**
+
+- **El acento pasa a ser el oro del emblema.** `--oro: #e3ac33` (relleno), `--oro-claro: #f6d689` (destello), `--oro-hondo: #8a6212` (oro legible sobre blanco), `--sobre-oro: #0b0a07` (texto encima del relleno) y `--noche: #0c1322` (apoyo frío, antes `marino`).
+- **`--acento` es el único acento que cambia con el tema:** en oscuro `#efc25c`, en claro `--oro-hondo`. Existe porque el oro del emblema no se lee sobre blanco. **Los rellenos siguen siendo `--oro` en ambos temas**, siempre con `--sobre-oro` encima: hueso o blanco sobre oro no alcanza contraste.
+- **El error deja de compartir color con el acento.** `--peligro` era `var(--vino)`; ahora es `#d0463a`. Un campo inválido en oro se leería como énfasis de marca, no como alarma.
+- **Oscuro por defecto** (`:root`); `[data-theme="light"]` invierte. Esto revisa el "claro por defecto" de **ADR-007**; el resto de ADR-007 (tokens semánticos, toggle, pantallas forzadas a oscuro) sigue vigente. El `ThemeProvider` estrena clave de `localStorage` (`ec-tema-2`): la anterior ya tenía `light` grabado para todo el que hubiera entrado, así que nadie habría visto el nuevo tema base.
+- **La landing no se migra todavía** (petición explícita). `--vino` y `--marino` siguen definidos en `tokens.css` y en el preset **solo para ella**; no se usan en pantallas nuevas.
+
+**Qué no cambia.** El enum `alabanza_tono` conserva sus valores (`vino`, `marfil`, `azul`): son **identificadores de datos** ya escritos en la base, no colores. Lo que se repinta es lo que dibujan — el tono `vino` se sella ahora en oro profundo. Renombrar el enum exigiría una migración sin beneficio para el usuario.
+
+**Consecuencias.**
+- Un solo acento en toda la plataforma, y es el del logotipo.
+- Regla nueva y obligatoria: `bg-oro` va siempre con `text-sobreoro`; para texto y trazos, `acento`.
+- El tema claro sobrevive como alternativa del interruptor, con el acento en oro profundo.
+- Deuda asumida: la landing sigue en vino. Hasta que se migre, conviven dos acentos en el repositorio.
+
+## ADR-013 — La comunidad conversa con un solo nivel de anidamiento
+
+**Fecha:** 2026-08-04 · **Estado:** Aceptada (decidida por el responsable humano)
+
+**Contexto.** Las respuestas de un hilo eran una lista plana: quien contestaba a alguien en concreto tenía que nombrarlo dentro del texto («respondiendo a Caminante 2…»), y al leer no se distinguía qué contestaba a qué.
+
+**Decisión.** `hilo_respuestas` gana `respuesta_padre_id`, y la interfaz sangra la contestación bajo la respuesta a la que pertenece.
+
+- **Un solo nivel.** Se contesta al hilo o a una respuesta suya, **nunca a una contestación**. Una cadena sin fondo obliga a sangrar sin límite y en un móvil la cuarta respuesta acaba en una columna de tres palabras. Con un nivel ya se lee «esto es para aquello», que era el problema; lo demás es hilo nuevo.
+- **La regla vive en la base**, en el trigger `hilo_respuestas_un_solo_nivel`, y se repite en el servicio. Es una invariante del dato —una respuesta colgada de otro hilo, o una cadena de tres, dejan la conversación imposible de dibujar—, no una comprobación de una llamada concreta.
+- **`on delete cascade` del padre**: retirar una respuesta se lleva sus contestaciones, que sin ella no significan nada.
+- El **alias sigue siendo por hilo** («Caminante 2»): anidar no crea identidad nueva ni la hace perseguible entre hilos.
+- Una contestación cuyo padre no se ve —lo ocultó un admin— **se dibuja arriba, no desaparece**: moderar un mensaje no debe llevarse por delante lo que otros escribieron debajo.
+
+**Consecuencias.**
+- El contador `hilos.respuestas` cuenta todas las respuestas visibles, anidadas incluidas: para el listado lo que importa es cuánta conversación hay.
+- La interfaz publica un botón «Responder» por respuesta del hilo; las contestaciones no lo llevan, porque no admiten hijas.
+- Coste: una consulta más al responder (buscar el padre y comprobar su nivel). Se acepta: es una lectura por índice primario en una acción que ya escribe.
+
+## ADR-014 — La conversación de la comunidad se anida sin tope; el límite es visual
+
+**Fecha:** 2026-08-04 · **Estado:** Aceptada (decidida por el responsable humano) · **Revisa:** ADR-013
+
+**Contexto.** ADR-013 topó la conversación en un nivel para no tener que sangrar sin fondo. En uso quedó corto de inmediato: quien recibía una contestación no podía responderla y el diálogo se cortaba justo donde empezaba.
+
+**Decisión.** El anidamiento pasa a ser **libre en el dato**, y el tope se muda a la interfaz.
+
+- El trigger `hilo_respuestas_un_solo_nivel` se sustituye por `hilo_respuestas_padre_valido`, que sigue exigiendo padre existente y del mismo hilo, y además **impide ciclos** subiendo por la cadena de antepasados (con un corte a 200 saltos, por si algún dato ya viniera torcido).
+- **La sangría se detiene en el nivel 6** (`TOPE_DE_SANGRIA`), el mismo tope que Old Reddit. Más adentro la conversación sigue anidando, pero pegada a esa columna: en un móvil, a la séptima contestación no queda ancho ni para una palabra.
+- **El dibujo es una sola línea de hilo**, fina y del color de `--linea`, que baja por la izquierda y entra en cada mensaje con un codo. Se descartaron el recuadro, el fondo propio y la etiqueta «en respuesta a»: tres marcos para decir lo mismo cargaban la pantalla, y dos líneas verticales seguidas se leían como dos sangrías encajadas.
+- **Quien abrió el hilo lleva una insignia** «Autor» junto a su alias. Se probó correr sus mensajes a la derecha, pero eso rompía la columna de la línea de hilo, que es lo que ordena la lectura.
+
+**Consecuencias.**
+- El render del hilo es recursivo; el árbol se arma en el cliente desde la lista plana que devuelve el servidor.
+- Una contestación cuyo padre no se ve —lo ocultó un admin— se dibuja a nivel de hilo en lugar de desaparecer, igual que en ADR-013.
+- Queda pendiente, si un hilo crece mucho: plegar ramas («N respuestas más») y paginar. Hoy el hilo se sirve entero.
+
 ## Preguntas abiertas
 
 | ID | Pregunta | Estado | Propuesta por defecto |

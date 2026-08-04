@@ -49,7 +49,7 @@ export function ContenidoPage() {
       <nav ref={navRef} aria-label="Tipo de contenido" className="relative flex gap-aire-m">
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 left-0 h-0.5 bg-vino transition-[width,transform] duration-[600ms] ease-camino"
+          className="pointer-events-none absolute bottom-0 left-0 h-0.5 bg-oro transition-[width,transform] duration-[600ms] ease-camino"
           style={{ width: indicador.width, transform: `translateX(${indicador.left}px)` }}
         />
         {SECCIONES.map((s) => (

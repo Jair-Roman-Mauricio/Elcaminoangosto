@@ -3,17 +3,46 @@
    Espejo en CSS vars del preset de Tailwind (packages/config).
    Fuente de verdad: docs/DESIGN.md · Decisiones: ADR-001, ADR-007.
 
-   El tema se aplica con `data-theme` en <html> (light por defecto).
+   El tema se aplica con `data-theme` en <html> (OSCURO por defecto).
    Las superficies y el texto son SEMÁNTICOS y cambian por tema; los
-   acentos de marca (vino, marino) y los valores absolutos (negro, hueso)
+   acentos de marca (oro, noche) y los valores absolutos (negro, hueso)
    son fijos. La landing y el login se fuerzan a oscuro con su propio
    `data-theme="dark"`.
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Acentos de marca (fijos, no cambian con el tema) ── */
+  /* ── Acentos de marca (fijos, no cambian con el tema) ──
+     El oro y el azul noche salen del emblema: el sol sobre la cruz y el
+     disco que lo enmarca. El oro se usa RELLENO (fondo) y siempre lleva
+     `--sobre-oro` encima; para pintar texto o líneas con el acento va
+     `--acento`, que sí se adapta al tema. */
   --negro: #0a0a0a;
   --hueso: #f7f6f2;
+  --oro: #e5b833;
+  --oro-claro: #f8e08e;
+  --oro-hondo: #8a6212;
+  --sobre-oro: #0b0a07;
+  --noche: #0c1322;
+
+  /* Lingote: el oro macizo no es un color plano, es una superficie que
+     refleja. La banda clara del centro y el filo oscuro son lo que lee el
+     ojo como metal. Va como `background-image` SOBRE `--oro`, que sigue
+     siendo el color sólido del que dependen bordes y `color-mix`. */
+  --oro-brillo: linear-gradient(
+    152deg,
+    #f9e6a4 0%,
+    #e7c04a 18%,
+    #c99a1f 42%,
+    #e8c552 62%,
+    #fbeeb6 78%,
+    #d9a92c 100%
+  );
+  /* Filo superior de luz + sombra en el canto inferior: da grosor a la pieza. */
+  --oro-canto:
+    inset 0 1px 0 rgba(255, 250, 224, 0.72), inset 0 -1px 0 rgba(94, 64, 6, 0.55);
+
+  /* Paleta anterior. Solo la usa la landing, que aún no se ha migrado;
+     no la uses en pantallas nuevas. */
   --vino: #b41e44;
   --marino: #1b3460;
 
@@ -37,18 +66,47 @@
   --fade: 0.9s;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 
-  /* ── Estado (constantes; funcionan sobre ambos temas) ── */
+  /* ── Estado (constantes; funcionan sobre ambos temas) ──
+     El error ya no puede apoyarse en el acento: el oro es la marca y un
+     campo inválido tiene que leerse como alarma, no como énfasis. */
   --exito: #2e7d5b;
   --aviso: #c9862b;
-  --peligro: var(--vino);
+  --peligro: #d0463a;
 }
 
-/* ── TEMA CLARO (por defecto) ─────────────────────────────────
-   Sin el prefijo `:root`: así `[data-theme="dark"]` puede ir en un <div>
-   anidado (landing, login, feed de video) y sus descendientes heredan el
-   tema, al margen del tema global en <html>. Con `:root[data-theme]` solo
-   respondía <html> y los contenedores forzados no tenían efecto. */
+/* ── TEMA OSCURO (por defecto) ─────────────────────────────────
+   Va PRIMERO a propósito. `:root` y `[data-theme="light"]` tienen la misma
+   especificidad, así que en <html> gana el último que se declare: si el
+   bloque oscuro fuera después, el interruptor no podría aclarar la página.
+   Sin el prefijo `:root`, `[data-theme="dark"]` puede ir además en un <div>
+   anidado (landing, login, feed de video) y sus descendientes lo heredan. */
 :root,
+[data-theme="dark"] {
+  --fondo: #0a0a0a;
+  --superficie-0: #0a0a0a;
+  --superficie-1: #101010;
+  --superficie-2: #181818;
+
+  --contenido: #f7f6f2;
+  --contenido-tenue: rgba(247, 246, 242, 0.55);
+  --contenido-debil: rgba(247, 246, 242, 0.35);
+
+  --linea: rgba(247, 246, 242, 0.15);
+  --linea-fuerte: rgba(247, 246, 242, 0.4);
+
+  --foco: var(--hueso);
+
+  /* Sobre negro el oro se lee de sobra; se aclara un punto para que el
+     texto fino no se apague. */
+  --acento: #f2cb5e;
+
+  --texto: var(--contenido);
+  --texto-tenue: var(--contenido-tenue);
+  --texto-debil: var(--contenido-debil);
+}
+/* ── TEMA CLARO (alternativa del interruptor) ─────────────────
+   Después del oscuro: así, a igual especificidad, `data-theme="light"` en
+   <html> gana sobre el `:root` de arriba. */
 [data-theme="light"] {
   /* El lienzo claro comparte el blanco puro de navegación y paneles. Los
      contrastes cálidos se reservan para `--superficie-2` y los controles. */
@@ -67,32 +125,17 @@
   /* Anillo de foco visible sobre fondo claro. */
   --foco: var(--contenido);
 
+  /* El oro del emblema no se lee sobre blanco: para texto y líneas el
+     acento baja al oro profundo, que sí contrasta. Los rellenos siguen
+     usando `--oro` con `--sobre-oro` encima. */
+  --acento: var(--oro-hondo);
+
   /* Alias heredados (misma semántica, para no romper clases existentes). */
   --texto: var(--contenido);
   --texto-tenue: var(--contenido-tenue);
   --texto-debil: var(--contenido-debil);
 }
 
-/* ── TEMA OSCURO ──────────────────────────────────────────── */
-[data-theme="dark"] {
-  --fondo: #0a0a0a;
-  --superficie-0: #0a0a0a;
-  --superficie-1: #101010;
-  --superficie-2: #181818;
-
-  --contenido: #f7f6f2;
-  --contenido-tenue: rgba(247, 246, 242, 0.55);
-  --contenido-debil: rgba(247, 246, 242, 0.35);
-
-  --linea: rgba(247, 246, 242, 0.15);
-  --linea-fuerte: rgba(247, 246, 242, 0.4);
-
-  --foco: var(--hueso);
-
-  --texto: var(--contenido);
-  --texto-tenue: var(--contenido-tenue);
-  --texto-debil: var(--contenido-debil);
-}
 
 *,
 *::before,
@@ -117,8 +160,8 @@ body {
 }
 
 ::selection {
-  background: var(--vino);
-  color: var(--hueso);
+  background: var(--oro);
+  color: var(--sobre-oro);
 }
 
 /* Foco visible — nunca `outline: none` (RNF-6, WCAG 2.1 AA) */

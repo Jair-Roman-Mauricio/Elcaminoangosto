@@ -36,7 +36,7 @@ export function AuthUtilityShell({
       <main className="relative grid min-h-screen grid-cols-1 content-center md:grid-cols-[62%_38%] md:content-stretch">
         <div className="flex flex-col items-center justify-center gap-aire-s px-gutter pt-aire-l text-center md:min-h-screen md:pt-0">
           <BrandLogo layout="horizontal" tone="light" size="lg" />
-          <span aria-hidden className="h-px w-12 bg-vino md:w-16" />
+          <span aria-hidden className="h-px w-12 bg-oro md:w-16" />
           <p className="m-0 hidden font-mono text-eyebrow uppercase leading-relaxed tracking-label text-texto-tenue md:block">
             {leyenda}
           </p>

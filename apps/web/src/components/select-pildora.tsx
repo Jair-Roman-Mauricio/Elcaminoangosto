@@ -23,8 +23,8 @@ const base =
   'disabled:cursor-not-allowed disabled:opacity-60'
 
 const tonos: Record<SelectPildoraTono, string> = {
-  acento: 'border border-vino bg-vino text-hueso',
-  contorno: 'border border-linea-fuerte bg-transparent text-contenido hover:border-vino',
+  acento: 'border border-acento bg-oro brillo-oro text-sobreoro',
+  contorno: 'border border-linea-fuerte bg-transparent text-contenido hover:border-acento',
 }
 
 export const SelectPildora = forwardRef<HTMLSelectElement, SelectPildoraProps>(

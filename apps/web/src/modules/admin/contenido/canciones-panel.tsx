@@ -33,7 +33,7 @@ const TONOS: TonoAlabanza[] = ['vino', 'marfil', 'azul']
 const CLASE_ARCHIVO =
   'font-mono text-body-s text-texto-tenue file:mr-aire-s file:rounded file:border ' +
   'file:border-linea file:bg-superficie-2 file:px-aire-s file:py-1 file:font-mono ' +
-  'file:text-eyebrow file:uppercase file:tracking-label file:text-contenido hover:file:border-vino'
+  'file:text-eyebrow file:uppercase file:tracking-label file:text-contenido hover:file:border-acento'
 
 /** mm:ss a partir de segundos. */
 function duracion(segundos: number | null): string {
@@ -121,7 +121,7 @@ export function CancionesPanel() {
       )}
 
       {error && (
-        <p role="alert" className="m-0 font-ui text-body-s text-vino">
+        <p role="alert" className="m-0 font-ui text-body-s text-peligro">
           {error instanceof ApiError ? error.message : 'No se pudo aplicar el cambio.'}
         </p>
       )}
@@ -395,7 +395,7 @@ function ModalAlbum({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => v
 
       <div className="mt-aire-s flex flex-col gap-aire-s">
         {crear.isError && (
-          <p role="alert" className="m-0 font-ui text-body-s text-vino">
+          <p role="alert" className="m-0 font-ui text-body-s text-peligro">
             {crear.error instanceof ApiError ? crear.error.message : 'No se pudo crear el álbum.'}
           </p>
         )}
@@ -585,7 +585,7 @@ function ModalEditarAlbum({
 
       <div className="mt-aire-s flex flex-col gap-aire-s">
         {editar.isError && (
-          <p role="alert" className="m-0 font-ui text-body-s text-vino">
+          <p role="alert" className="m-0 font-ui text-body-s text-peligro">
             {editar.error instanceof ApiError ? editar.error.message : 'No se pudo guardar.'}
           </p>
         )}
@@ -851,7 +851,7 @@ function ModalCancion({
       <div className="mt-aire-s flex flex-col gap-aire-s">
         {subiendo && <p className="m-0 font-mono text-body-s text-texto-tenue">Subiendo… {pct}%</p>}
         {error && (
-          <p role="alert" className="m-0 font-ui text-body-s text-vino">
+          <p role="alert" className="m-0 font-ui text-body-s text-peligro">
             {error}
           </p>
         )}

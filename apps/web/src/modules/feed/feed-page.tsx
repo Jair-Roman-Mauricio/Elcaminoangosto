@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Eyebrow } from '@elcamino/ui'
+import { Verse } from '@elcamino/ui'
 import { BrandLogo } from '@elcamino/ui/static'
 import { useFeed, type FeedCard } from './feed-api'
 import { useRegistrarVista, useRegistrarVisita } from '../../lib/analitica'
@@ -317,27 +317,10 @@ function ListadoDeTarjetas({
   error: boolean
   onSeleccionar: (card: FeedCard) => void
 }) {
-  const [busqueda, setBusqueda] = useState('')
-
   const ordenadas = useMemo(
     () => [...cards].sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? '')),
     [cards],
   )
-
-  const visibles = useMemo(() => {
-    const orden = ordenadas
-    const termino = busqueda.trim().toLocaleLowerCase()
-    if (!termino) return orden
-    // Busca en todo lo que la tarjeta enseña, no solo en el título: quien
-    // recuerda una frase del relato debe poder llegar por ahí.
-    return orden.filter((card) =>
-      [card.title, card.caption, card.manifesto, card.story, card.reference, card.origin]
-        .filter(Boolean)
-        .join(' ')
-        .toLocaleLowerCase()
-        .includes(termino),
-    )
-  }, [busqueda, ordenadas])
 
   return (
     <>
@@ -351,11 +334,12 @@ function ListadoDeTarjetas({
 
           La imagen va `contain` y no `cover`: las tarjetas llevan texto hasta
           el borde y recortarlas se come palabras. Como una proporción distinta
-          a la de la pantalla deja bandas, el hueco se pinta de negro y pasa a
-          leerse como el marco de un visor en vez de como un fallo. */}
+          a la de la pantalla deja bandas, el hueco lleva la misma textura de
+          papel que la sección de tarjetas de la landing: así se lee como el
+          soporte donde reposa la pieza, no como un hueco vacío. */}
       <div className="-mx-gutter -mb-32 -mt-[5.5rem] pt-[3.75rem] cine:hidden">
         {error && (
-          <p className="px-gutter font-ui text-body text-vino">
+          <p className="px-gutter font-ui text-body text-acento">
             No se pudieron cargar las tarjetas.
           </p>
         )}
@@ -367,7 +351,7 @@ function ListadoDeTarjetas({
           {ordenadas.map((card) => (
             <li
               key={card.id}
-              className="flex h-[calc(100dvh-3.75rem)] snap-start snap-always items-center justify-center bg-negro"
+              className="flex h-[calc(100dvh-3.75rem)] snap-start snap-always items-center justify-center tarjeta-visor"
             >
               <img
                 src={card.posterUrl ?? card.mediaUrl}
@@ -382,72 +366,229 @@ function ListadoDeTarjetas({
 
       {/* ── Escritorio: rejilla con buscador y ficha al pulsar ─────────── */}
       <section className="mx-auto hidden w-full max-w-5xl flex-col gap-aire-m cine:flex">
-        <header className="flex flex-col gap-aire-xs">
-          <Eyebrow>Tarjetas de fe</Eyebrow>
-          {/* Mismo buscador que tenía el catálogo de cursos: la etiqueta la lee
-              el lector de pantalla, y a la vista queda la lupa dentro del campo. */}
-          <label className="relative block w-full">
-            <span className="sr-only">Buscar tarjetas</span>
-            <svg
-              className="pointer-events-none absolute left-aire-s top-1/2 size-5 -translate-y-1/2 text-texto-tenue"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(evento) => setBusqueda(evento.target.value)}
-              placeholder="Título, versículo o una frase del relato"
-              autoComplete="off"
-              className="h-14 w-full rounded-full border border-linea-fuerte bg-superficie-1 pl-12 pr-aire-s font-ui text-body text-contenido shadow-[inset_0_0_0_1px_var(--linea)] outline-none transition-[border-color,box-shadow] placeholder:text-texto-tenue focus:border-vino focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--vino)_12%,transparent)]"
-            />
-          </label>
-        </header>
 
         {error && (
-          <p className="m-0 font-ui text-body text-vino">
+          <p className="m-0 font-ui text-body text-acento">
             No se pudieron cargar las tarjetas. Vuelve a intentarlo en un momento.
           </p>
         )}
         {cargando && !error && (
           <p className="m-0 font-ui text-body text-texto-tenue">Cargando tarjetas…</p>
         )}
-        {!cargando && !error && visibles.length === 0 && (
+        {!cargando && !error && ordenadas.length === 0 && (
           <p className="m-0 font-ui text-body text-texto-tenue">
-            {busqueda.trim()
-              ? 'Ninguna tarjeta coincide con esa búsqueda.'
-              : 'Todavía no hay tarjetas publicadas.'}
+            Todavía no hay tarjetas publicadas.
           </p>
         )}
 
-        {/* Rejilla de columnas, no de filas: cada tarjeta conserva su propia
-            proporción y las alturas distintas encajan sin dejar huecos. Con
-            `grid` habría que recortar las imágenes o igualar alturas, y la
-            tarjeta ES la imagen. */}
-        <ul className="m-0 list-none columns-2 gap-aire-m p-0 md:columns-3">
-          {visibles.map((card) => (
-            <li key={card.id} className="mb-aire-m break-inside-avoid">
-              <button
-                type="button"
-                onClick={() => onSeleccionar(card)}
-                className="block w-full overflow-hidden border border-linea bg-superficie-1 transition-colors duration-fade ease-camino hover:border-vino"
-              >
-                <img
-                  src={card.posterUrl ?? card.mediaUrl}
-                  alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
-                  loading="lazy"
-                  className="block w-full"
-                />
-              </button>
-            </li>
-          ))}
-        </ul>
+        {ordenadas.length > 0 && <VisorDeTarjetas cards={ordenadas} onAbrir={onSeleccionar} />}
       </section>
     </>
+  )
+}
+
+/**
+ * Visor de escritorio: una tarjeta grande, su ficha al costado y la colección
+ * entera en una tira de miniaturas.
+ *
+ * Sustituye a la rejilla de columnas. En una rejilla todas las piezas compiten
+ * al mismo tamaño y ninguna se contempla; aquí hay una sola pieza mirándote y
+ * el resto espera en el margen. La pantalla ancha se usa para dar aire, que es
+ * lo que una tarjeta necesita para leerse.
+ */
+/** Alto fijo de cada miniatura, para que la tira tenga un ritmo constante. */
+const ALTO_MINIATURA = 100
+/** Alto + hueco: lo que avanza la tira por cada tarjeta. */
+const PASO_MINIATURA = ALTO_MINIATURA + 12
+/**
+ * Cuántas posiciones se dibujan alrededor de la actual. Por arriba basta con
+ * un par —solo se ven al retroceder—; por abajo hay que cubrir la columna más
+ * alta que quepa en pantalla, y sobra margen para que nunca asome un hueco.
+ */
+const VENTANA_ARRIBA = 2
+const VENTANA_ABAJO = 14
+
+function VisorDeTarjetas({
+  cards,
+  onAbrir,
+}: {
+  cards: FeedCard[]
+  onAbrir: (card: FeedCard) => void
+}) {
+  /**
+   * Posición en la colección, SIN TECHO: puede pasar del último y seguir, o
+   * bajar de cero. Es lo que da el bucle sin fin — la tira nunca llega a un
+   * borde donde frenar, solo vuelve a pasar por lo mismo.
+   *
+   * La tarjeta que se ve es `paso` traído al rango real con módulo.
+   */
+  const [paso, setPaso] = useState(0)
+  const visorRef = useRef<HTMLDivElement>(null)
+  const total = cards.length
+  const indice = ((paso % total) + total) % total
+  const card = cards[indice]!
+  const ficha = fichaDe(card)
+  const apreciacion = ficha.manifiesto.trim()
+
+  useEffect(() => {
+    setPaso(0)
+  }, [cards])
+
+  const mover = (avance: number) => setPaso((actual) => actual + avance)
+
+  const ventana: number[] = []
+  for (let posicion = paso - VENTANA_ARRIBA; posicion <= paso + VENTANA_ABAJO; posicion += 1) {
+    ventana.push(posicion)
+  }
+
+  /**
+   * La rueda recorre la colección.
+   *
+   * El listener va a mano y no como `onWheel` porque React los registra
+   * pasivos, y sin poder frenar el evento la página entera se movía a la vez
+   * que la tira. Solo se frena cuando queda colección hacia ese lado: en los
+   * extremos el gesto vuelve a ser de la página y no atrapa a nadie dentro.
+   *
+   * El acumulador existe por los trackpads, que mandan decenas de eventos de
+   * dos o tres píxeles: sin umbral, un solo gesto saltaba media colección.
+   */
+  useEffect(() => {
+    const zona = visorRef.current
+    if (!zona) return
+
+    let acumulado = 0
+    let ultimoSalto = 0
+
+    const alRodar = (evento: WheelEvent) => {
+      const direccion = Math.sign(evento.deltaY)
+      if (direccion === 0) return
+
+      // La colección no tiene extremos, así que el gesto siempre es del visor.
+      evento.preventDefault()
+      const ahora = evento.timeStamp
+      // Un gesto nuevo empieza cuenta nueva; si no, la inercia del anterior
+      // seguiría empujando.
+      if (ahora - ultimoSalto > 320) acumulado = 0
+      acumulado += evento.deltaY
+      if (Math.abs(acumulado) < 60) return
+
+      acumulado = 0
+      ultimoSalto = ahora
+      mover(direccion)
+    }
+
+    zona.addEventListener('wheel', alRodar, { passive: false })
+    return () => zona.removeEventListener('wheel', alRodar)
+  }, [])
+
+  return (
+    <div
+      ref={visorRef}
+      // Columnas laterales iguales: solo así la pieza cae en el centro real de
+      // la pantalla. Con la tira midiendo lo suyo y la izquierda repartiéndose
+      // el resto, la imagen quedaba corrida hacia la derecha.
+      className="grid grid-cols-[minmax(6rem,1fr)_minmax(0,2.4fr)_minmax(6rem,1fr)] items-center gap-aire-m"
+      onKeyDown={(evento) => {
+        if (evento.key === 'ArrowDown' || evento.key === 'ArrowRight') {
+          evento.preventDefault()
+          mover(1)
+        }
+        if (evento.key === 'ArrowUp' || evento.key === 'ArrowLeft') {
+          evento.preventDefault()
+          mover(-1)
+        }
+      }}
+    >
+      {/* Al costado va la contemplación: el manifiesto en serif —el único sitio
+          del sistema donde se usa— con su versículo, y de pie el título y la
+          posición en la colección, en letra menor para que no compitan.
+          Entra con la pieza, no antes: son la misma tarjeta. */}
+      <div
+        key={card.id}
+        className="flex animate-[visor-entra_600ms_var(--ease)_both] flex-col gap-aire-m"
+      >
+        {apreciacion && (
+          <Verse {...(ficha.referencia ? { referencia: ficha.referencia } : {})}>
+            {apreciacion}
+          </Verse>
+        )}
+        <p className="m-0 font-mono text-body-s uppercase tracking-label text-texto-debil">
+          {ficha.titulo} · {String(indice + 1).padStart(2, '0')}/
+          {String(cards.length).padStart(2, '0')}
+        </p>
+      </div>
+
+      {/* La pieza. `contain` y no `cover`: las tarjetas llevan texto hasta el
+          borde y recortarlas se come palabras. */}
+      <button
+        type="button"
+        onClick={() => onAbrir(card)}
+        aria-label={`Abrir la ficha de ${card.title ?? 'la tarjeta'}`}
+        // Bloque, no rejilla: con `grid` la pista se dimensiona con la imagen
+        // —953 px de alto— y el `h-full` del `img` se resolvía contra ella en
+        // vez de contra la caja, así que la pieza se salía de la pantalla.
+        className="group block h-[calc(100dvh-16rem)] min-h-[24rem] w-full"
+      >
+        {/* `atributosImagen` sirve el ancho que la celda usa en vez del original:
+            con la URL cruda, cambiar de pieza dejaba el centro en negro
+            mientras bajaban 4.000 px que nadie iba a ver. */}
+        <img
+          key={card.id}
+          {...atributosImagen(card.posterUrl ?? card.mediaUrl)}
+          alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
+          className="h-full w-full animate-[visor-entra_600ms_var(--ease)_both] object-contain transition-[filter] duration-fade ease-camino group-hover:brightness-110"
+        />
+      </button>
+
+      {/* La colección empieza arriba y baja sin fin: pasado el último vuelve a
+          empezar sin que se note el corte.
+
+          Por eso no es una lista con scroll, sino una VENTANA. Se dibujan las
+          posiciones alrededor de la actual —cada una colocada en su sitio
+          absoluto— y lo que se mueve es la tira entera. Con scroll normal,
+          volver al principio sería un salto al tope; aquí el movimiento no
+          distingue la vuelta de cualquier otro paso, porque las posiciones
+          siguen creciendo aunque las tarjetas se repitan. */}
+      <div className="ml-auto h-[calc(100dvh-16rem)] min-h-[24rem] w-20 self-start overflow-hidden">
+        <ul
+          className="relative m-0 list-none p-0 transition-transform duration-fade ease-camino motion-reduce:transition-none"
+          style={{ transform: `translate3d(0, ${-paso * PASO_MINIATURA}px, 0)` }}
+        >
+          {ventana.map((posicion) => {
+            const otra = cards[((posicion % total) + total) % total]!
+            const esActiva = posicion === paso
+            return (
+              <li
+                key={posicion}
+                className="absolute inset-x-0"
+                style={{ top: posicion * PASO_MINIATURA, height: ALTO_MINIATURA }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setPaso(posicion)}
+                  aria-current={esActiva}
+                  aria-label={otra.title ?? otra.caption ?? 'Tarjeta de fe'}
+                  // La activa se destaca por el filete de oro y por tamaño: en
+                  // una columna estrecha la opacidad sola no basta.
+                  className={`block h-full w-full overflow-hidden border transition-[opacity,transform,border-color] duration-fade ease-camino ${
+                    esActiva
+                      ? 'scale-100 border-acento opacity-100'
+                      : 'scale-[0.88] border-transparent opacity-35 hover:scale-95 hover:opacity-80'
+                  }`}
+                >
+                  <img
+                    {...atributosImagen(otra.posterUrl ?? otra.mediaUrl)}
+                    alt=""
+                    loading="lazy"
+                    className="block h-full w-full object-cover"
+                  />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </div>
   )
 }
 

@@ -26,7 +26,7 @@ export interface BotonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 /**
  * Origen: `.boton`, `.boton--sutil` y `.nav__cta` de la landing.
  *
- * El hover es un **fill** hacia `vino` (no un wipe de subrayado), con la
+ * El hover es un **fill** hacia `oro` (no un wipe de subrayado), con la
  * transición larga y sin rebote de `--ease`. Ver DESIGN.md §5.
  */
 const base =
@@ -35,30 +35,31 @@ const base =
   'motion-reduce:duration-fade-corto disabled:opacity-40 disabled:pointer-events-none'
 
 const variantes: Record<BotonVariante, string> = {
-  // El texto base usa el token temático; en hover se rellena de vino y el
-  // texto pasa a `hueso` (blanco fijo sobre el acento, en ambos temas).
+  // El texto base usa el token temático; en hover se rellena de oro y el
+  // texto pasa a `sobreoro` (casi negro: el oro es claro y no admite texto
+  // en hueso encima).
   primary: cn(
     'text-label tracking-boton text-contenido',
     'px-[2.4rem] py-[1.05rem] rounded',
     'border border-linea-fuerte bg-transparent',
-    'hover:border-vino hover:bg-vino hover:text-hueso',
+    'hover:border-acento hover:bg-oro hover:brillo-oro hover:text-sobreoro',
   ),
   sutil: cn(
     'text-label tracking-boton text-texto-tenue',
     'px-0 py-[0.6rem] border-0 bg-transparent',
     'underline underline-offset-[0.45em] decoration-linea',
-    'hover:text-contenido hover:decoration-marino',
+    'hover:text-contenido hover:decoration-acento',
   ),
   nav: cn(
     'text-label tracking-boton text-contenido',
     'px-[1.1rem] py-[0.6rem] rounded',
     'border border-linea bg-transparent',
-    'hover:border-vino hover:bg-vino/10',
+    'hover:border-acento hover:bg-oro/10',
   ),
   formulario: cn(
-    'whitespace-nowrap rounded-full border border-vino bg-vino px-[2rem] py-[0.85rem]',
-    'font-ui text-body-s font-medium tracking-boton text-hueso',
-    'hover:bg-transparent hover:text-vino',
+    'whitespace-nowrap rounded-full border border-acento bg-oro brillo-oro px-[2rem] py-[0.85rem]',
+    'font-ui text-body-s font-medium tracking-boton text-sobreoro',
+    'hover:bg-transparent hover:text-acento',
   ),
   /**
    * Acción principal de una tarjeta de cola (Revisiones, Moderación): la misma
@@ -68,22 +69,22 @@ const variantes: Record<BotonVariante, string> = {
    * del curso. En los formularios sí manda `formulario`.
    */
   tarjeta: cn(
-    'whitespace-nowrap rounded-full border border-vino bg-vino px-[1.6rem] py-[0.7rem]',
-    'font-ui text-body-s font-medium normal-case tracking-normal text-hueso',
+    'whitespace-nowrap rounded-full border border-acento bg-oro brillo-oro px-[1.6rem] py-[0.7rem]',
+    'font-ui text-body-s font-medium normal-case tracking-normal text-sobreoro',
     // El color no se mueve al pasar el cursor: la tarjeta entera ya es el
     // objetivo y responde por su cuenta; que además parpadeara el botón sería
     // ruido. El puntero basta como señal de que se puede pulsar.
-    'hover:border-vino hover:bg-vino hover:text-hueso',
+    'hover:border-acento hover:bg-oro hover:brillo-oro hover:text-sobreoro',
   ),
   // Píldora de contorno: pareja secundaria de `formulario` (misma forma, sin relleno).
   contorno: cn(
     'whitespace-nowrap rounded-full border border-linea-fuerte bg-transparent px-[2rem] py-[0.85rem]',
     'font-ui text-body-s font-medium tracking-boton text-contenido',
-    'hover:border-vino hover:text-vino',
+    'hover:border-acento hover:text-acento',
   ),
   /**
    * Acciones dentro de una fila de lista (ver, aprobar, retirar). En la fila
-   * mandan dos reglas: lo que **se puede hacer** va relleno de vino; lo que
+   * mandan dos reglas: lo que **se puede hacer** va relleno de oro; lo que
    * **informa** va en contorno (`Chip`). Por eso esta pastilla siempre está
    * rellena y no se vacía al pasar el cursor — a diferencia de `formulario`,
    * cuyo hover invierte el relleno.
@@ -92,9 +93,9 @@ const variantes: Record<BotonVariante, string> = {
    * de un botón principal. Misma métrica que un `Chip` mini, su pareja de fila.
    */
   pastilla: cn(
-    'whitespace-nowrap rounded-full border border-vino bg-vino px-[0.9rem] py-[0.3rem]',
-    'text-eyebrow normal-case tracking-normal text-hueso',
-    'hover:border-vino hover:bg-vino hover:text-hueso',
+    'whitespace-nowrap rounded-full border border-acento bg-oro brillo-oro px-[0.9rem] py-[0.3rem]',
+    'text-eyebrow normal-case tracking-normal text-sobreoro',
+    'hover:border-acento hover:bg-oro hover:brillo-oro hover:text-sobreoro',
   ),
 }
 

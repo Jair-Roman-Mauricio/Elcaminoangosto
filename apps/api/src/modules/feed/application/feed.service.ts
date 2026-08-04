@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -61,6 +62,8 @@ export interface AdminCard {
  */
 @Injectable()
 export class FeedService {
+  private readonly logger = new Logger(FeedService.name)
+
   constructor(
     private readonly posts: PostRepository,
     private readonly media: MediaService,
@@ -180,23 +183,39 @@ export class FeedService {
    */
   async feed(limit: number, before: Date | null): Promise<FeedCard[]> {
     const filas = await this.posts.findFeed(Math.min(limit, 20), before)
-    return Promise.all(
-      filas.map(async (f) => ({
-        id: f.id,
-        authorName: f.authorName,
-        type: f.type,
-        caption: f.caption,
-        title: f.title,
-        manifesto: f.manifesto,
-        story: f.story,
-        origin: f.origin,
-        reference: f.reference,
-        audioUrl: f.audioAssetId ? await this.media.urlDeOrigen(f.audioAssetId, true) : null,
-        // Solo se firman medios de tarjetas ya filtradas como PUBLISHED/READY.
-        mediaUrl: await this.media.urlDeLectura(f.mediaAssetId, true),
-        posterUrl: await this.media.urlDePoster(f.mediaAssetId, true),
-        publishedAt: f.publishedAt?.toISOString() ?? null,
-      })),
+    const tarjetas = await Promise.all(
+      filas.map(async (f) => {
+        // Una tarjeta cuyo medio no se puede firmar —el archivo desapareció del
+        // almacenamiento— se omite en vez de tumbar la página entera. Antes un
+        // solo objeto perdido devolvía 500 y dejaba el feed en blanco.
+        const mediaUrl = await this.media.urlDeLectura(f.mediaAssetId, true).catch(() => null)
+        if (!mediaUrl) {
+          this.logger.warn(
+            { postId: f.id, mediaAssetId: f.mediaAssetId },
+            'Tarjeta omitida del feed: no se pudo firmar su medio',
+          )
+          return null
+        }
+
+        return {
+          id: f.id,
+          authorName: f.authorName,
+          type: f.type,
+          caption: f.caption,
+          title: f.title,
+          manifesto: f.manifesto,
+          story: f.story,
+          origin: f.origin,
+          reference: f.reference,
+          audioUrl: f.audioAssetId
+            ? await this.media.urlDeOrigen(f.audioAssetId, true).catch(() => null)
+            : null,
+          posterUrl: await this.media.urlDePoster(f.mediaAssetId, true).catch(() => null),
+          publishedAt: f.publishedAt?.toISOString() ?? null,
+          mediaUrl,
+        }
+      }),
     )
+    return tarjetas.filter((t): t is FeedCard => t !== null)
   }
 }
