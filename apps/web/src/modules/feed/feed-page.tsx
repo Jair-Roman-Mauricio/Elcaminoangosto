@@ -424,6 +424,8 @@ function VisorDeTarjetas({
    */
   const [paso, setPaso] = useState(0)
   const visorRef = useRef<HTMLDivElement>(null)
+  const imagenRef = useRef<HTMLImageElement>(null)
+  const fichaRef = useRef<HTMLDivElement>(null)
   const total = cards.length
   const indice = ((paso % total) + total) % total
   const card = cards[indice]!
@@ -435,6 +437,32 @@ function VisorDeTarjetas({
   }, [cards])
 
   const mover = (avance: number) => setPaso((actual) => actual + avance)
+
+  /**
+   * La pieza entra desde arriba SIN remontarse.
+   *
+   * Antes se lograba con un `key` por tarjeta: React reemplazaba el nodo y la
+   * animación CSS volvía a correr. El precio era invisible hasta que se probaba
+   * con un trackpad: el navegador conserva el elemento bajo el cursor hasta que
+   * el puntero se mueve, y un nodo separado del documento ya no tiene camino
+   * hasta `window`, así que los eventos de rueda dejaban de llegar. Había que
+   * mover el ratón para revivirlo.
+   *
+   * Con la API de animaciones el elemento es siempre el mismo: solo se le pide
+   * que repita la entrada.
+   */
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    for (const nodo of [imagenRef.current, fichaRef.current]) {
+      nodo?.animate(
+        [
+          { opacity: 0, transform: 'translate3d(0, -14px, 0) scale(0.994)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 600, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' },
+      )
+    }
+  }, [indice])
 
   const ventana: number[] = []
   for (let posicion = paso - VENTANA_ARRIBA; posicion <= paso + VENTANA_ABAJO; posicion += 1) {
@@ -537,10 +565,7 @@ function VisorDeTarjetas({
           del sistema donde se usa— con su versículo, y de pie el título y la
           posición en la colección, en letra menor para que no compitan.
           Entra con la pieza, no antes: son la misma tarjeta. */}
-      <div
-        key={card.id}
-        className="flex animate-[visor-entra_600ms_var(--ease)_both] flex-col gap-aire-m"
-      >
+      <div ref={fichaRef} className="flex flex-col gap-aire-m">
         {apreciacion && (
           <Verse {...(ficha.referencia ? { referencia: ficha.referencia } : {})}>
             {apreciacion}
@@ -567,10 +592,10 @@ function VisorDeTarjetas({
             con la URL cruda, cambiar de pieza dejaba el centro en negro
             mientras bajaban 4.000 px que nadie iba a ver. */}
         <img
-          key={card.id}
+          ref={imagenRef}
           {...atributosImagen(card.posterUrl ?? card.mediaUrl)}
           alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
-          className="h-full w-full animate-[visor-entra_600ms_var(--ease)_both] object-contain transition-[filter] duration-fade ease-camino group-hover:brightness-110"
+          className="h-full w-full object-contain transition-[filter] duration-fade ease-camino group-hover:brightness-110"
         />
       </button>
 
