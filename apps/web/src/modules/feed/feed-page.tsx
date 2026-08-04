@@ -442,39 +442,58 @@ function VisorDeTarjetas({
   }
 
   /**
-   * La rueda recorre la colección.
+   * La rueda recorre la colección: UN GESTO, UNA TARJETA.
    *
    * El listener va a mano y no como `onWheel` porque React los registra
-   * pasivos, y sin poder frenar el evento la página entera se movía a la vez
-   * que la tira. Solo se frena cuando queda colección hacia ese lado: en los
-   * extremos el gesto vuelve a ser de la página y no atrapa a nadie dentro.
+   * pasivos, y sin poder frenar el evento la página se movía a la vez que la
+   * tira.
    *
-   * El acumulador existe por los trackpads, que mandan decenas de eventos de
-   * dos o tres píxeles: sin umbral, un solo gesto saltaba media colección.
+   * Lo difícil es el trackpad. Un deslizamiento de dos dedos no manda un
+   * evento: manda decenas de tres o cuatro píxeles, y sigue mandándolos por
+   * inercia más de un segundo después de levantar los dedos. Acumular y
+   * disparar por umbral —lo que hacía antes— convertía un gesto en media
+   * docena de saltos, porque la inercia volvía a llenar el acumulador enseguida.
+   *
+   * Por eso, tras cada salto se BLOQUEA hasta que el gesto termina de verdad,
+   * y el final se detecta por silencio: 150 ms sin un solo evento. La inercia
+   * no tiene pausas, así que nunca desbloquea. Una rueda de ratón sí las tiene
+   * entre clic y clic, y avanza tarjeta a tarjeta como se espera.
    */
   useEffect(() => {
     const zona = visorRef.current
     if (!zona) return
 
+    /** Píxeles acumulados que cuentan como intención de avanzar. */
+    const UMBRAL = 40
+    /** Silencio que marca el final de un gesto, inercia incluida. */
+    const PAUSA = 150
+
     let acumulado = 0
-    let ultimoSalto = 0
+    let ultimoEvento = 0
+    let bloqueado = false
 
     const alRodar = (evento: WheelEvent) => {
-      const direccion = Math.sign(evento.deltaY)
-      if (direccion === 0) return
+      // Un deslizamiento horizontal es del navegador —el gesto de volver
+      // atrás—, no del visor. Frenarlo dejaba al usuario sin salida.
+      if (Math.abs(evento.deltaY) <= Math.abs(evento.deltaX)) return
 
-      // La colección no tiene extremos, así que el gesto siempre es del visor.
-      evento.preventDefault()
       const ahora = evento.timeStamp
-      // Un gesto nuevo empieza cuenta nueva; si no, la inercia del anterior
-      // seguiría empujando.
-      if (ahora - ultimoSalto > 320) acumulado = 0
-      acumulado += evento.deltaY
-      if (Math.abs(acumulado) < 60) return
+      if (ahora - ultimoEvento > PAUSA) {
+        acumulado = 0
+        bloqueado = false
+      }
+      ultimoEvento = ahora
 
+      // La colección no tiene extremos: el gesto vertical siempre es del visor.
+      evento.preventDefault()
+      if (bloqueado) return
+
+      acumulado += evento.deltaY
+      if (Math.abs(acumulado) < UMBRAL) return
+
+      bloqueado = true
       acumulado = 0
-      ultimoSalto = ahora
-      mover(direccion)
+      mover(Math.sign(evento.deltaY))
     }
 
     zona.addEventListener('wheel', alRodar, { passive: false })
