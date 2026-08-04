@@ -30,7 +30,7 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(fu
             'w-full rounded-none border-0 border-b px-0 py-aire-xs pr-12',
             'font-ui text-body text-hueso placeholder:text-texto-debil',
             'hover:border-linea-fuerte focus:border-hueso',
-            error ? 'border-vino' : 'border-linea',
+            error ? 'border-peligro' : 'border-linea',
           ].join(' ')}
         />
         <button

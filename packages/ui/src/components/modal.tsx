@@ -129,7 +129,7 @@ export function Modal({
                 data-modal-cerrar
                 className={cn(
                   'shrink-0 rounded border border-linea p-2 text-texto-tenue',
-                  'transition-colors duration-fade ease-camino hover:border-vino hover:text-contenido',
+                  'transition-colors duration-fade ease-camino hover:border-acento hover:text-contenido',
                 )}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">

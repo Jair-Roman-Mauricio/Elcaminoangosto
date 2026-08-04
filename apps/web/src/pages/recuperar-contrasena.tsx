@@ -151,7 +151,7 @@ export function RestablecerContrasenaPage() {
 
       {estadoEnlace === 'invalido' && (
         <div className="flex flex-col gap-aire-s">
-          <p role="alert" className="m-0 font-ui text-body-s leading-relaxed text-vino">
+          <p role="alert" className="m-0 font-ui text-body-s leading-relaxed text-peligro">
             El enlace venció o no es válido. Solicita uno nuevo para continuar.
           </p>
           <Link to="/recuperar" data-sin-transicion className={enlaceSecundario}>Solicitar otro enlace →</Link>
@@ -176,7 +176,7 @@ export function RestablecerContrasenaPage() {
             placeholder="Repite la contraseña"
             onChange={(event) => setConfirmacion(event.target.value)}
           />
-          {error && <p role="alert" className="m-0 font-ui text-body-s text-vino">{error}</p>}
+          {error && <p role="alert" className="m-0 font-ui text-body-s text-peligro">{error}</p>}
           <Boton variante="formulario" type="submit" disabled={guardando} className="mt-aire-xs w-full">
             {guardando ? 'Actualizando…' : 'Actualizar contraseña'}
           </Boton>
@@ -211,7 +211,7 @@ function CampoCorreo({
           'w-full rounded-none border-0 border-b px-0 py-aire-xs',
           'font-ui text-body text-hueso placeholder:text-texto-debil',
           'hover:border-linea-fuerte focus:border-hueso',
-          error ? 'border-vino' : 'border-linea',
+          error ? 'border-peligro' : 'border-linea',
         ].join(' ')}
         onChange={(event) => onChange(event.target.value)}
       />
@@ -230,4 +230,4 @@ function mensajeRecuperacion(error: AuthError): string {
 }
 
 const enlaceSecundario =
-  'relative self-center font-mono text-eyebrow uppercase tracking-label text-texto-tenue no-underline transition-colors duration-fade hover:text-hueso after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-vino after:transition-[width] after:duration-fade hover:after:w-full focus-visible:after:w-full'
+  'relative self-center font-mono text-eyebrow uppercase tracking-label text-texto-tenue no-underline transition-colors duration-fade hover:text-hueso after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-oro after:transition-[width] after:duration-fade hover:after:w-full focus-visible:after:w-full'

@@ -24,12 +24,26 @@ export default {
         // Acentos de marca y absolutos: fijos, no cambian con el tema.
         negro: '#0a0a0a',
         hueso: '#f7f6f2',
+        // Oro del emblema. `bg-oro` siempre lleva `text-sobreoro` encima;
+        // para texto y bordes se usa `acento`, que sí se adapta al tema.
+        oro: {
+          DEFAULT: '#e5b833',
+          claro: '#f8e08e',
+          hondo: '#8a6212',
+        },
+        sobreoro: '#0b0a07',
+        noche: '#0c1322',
+
+        // Paleta anterior: solo la landing, aún sin migrar.
         vino: '#b41e44',
         marino: '#1b3460',
 
         // ── Tokens SEMÁNTICOS: cambian con el tema (ver tokens.css, ADR-007) ──
         // Fondo de página y contenido (texto) principal.
         fondo: 'var(--fondo)',
+
+        // Acento de marca legible sobre la superficie del tema activo.
+        acento: 'var(--acento)',
         contenido: {
           DEFAULT: 'var(--contenido)',
           tenue: 'var(--contenido-tenue)',
@@ -57,7 +71,7 @@ export default {
         // Semánticos de estado (constantes sobre ambos temas)
         exito: '#2e7d5b',
         aviso: '#c9862b',
-        peligro: '#b41e44', // = vino
+        peligro: '#d0463a', // rojo propio: el acento ya no puede señalar error
       },
 
       fontFamily: {
@@ -121,6 +135,15 @@ export default {
           'scrollbar-width': 'none',
           '-ms-overflow-style': 'none',
           '&::-webkit-scrollbar': { display: 'none' },
+        },
+        /*
+         * Lingote. Acompaña SIEMPRE a `bg-oro`: el color sólido queda debajo
+         * como respaldo (correo, impresión, `forced-colors`) y esta clase le
+         * pone encima el reflejo y el canto que lo hacen leer como metal.
+         */
+        '.brillo-oro': {
+          'background-image': 'var(--oro-brillo)',
+          'box-shadow': 'var(--oro-canto)',
         },
       })
     },

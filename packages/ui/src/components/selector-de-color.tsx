@@ -15,8 +15,8 @@ export interface ColorDeMarca {
 export const COLORES_DE_MARCA: ColorDeMarca[] = [
   { valor: '#0a0a0a', nombre: 'Negro' },
   { valor: '#111114', nombre: 'Tinta' },
-  { valor: '#b41e44', nombre: 'Vino' },
-  { valor: '#1b3460', nombre: 'Marino' },
+  { valor: '#e3ac33', nombre: 'Oro' },
+  { valor: '#0c1322', nombre: 'Noche' },
   { valor: '#173f65', nombre: 'Azul profundo' },
   { valor: '#2e7d5b', nombre: 'Verde' },
   { valor: '#8f6f45', nombre: 'Madera' },
@@ -74,8 +74,8 @@ export function SelectorDeColor({
               // El anillo marca la selección sin depender del color elegido,
               // que puede ser casi idéntico al fondo (hueso sobre blanco).
               activo
-                ? 'border-vino shadow-[0_0_0_3px_color-mix(in_srgb,var(--vino)_28%,transparent)]'
-                : 'border-linea-fuerte hover:border-vino',
+                ? 'border-acento shadow-[0_0_0_3px_color-mix(in_srgb,var(--acento)_28%,transparent)]'
+                : 'border-linea-fuerte hover:border-acento',
             )}
             style={{ background: color.valor }}
           />

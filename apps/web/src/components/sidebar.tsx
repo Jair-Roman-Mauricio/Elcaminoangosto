@@ -136,11 +136,11 @@ export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }:
                       'font-mono text-[0.6rem] uppercase tracking-[0.12em]',
                       label === 'Chat con administradores' && 'text-[0.54rem] tracking-[0.08em] whitespace-nowrap',
                       'transition-colors duration-fade ease-camino',
-                      // Barra de vino a la izquierda: marca la ruta activa sin
+                      // Barra de oro a la izquierda: marca la ruta activa sin
                       // depender solo del color del texto.
                       'before:absolute before:inset-y-2 before:left-0 before:w-[2px] before:rounded-full',
                       isActive
-                        ? 'border-transparent text-hueso before:bg-transparent'
+                        ? 'border-transparent text-sobreoro before:bg-transparent'
                         : 'border-transparent text-texto-tenue before:bg-transparent hover:text-contenido',
                     )
                   }
@@ -158,7 +158,7 @@ export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }:
                 discreto, como puerta de servicio y no como llamada a la acción. */}
             <Link
               to="/entrar"
-              className="sidebar-nav-link flex h-[2.35rem] items-center justify-center border border-linea font-mono text-[0.6rem] uppercase tracking-[0.12em] text-texto-tenue no-underline transition-colors duration-fade hover:border-vino hover:text-vino"
+              className="sidebar-nav-link flex h-[2.35rem] items-center justify-center border border-linea font-mono text-[0.6rem] uppercase tracking-[0.12em] text-texto-tenue no-underline transition-colors duration-fade hover:border-acento hover:text-acento"
             >
               Ingresar como admin
             </Link>
@@ -170,7 +170,7 @@ export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }:
                 {perfil?.avatarUrl ? (
                   <img src={perfil.avatarUrl} alt="" className="size-7 rounded-full object-cover" />
                 ) : (
-                  <span className="grid size-7 place-items-center rounded-full bg-vino font-ui text-[0.6rem] font-semibold text-hueso">
+                  <span className="grid size-7 place-items-center rounded-full bg-oro brillo-oro font-ui text-[0.6rem] font-semibold text-sobreoro">
                     {(perfil?.displayName ?? 'A').slice(0, 1).toUpperCase()}
                   </span>
                 )}
@@ -181,7 +181,7 @@ export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }:
             <Boton
               variante="nav"
               onClick={() => void salir()}
-              className="w-full rounded-none border-vino bg-vino px-aire-m py-aire-xs font-mono text-[0.6rem] tracking-[0.12em] text-hueso hover:border-vino hover:bg-vino hover:text-hueso"
+              className="w-full rounded-none border-acento bg-oro brillo-oro px-aire-m py-aire-xs font-mono text-[0.6rem] tracking-[0.12em] text-sobreoro hover:border-acento hover:bg-oro hover:text-sobreoro"
             >
               Cerrar sesión
             </Boton>

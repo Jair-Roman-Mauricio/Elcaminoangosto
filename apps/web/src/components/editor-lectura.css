@@ -70,8 +70,8 @@
 
 .editor-lectura__btn--activo {
   color: var(--contenido);
-  border-color: var(--vino);
-  background: color-mix(in srgb, var(--vino) 10%, transparent);
+  border-color: var(--acento);
+  background: color-mix(in srgb, var(--oro) 10%, transparent);
 }
 
 .editor-lectura__btn:disabled {
@@ -167,13 +167,13 @@
 .editor-lectura .ProseMirror blockquote {
   margin: 0;
   padding-left: 1rem;
-  border-left: 2px solid var(--vino);
+  border-left: 2px solid var(--acento);
   color: var(--texto-tenue);
   font-style: italic;
 }
 
 .editor-lectura .ProseMirror a {
-  color: var(--vino);
+  color: var(--acento);
   text-underline-offset: 3px;
 }
 
@@ -186,6 +186,6 @@
 
 /* Imagen seleccionada en edición. */
 .editor-lectura .ProseMirror img.ProseMirror-selectednode {
-  outline: 2px solid var(--vino);
+  outline: 2px solid var(--acento);
   outline-offset: 2px;
 }

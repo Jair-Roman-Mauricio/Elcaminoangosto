@@ -7,11 +7,11 @@
 .public-access-modal__content h2 { max-width: 18ch; margin: 0; color: var(--contenido); font-family: var(--font-ui, sans-serif); font-size: clamp(1.55rem, 4vw, 2.15rem); font-weight: 500; line-height: 1.08; }
 .public-access-modal__copy { max-width: 38ch; margin: 1rem 0 1.75rem; color: var(--texto-tenue); font-family: var(--font-mono, ui-monospace, monospace); font-size: .8rem; line-height: 1.55; }
 .public-access-modal__actions { display: flex; flex-wrap: wrap; gap: .65rem; }
-.public-access-modal__actions a { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; padding: .8rem 1.1rem; border: 1px solid var(--vino); background: var(--vino); color: var(--hueso); font-family: var(--font-mono, ui-monospace, monospace); font-size: .66rem; font-weight: 600; letter-spacing: .1em; text-decoration: none; transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease; }
+.public-access-modal__actions a { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; padding: .8rem 1.1rem; border: 1px solid var(--oro); background: var(--oro); color: var(--sobre-oro); font-family: var(--font-mono, ui-monospace, monospace); font-size: .66rem; font-weight: 600; letter-spacing: .1em; text-decoration: none; transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease; }
 .public-access-modal__actions a + a { border-color: var(--linea-fuerte); background: transparent; color: var(--contenido); }
-.public-access-modal__actions a:hover { border-color: var(--vino); background: color-mix(in srgb, var(--vino) 88%, black); }
+.public-access-modal__actions a:hover { border-color: var(--oro); background: color-mix(in srgb, var(--oro) 88%, black); }
 .public-access-modal__actions a + a:hover { background: var(--superficie-2); color: var(--contenido); }
-.public-access-modal__actions a:focus-visible, .public-access-modal__backdrop:focus-visible { outline: 2px solid var(--vino); outline-offset: 3px; }
+.public-access-modal__actions a:focus-visible, .public-access-modal__backdrop:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
 @media (max-width: 28rem) { .public-access-modal__actions { display: grid; grid-template-columns: 1fr; } }
 
 @tailwind base;
@@ -38,17 +38,6 @@
     animation: camino-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
     z-index: 2;
   }
-
-  /* El cambio de tema conserva el barrido circular original. Esta excepción
-     no afecta al login ni a la navegación entre secciones. */
-  :root[data-theme-transition='active']::view-transition-old(root) {
-    animation: none;
-  }
-
-  :root[data-theme-transition='active']::view-transition-new(root) {
-    animation: theme-circle-reveal 720ms linear both;
-    will-change: clip-path;
-  }
 }
 
 /* ── Museo bidimensional de Tarjetas de Fe ──────────────────────────────
@@ -66,7 +55,7 @@
   background:
     radial-gradient(
       circle at 50% 44%,
-      color-mix(in srgb, var(--vino) 10%, transparent) 0,
+      color-mix(in srgb, var(--acento) 10%, transparent) 0,
       transparent 42%
     ),
     var(--fondo);
@@ -215,7 +204,7 @@
   letter-spacing: 0.13em;
 }
 .faith-museum__brand strong::first-letter {
-  color: var(--vino);
+  color: var(--acento);
 }
 .faith-museum__brand span,
 .faith-museum__menu > span,
@@ -237,7 +226,7 @@
 }
 .faith-museum__menu a {
   color: var(--contenido);
-  text-decoration-color: var(--vino);
+  text-decoration-color: var(--acento);
   text-underline-offset: 0.35rem;
 }
 
@@ -263,8 +252,9 @@
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 50%;
-  background: var(--vino);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--vino) 40%, transparent);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--oro) 40%, transparent);
   animation: museum-pulse 1.8s ease-out infinite;
 }
 @keyframes museum-pulse {
@@ -282,11 +272,11 @@
   width: 4.8rem;
   height: 4.8rem;
   place-items: center;
-  border: 1px solid var(--vino);
+  border: 1px solid var(--acento);
   border-radius: 50%;
   opacity: 0;
-  color: var(--hueso);
-  background: color-mix(in srgb, var(--vino) 74%, transparent);
+  color: var(--sobre-oro);
+  background: color-mix(in srgb, var(--oro) 74%, transparent);
   pointer-events: none;
   font: 0.48rem/1 var(--mono);
   letter-spacing: 0.08em;
@@ -333,7 +323,7 @@
   font: 0.58rem/1 var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  text-decoration-color: var(--vino);
+  text-decoration-color: var(--acento);
   text-underline-offset: 0.4rem;
 }
 
@@ -359,8 +349,8 @@
 .faith-curtain__panel--left,
 .faith-curtain__panel--right {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--vino) 88%, #3b0718), var(--vino) 62%, #7e1736),
-    var(--vino);
+    linear-gradient(180deg, color-mix(in srgb, var(--oro) 88%, #3a2703), var(--oro) 62%, #7a5510),
+    var(--acento);
   animation: faith-curtain-side 1560ms cubic-bezier(0.72, 0, 0.18, 1) both;
 }
 .faith-curtain__panel--left {
@@ -376,7 +366,7 @@
   background:
     radial-gradient(
       circle at 50% 47%,
-      color-mix(in srgb, var(--vino) 32%, transparent),
+      color-mix(in srgb, var(--acento) 32%, transparent),
       transparent 36%
     ),
     linear-gradient(180deg, #101724, #080b11 72%);
@@ -404,18 +394,18 @@
   white-space: nowrap;
 }
 .faith-curtain__logo > span > span {
-  color: var(--vino-claro, #c51f4c);
+  color: var(--oro-claro);
 }
 [data-theme='light'] .faith-curtain__panel--left,
 [data-theme='light'] .faith-curtain__panel--right {
-  background: linear-gradient(180deg, #c82c54, var(--vino) 62%, #8b1637), var(--vino);
+  background: linear-gradient(180deg, #f0c357, var(--oro) 62%, #8a6212), var(--oro);
 }
 [data-theme='light'] .faith-curtain__panel--center {
   --fondo: #f4f2ec;
   background:
     radial-gradient(
       circle at 50% 47%,
-      color-mix(in srgb, var(--vino) 14%, transparent),
+      color-mix(in srgb, var(--acento) 14%, transparent),
       transparent 38%
     ),
     linear-gradient(180deg, #fffefb, #e9e5dc 74%);
@@ -426,7 +416,7 @@
   color: var(--negro);
 }
 [data-theme='light'] .faith-curtain__logo > span > span {
-  color: var(--vino);
+  color: var(--acento);
 }
 @keyframes faith-curtain-side {
   0% {
@@ -468,12 +458,12 @@
   background:
     radial-gradient(
       circle at 52% 44%,
-      color-mix(in srgb, var(--vino) 22%, transparent) 0,
+      color-mix(in srgb, var(--acento) 22%, transparent) 0,
       transparent 27%
     ),
     radial-gradient(
       circle at 81% 36%,
-      color-mix(in srgb, var(--marino) 16%, transparent) 0,
+      color-mix(in srgb, var(--noche) 16%, transparent) 0,
       transparent 31%
     ),
     var(--fondo);
@@ -506,7 +496,7 @@
     border-color 300ms var(--ease);
 }
 .faith-study__header button:hover {
-  color: var(--vino);
+  color: var(--acento);
 }
 .faith-study__layout {
   position: relative;
@@ -582,7 +572,7 @@
   will-change: transform;
 }
 .faith-study__media:focus-visible {
-  outline: 1px solid var(--vino);
+  outline: 1px solid var(--acento);
   outline-offset: 0.65rem;
   border-radius: 0;
 }
@@ -676,7 +666,7 @@
   border: 1px solid var(--linea-fuerte);
   border-radius: 50%;
   color: var(--contenido);
-  background: color-mix(in srgb, var(--vino) 30%, transparent);
+  background: color-mix(in srgb, var(--oro) 30%, transparent);
   cursor: pointer;
 }
 .faith-study__audio button:disabled {
@@ -692,7 +682,8 @@
 .faith-study__audio-track i {
   display: block;
   height: 100%;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 .faith-study__audio time {
   grid-column: 1 / -1;
@@ -702,7 +693,7 @@
   text-align: right;
 }
 .faith-study__lore > span {
-  color: var(--vino);
+  color: var(--acento);
   font: 0.58rem/1 var(--mono);
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -767,10 +758,10 @@
   height: 3.4rem;
   grid-row: 1 / 3;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--vino) 68%, var(--linea-fuerte));
+  border: 1px solid color-mix(in srgb, var(--acento) 68%, var(--linea-fuerte));
   border-radius: 50%;
-  color: var(--vino);
-  background: color-mix(in srgb, var(--vino) 8%, transparent);
+  color: var(--acento);
+  background: color-mix(in srgb, var(--oro) 8%, transparent);
   font: 400 clamp(1.15rem, 1.5vw, 1.45rem)/1 var(--ui);
   transition:
     color 260ms var(--ease),
@@ -801,24 +792,26 @@
 }
 .faith-study__navigation button:hover:not(:disabled) strong,
 .faith-study__navigation button:focus-visible strong {
-  color: var(--vino);
+  color: var(--acento);
 }
 .faith-study__navigation button:hover:not(:disabled):first-child::before,
 .faith-study__navigation button:focus-visible:first-child::before {
-  color: #fff;
-  background: var(--vino);
-  border-color: var(--vino);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
+  border-color: var(--acento);
   transform: translateX(-0.2rem);
 }
 .faith-study__navigation button:hover:not(:disabled):last-child::after,
 .faith-study__navigation button:focus-visible:last-child::after {
-  color: #fff;
-  background: var(--vino);
-  border-color: var(--vino);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
+  border-color: var(--acento);
   transform: translateX(0.2rem);
 }
 .faith-study__navigation button:focus-visible {
-  outline: 1px solid var(--vino);
+  outline: 1px solid var(--acento);
   outline-offset: 0.45rem;
 }
 .faith-study__navigation button:disabled {
@@ -859,12 +852,12 @@
   background:
     radial-gradient(
       circle at 52% 44%,
-      color-mix(in srgb, var(--vino) 7%, transparent) 0,
+      color-mix(in srgb, var(--acento) 7%, transparent) 0,
       transparent 27%
     ),
     radial-gradient(
       circle at 81% 36%,
-      color-mix(in srgb, var(--marino) 5%, transparent) 0,
+      color-mix(in srgb, var(--noche) 5%, transparent) 0,
       transparent 31%
     ),
     #fff;
@@ -1017,23 +1010,9 @@
   }
 }
 
-@keyframes theme-circle-reveal {
-  from {
-    opacity: 1;
-    clip-path: circle(0% at 0 0);
-  }
-  to {
-    opacity: 1;
-    clip-path: circle(155% at 0 0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation-duration: 1ms;
-  }
-  :root[data-theme-transition='active']::view-transition-new(root) {
     animation-duration: 1ms;
   }
 }
@@ -1240,12 +1219,12 @@
   background:
     radial-gradient(
       circle at 37% 44%,
-      color-mix(in srgb, var(--vino) 18%, transparent) 0,
+      color-mix(in srgb, var(--acento) 18%, transparent) 0,
       transparent 30%
     ),
     radial-gradient(
       circle at 75% 24%,
-      color-mix(in srgb, var(--marino) 18%, transparent) 0,
+      color-mix(in srgb, var(--noche) 18%, transparent) 0,
       transparent 28%
     ),
     var(--fondo);
@@ -1274,7 +1253,7 @@
 
 .christian-videos__header span,
 .christian-videos__active-caption > span {
-  color: var(--vino);
+  color: var(--acento);
   font: 0.56rem/1.2 var(--mono);
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -1315,7 +1294,7 @@
   display: none;
 }
 .christian-videos__feed:focus-visible {
-  box-shadow: inset 0 0 0 1px var(--vino);
+  box-shadow: inset 0 0 0 1px var(--oro);
 }
 
 .christian-videos__stage {
@@ -1565,7 +1544,8 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   animation: christian-video-swipe-hint 1.8s var(--ease) infinite;
 }
 
@@ -1665,16 +1645,17 @@
 [data-theme='light'] .videos-shell .short-video__actions > button:focus-visible > span,
 [data-theme='light'] .videos-shell .shorts-feed__navigation button:hover,
 [data-theme='light'] .videos-shell .shorts-feed__navigation button:focus-visible {
-  border-color: color-mix(in srgb, var(--vino) 48%, var(--linea));
-  color: var(--vino);
-  background: color-mix(in srgb, var(--vino) 9%, var(--superficie-1));
+  border-color: color-mix(in srgb, var(--acento) 48%, var(--linea));
+  color: var(--acento);
+  background: color-mix(in srgb, var(--oro) 9%, var(--superficie-1));
 }
 
 [data-theme='light'] .videos-shell .short-video__actions > button[aria-pressed='true'] > span,
 [data-theme='light'] .videos-shell .short-video__actions > button[aria-expanded='true'] > span {
-  border-color: var(--vino);
-  color: var(--hueso);
-  background: var(--vino);
+  border-color: var(--acento);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .shorts-feed__topbar {
@@ -1710,7 +1691,8 @@
   position: absolute;
   inset: auto 0 -0.7rem;
   height: 2px;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 .shorts-feed__topbar span {
   color: rgb(247 246 242 / 55%);
@@ -1930,7 +1912,7 @@
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    var(--vino) 0 var(--video-progress),
+    var(--acento) 0 var(--video-progress),
     rgb(255 255 255 / 42%) var(--video-progress) 100%
   );
 }
@@ -1942,7 +1924,8 @@
   appearance: none;
   border: 2px solid #fff;
   border-radius: 50%;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   box-shadow: 0 0.1rem 0.45rem rgb(0 0 0 / 45%);
 }
 
@@ -1955,7 +1938,8 @@
 .short-video__timeline input::-moz-range-progress {
   height: 3px;
   border-radius: 999px;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .short-video__timeline input::-moz-range-thumb {
@@ -1963,7 +1947,8 @@
   height: 0.6rem;
   border: 2px solid #fff;
   border-radius: 50%;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   box-shadow: 0 0.1rem 0.45rem rgb(0 0 0 / 45%);
 }
 
@@ -2006,8 +1991,9 @@
   height: 1.35rem;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
-  background: var(--vino);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   font: 1rem/1 var(--ui);
   transform: translateX(50%);
 }
@@ -2044,12 +2030,14 @@
   outline: 0;
 }
 .short-video__actions > button[aria-pressed='true'] > span {
-  color: #fff;
-  background: var(--vino);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 .short-video__actions > button[aria-expanded='true'] > span {
-  color: #fff;
-  background: var(--vino);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 .short-video__actions svg {
   width: 1.55rem;
@@ -2152,8 +2140,8 @@
   overflow: hidden;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
-  background: color-mix(in srgb, var(--vino) 76%, #111);
+  color: var(--sobre-oro);
+  background: color-mix(in srgb, var(--oro) 76%, #111);
   font: 600 0.8rem/1 var(--ui);
 }
 .shorts-comment__avatar {
@@ -2210,7 +2198,7 @@
 }
 .shorts-comment__like:hover,
 .shorts-comment__like:focus-visible {
-  color: var(--vino);
+  color: var(--acento);
   outline: 0;
 }
 .shorts-comment__like svg {
@@ -2254,7 +2242,7 @@
   font: 0.78rem/1 var(--ui);
 }
 .shorts-comments__composer input:focus {
-  border-color: var(--vino);
+  border-color: var(--acento);
 }
 .shorts-comments__composer input::placeholder {
   color: rgb(247 246 242 / 40%);
@@ -2262,7 +2250,7 @@
 .shorts-comments__composer form > button {
   border: 0;
   padding: 0.65rem 0.3rem;
-  color: var(--vino);
+  color: var(--acento);
   background: transparent;
   font: 600 0.65rem/1 var(--ui);
   cursor: pointer;
@@ -2280,8 +2268,9 @@
   gap: 0.6rem;
   border: 0;
   border-radius: 999px;
-  color: #fff;
-  background: var(--vino);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   font: 600 0.78rem/1 var(--ui);
   cursor: pointer;
 }
@@ -2321,15 +2310,15 @@
 
 [data-theme='light'] .videos-shell .shorts-comments__header button:hover,
 [data-theme='light'] .videos-shell .shorts-comments__header button:focus-visible {
-  color: var(--vino);
-  background: color-mix(in srgb, var(--vino) 9%, var(--superficie-1));
+  color: var(--acento);
+  background: color-mix(in srgb, var(--oro) 9%, var(--superficie-1));
 }
 
 [data-theme='light'] .videos-shell .shorts-comment__body button:hover,
 [data-theme='light'] .videos-shell .shorts-comment__body button:focus-visible,
 [data-theme='light'] .videos-shell .shorts-comment__like:hover,
 [data-theme='light'] .videos-shell .shorts-comment__like:focus-visible {
-  color: var(--vino);
+  color: var(--acento);
 }
 
 [data-theme='light'] .videos-shell .shorts-comments__list {
@@ -2541,7 +2530,7 @@
   line-height: 1.45;
 }
 .faith-archive__kicker {
-  color: var(--vino);
+  color: var(--acento);
   white-space: nowrap;
 }
 
@@ -2556,7 +2545,8 @@
 .faith-archive__counter i {
   width: 2.2rem;
   height: 1px;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .faith-archive__publish {
@@ -2567,13 +2557,13 @@
   text-decoration: none;
 }
 .faith-archive__publish span:last-child {
-  color: var(--vino);
+  color: var(--acento);
   font-size: 0.85rem;
   line-height: 0.7;
 }
 .faith-archive__publish:hover span:first-child {
   text-decoration: underline;
-  text-decoration-color: var(--vino);
+  text-decoration-color: var(--acento);
   text-underline-offset: 0.45rem;
 }
 
@@ -2628,7 +2618,7 @@
 }
 .faith-archive__thumb[aria-current='true'] {
   opacity: 1;
-  border-color: var(--vino);
+  border-color: var(--acento);
   transform: translateX(0.35rem);
 }
 .faith-archive__thumb img,
@@ -2702,7 +2692,7 @@
   letter-spacing: 0.18em;
 }
 .faith-archive__media-mark span {
-  color: var(--vino);
+  color: var(--acento);
 }
 
 .faith-archive__story {
@@ -2711,7 +2701,7 @@
 .faith-archive__specimen {
   display: block;
   margin-bottom: 1.2rem;
-  color: var(--vino);
+  color: var(--acento);
   font: 0.6rem/1 var(--mono);
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -2725,11 +2715,11 @@
 }
 .faith-archive__story blockquote::before {
   content: '“';
-  color: var(--vino);
+  color: var(--acento);
 }
 .faith-archive__story blockquote::after {
   content: '”';
-  color: var(--vino);
+  color: var(--acento);
 }
 .faith-archive__author {
   display: grid;
@@ -2776,9 +2766,10 @@
     border-color 260ms ease;
 }
 .faith-archive__controls button:hover {
-  color: var(--hueso);
-  border-color: var(--vino);
-  background: var(--vino);
+  color: var(--sobre-oro);
+  border-color: var(--acento);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .faith-archive__empty {
@@ -2792,7 +2783,7 @@
 .faith-archive__empty > span {
   align-self: start;
   margin-top: 28svh;
-  color: var(--vino);
+  color: var(--acento);
   font: 0.65rem/1 var(--mono);
 }
 .faith-archive__empty-frame {
@@ -2806,7 +2797,8 @@
 .faith-archive__empty-frame::after {
   content: '';
   position: absolute;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 .faith-archive__empty-frame::before {
   inset: 50% 16% auto;
@@ -2820,7 +2812,7 @@
   position: absolute;
   width: 0.45rem;
   height: 0.45rem;
-  border: 1px solid var(--vino);
+  border: 1px solid var(--acento);
   border-radius: 50%;
 }
 .faith-archive__empty-frame i:nth-child(1) {
@@ -2831,14 +2823,15 @@
 }
 .faith-archive__empty-frame i:nth-child(3) {
   inset: 48% auto auto 48%;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 .faith-archive__empty > div:last-child {
   max-width: 28rem;
 }
 .faith-archive__empty p {
   margin: 0 0 1rem;
-  color: var(--vino);
+  color: var(--acento);
   font: 0.6rem/1 var(--mono);
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -2862,7 +2855,7 @@
   font: 0.62rem/1 var(--mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  text-decoration-color: var(--vino);
+  text-decoration-color: var(--acento);
   text-underline-offset: 0.45rem;
 }
 
@@ -2886,7 +2879,7 @@
 @keyframes faith-loading {
   to {
     transform: scale(1.035);
-    border-color: var(--vino);
+    border-color: var(--acento);
   }
 }
 
@@ -2996,14 +2989,6 @@
   }
 }
 
-/* El switch comparte el flujo superior del main y desaparece junto al paginador al hacer scroll. */
-.theme-toggle-anchor {
-  position: absolute;
-  inset-block-start: 5.5rem;
-  inset-inline-end: 1.5rem;
-  z-index: 10;
-}
-
 /* Panel de lecciones inmersivo: en escritorio es una columna del viewport,
    no un elemento limitado por el ancho del grid del contenido. */
 .course-content-panel {
@@ -3070,7 +3055,8 @@
   inset-block-start: 0;
   inset-inline: 0;
   z-index: 0;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   pointer-events: none;
   transition:
     transform 760ms cubic-bezier(0.22, 0.61, 0.36, 1),
@@ -3089,17 +3075,19 @@
   outline-offset: -3px;
 }
 
+/* La lección activa se lee sobre el indicador de oro que se desliza detrás
+   (.course-lesson-selector), así que su texto va en el tono de encima. */
 .course-lesson-link[aria-current='step'],
 .course-lesson-link[aria-current='step'] > span {
-  color: var(--hueso);
+  color: var(--sobre-oro);
 }
 
 .course-lesson-link[aria-current='step'] > svg {
-  color: var(--hueso);
+  color: var(--sobre-oro);
 }
 
 .course-lesson-link[aria-current='step']:focus-visible {
-  outline-color: color-mix(in srgb, var(--hueso) 86%, transparent);
+  outline-color: color-mix(in srgb, var(--sobre-oro) 86%, transparent);
 }
 
 /* Entrada específica del aula: conserva la secuencia sin recortar ni repintar
@@ -3238,10 +3226,6 @@
 }
 
 @media (min-width: 820px) {
-  .theme-toggle-anchor {
-    inset-block-start: 2rem;
-    inset-inline-end: 2rem;
-  }
 }
 
 .sidebar-selector {
@@ -3249,9 +3233,10 @@
   inset-inline: 0;
   top: 0;
   height: 2.35rem;
-  border: 1px solid var(--vino);
+  border: 1px solid var(--acento);
   border-radius: 0;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   pointer-events: none;
   transition: transform 760ms cubic-bezier(0.22, 0.61, 0.36, 1);
   will-change: transform;
@@ -3282,7 +3267,7 @@
 }
 
 .praise-archive {
-  --praise-wine: #c41e4b;
+  --praise-oro: #e3ac33;
   --praise-ivory: #f3efe5;
   position: relative;
   min-height: calc(100svh - 8rem);
@@ -3318,7 +3303,7 @@
 .praise-favorites-card p,
 .praise-archive__credits > p {
   margin: 0 0 0.7rem;
-  color: var(--vino);
+  color: var(--acento);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   line-height: 1;
@@ -3383,8 +3368,9 @@
   padding: 0 1.2rem;
   border: 0;
   border-radius: 999px;
-  color: var(--hueso);
-  background: var(--vino);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   font: 0.62rem/1 var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -3450,7 +3436,7 @@
 }
 
 .praise-search input:focus {
-  border-color: var(--vino);
+  border-color: var(--acento);
 }
 
 .praise-search input::placeholder {
@@ -3476,9 +3462,10 @@
 .praise-library__favorites:hover,
 .praise-library__favorites:focus-visible,
 .praise-library__favorites[aria-expanded='true'] {
-  border-color: var(--vino);
-  color: var(--hueso);
-  background: var(--vino);
+  border-color: var(--acento);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .praise-library__filters {
@@ -3498,7 +3485,8 @@
   position: absolute;
   inset: auto auto 0.25rem 0;
   height: 2px;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
   pointer-events: none;
   transition:
     width 760ms var(--ease),
@@ -3649,7 +3637,7 @@
   filter: saturate(0.92) contrast(1.05);
 }
 .praise-album-card.is-selected {
-  outline: 2px solid var(--vino);
+  outline: 2px solid var(--acento);
   outline-offset: -2px;
 }
 .praise-album-card:focus-visible {
@@ -3798,8 +3786,10 @@
   text-transform: uppercase;
 }
 
+/* `vino` es el identificador del tono en la base de datos, no su color: el
+   sello del disco lo pinta ahora el oro profundo de la marca. */
 .praise-disc--vino .praise-disc__label {
-  background: #8f1639;
+  background: #8a6212;
 }
 .praise-disc--marfil .praise-disc__label {
   background: #d7c9ad;
@@ -3871,9 +3861,10 @@
 .praise-archive__transport button:focus-visible,
 .praise-archive__transport button[aria-pressed='true'],
 .praise-archive__transport .praise-archive__play {
-  border-color: var(--vino);
-  color: var(--hueso);
-  background: var(--vino);
+  border-color: var(--acento);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .praise-archive__timeline {
@@ -3891,7 +3882,7 @@
 
 .praise-archive__timeline input {
   width: 100%;
-  accent-color: var(--vino);
+  accent-color: var(--acento);
   cursor: pointer;
 }
 
@@ -3979,8 +3970,8 @@
 
 .praise-favorites-card__header-actions > button:hover,
 .praise-favorites-card__header-actions > button:focus-visible {
-  border-color: var(--vino);
-  color: var(--vino);
+  border-color: var(--acento);
+  color: var(--acento);
 }
 
 @keyframes praise-favorites-backdrop {
@@ -4006,9 +3997,10 @@
 }
 
 .praise-player__favorites[aria-pressed='true'] {
-  border-color: var(--vino);
-  color: var(--hueso);
-  background: var(--vino);
+  border-color: var(--acento);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .praise-player__favorites {
@@ -4020,7 +4012,7 @@
 
 .praise-player__favorites:hover,
 .praise-player__favorites:focus-visible {
-  border-color: var(--vino);
+  border-color: var(--acento);
 }
 
 .praise-player__favorites:disabled,
@@ -4058,7 +4050,7 @@
 .praise-favorite-confirmation__dialog > span {
   display: block;
   margin-bottom: 0.8rem;
-  color: var(--vino);
+  color: var(--acento);
   font: 0.62rem/1 var(--mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -4105,14 +4097,14 @@
 }
 
 .praise-favorite-confirmation__destinations label:hover {
-  background: color-mix(in srgb, var(--vino) 9%, var(--superficie-2));
+  background: color-mix(in srgb, var(--oro) 9%, var(--superficie-2));
 }
 
 .praise-favorite-confirmation__destinations input {
   width: 1rem;
   height: 1rem;
   flex: 0 0 auto;
-  accent-color: var(--vino);
+  accent-color: var(--acento);
 }
 
 .praise-favorite-confirmation__destinations label > span {
@@ -4161,7 +4153,7 @@
 }
 
 .praise-create-album-modal__field input:focus {
-  border-color: var(--vino);
+  border-color: var(--acento);
 }
 .praise-create-album-modal__field input::placeholder {
   color: var(--texto-tenue);
@@ -4232,9 +4224,10 @@
 .praise-edit-album-modal__upload:focus-within,
 .praise-edit-album-modal__default-cover:hover,
 .praise-edit-album-modal__default-cover:focus-visible {
-  color: var(--hueso);
+  color: var(--sobre-oro);
   outline: 0;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .praise-edit-album-modal__details {
@@ -4268,7 +4261,7 @@
 }
 
 .praise-edit-album-modal__songs-heading span {
-  color: var(--vino);
+  color: var(--acento);
 }
 .praise-edit-album-modal__songs ul {
   display: grid;
@@ -4315,7 +4308,7 @@
 .praise-edit-album-modal__songs li > button {
   border: 0;
   padding: 0.45rem;
-  color: var(--vino);
+  color: var(--acento);
   background: transparent;
   font: 0.55rem/1 var(--mono);
   letter-spacing: 0.09em;
@@ -4332,7 +4325,7 @@
   font-size: 0.82rem;
 }
 .praise-edit-album-modal__error {
-  color: var(--vino) !important;
+  color: var(--acento) !important;
   font: 0.68rem/1.4 var(--mono);
 }
 
@@ -4359,8 +4352,9 @@
 }
 
 .praise-favorite-confirmation__actions button:last-child {
-  color: var(--hueso);
-  background: var(--vino);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .praise-favorite-confirmation__actions button:disabled {
@@ -4370,9 +4364,9 @@
 
 .praise-favorite-confirmation__actions button:hover,
 .praise-favorite-confirmation__actions button:focus-visible {
-  color: var(--hueso);
+  color: var(--sobre-oro);
   outline: 0;
-  background: color-mix(in srgb, var(--vino) 88%, #000);
+  background: color-mix(in srgb, var(--oro) 88%, #000);
 }
 
 @keyframes favorite-confirmation-backdrop {
@@ -4455,9 +4449,10 @@
 [data-theme='dark']
   .praise-global-player[data-expanded='true']
   .praise-player__favorites[aria-pressed='true'] {
-  border-color: var(--vino);
-  color: var(--hueso);
-  background: var(--vino);
+  border-color: var(--acento);
+  color: var(--sobre-oro);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .praise-global-player__actions {
@@ -4483,10 +4478,10 @@
 .praise-global-player__icon-button:hover,
 .praise-global-player__icon-button:focus-visible,
 .praise-global-player__icon-button[aria-pressed='true'] {
-  border-color: var(--vino);
+  border-color: var(--acento);
   color: var(--contenido);
   outline: 0;
-  background: color-mix(in srgb, var(--vino) 10%, transparent);
+  background: color-mix(in srgb, var(--oro) 10%, transparent);
 }
 
 .praise-global-player[data-expanded='true'] .praise-global-player__icon-button:hover,
@@ -4533,7 +4528,7 @@
   outline: 0;
   background: linear-gradient(
     to right,
-    var(--vino) var(--player-volume),
+    var(--acento) var(--player-volume),
     var(--linea-fuerte) var(--player-volume)
   );
   cursor: pointer;
@@ -4545,8 +4540,9 @@
   appearance: none;
   border: 2px solid var(--superficie-1);
   border-radius: 50%;
-  background: var(--vino);
-  box-shadow: 0 0 0 1px var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
+  box-shadow: 0 0 0 1px var(--oro);
 }
 
 .praise-global-player__volume input::-moz-range-thumb {
@@ -4554,8 +4550,9 @@
   height: 0.7rem;
   border: 2px solid var(--superficie-1);
   border-radius: 50%;
-  background: var(--vino);
-  box-shadow: 0 0 0 1px var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
+  box-shadow: 0 0 0 1px var(--oro);
 }
 
 @media (max-width: 720px) {
@@ -4600,7 +4597,8 @@
   inset-inline-start: 1.7rem;
   width: 4.8rem;
   height: 3px;
-  background: var(--vino);
+  background: var(--oro);
+  background-image: var(--oro-brillo);
 }
 
 .praise-favorites-card__header {
@@ -4622,8 +4620,8 @@
   place-items: center;
   min-width: 2.45rem;
   height: 2.45rem;
-  border: 1px solid color-mix(in srgb, var(--vino) 65%, var(--linea-fuerte));
-  color: var(--vino);
+  border: 1px solid color-mix(in srgb, var(--acento) 65%, var(--linea-fuerte));
+  color: var(--acento);
   font-family: var(--font-mono);
   font-size: 0.72rem;
   letter-spacing: 0.1em;
@@ -4646,8 +4644,8 @@
   place-items: center;
   width: 3rem;
   aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--vino) 60%, var(--linea-fuerte));
-  color: var(--vino);
+  border: 1px solid color-mix(in srgb, var(--acento) 60%, var(--linea-fuerte));
+  color: var(--acento);
   font-size: 1.5rem;
 }
 
@@ -4696,13 +4694,13 @@
 .praise-favorites-card__item:hover,
 .praise-favorites-card__item:focus-visible,
 .praise-favorites-card__item.is-selected {
-  border-color: color-mix(in srgb, var(--vino) 65%, var(--linea-fuerte));
-  background: color-mix(in srgb, var(--vino) 11%, transparent);
+  border-color: color-mix(in srgb, var(--acento) 65%, var(--linea-fuerte));
+  background: color-mix(in srgb, var(--oro) 11%, transparent);
 }
 
 .praise-favorites-card__number,
 .praise-favorites-card__item-action {
-  color: var(--vino);
+  color: var(--acento);
   font-family: var(--font-mono);
   font-size: 0.68rem;
   letter-spacing: 0.08em;
@@ -4744,7 +4742,7 @@
 .praise-favorites-card__footer button {
   border: 0;
   padding: 0;
-  color: var(--vino);
+  color: var(--acento);
   background: transparent;
   font: inherit;
   cursor: pointer;
@@ -4827,7 +4825,7 @@
 .praise-player-view__copy p,
 .praise-player-view__topline span {
   margin: 0;
-  color: var(--vino);
+  color: var(--acento);
   font: 0.68rem/1 var(--font-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -4932,9 +4930,9 @@
 }
 .praise-album-item__caption button:hover,
 .praise-album-item__caption button:focus-visible {
-  color: var(--vino);
+  color: var(--acento);
   outline: 0;
-  background: color-mix(in srgb, var(--vino) 8%, transparent);
+  background: color-mix(in srgb, var(--oro) 8%, transparent);
 }
 .praise-album-item__caption button:disabled {
   opacity: 0.35;
@@ -4959,7 +4957,7 @@
   cursor: wait;
 }
 .album-sleeve:focus-visible {
-  outline: 1px solid var(--vino);
+  outline: 1px solid var(--acento);
   outline-offset: 0.65rem;
 }
 
@@ -5185,7 +5183,7 @@
   filter: brightness(1.08);
 }
 .praise-disc-object > button:hover strong {
-  color: var(--vino);
+  color: var(--acento);
 }
 .praise-disc-object strong {
   color: var(--contenido);
@@ -5410,14 +5408,31 @@
 }
 
 /* Marco del visor de tarjetas en móvil.
-   Reutiliza la misma textura de papel que la sección de tarjetas de la
-   landing, para que las bandas que deja una imagen de otra proporción se lean
-   como el soporte donde reposa la pieza y no como un hueco vacío. */
+   Llevó una textura de papel para que las bandas de una imagen de otra
+   proporción se leyeran como soporte y no como hueco. Le quitaba el sitio a la
+   pieza: en una pantalla pequeña, un fondo claro con grano compite con la
+   tarjeta en vez de sostenerla. Negro, y la pieza manda sola. */
 .tarjeta-visor {
-  background-color: #e9e5dd;
-  background-image:
-    linear-gradient(90deg, rgba(247, 246, 242, 0.25), rgba(247, 246, 242, 0) 52%),
-    url('/media/tarjetas-carrusel-textura-editorial-v1.png');
-  background-position: center;
-  background-size: cover;
+  background: var(--negro);
+}
+
+/* Cambio de pieza en el visor de Tarjetas de Fe. La tarjeta entra DESDE
+   ARRIBA y se asienta, en lugar de aparecer de golpe: el salto seco delataba
+   que es la misma caja cambiando de contenido. */
+@keyframes visor-entra {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -0.9rem, 0) scale(0.994);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-visor img,
+  [class*='visor-entra'] {
+    animation: none !important;
+  }
 }

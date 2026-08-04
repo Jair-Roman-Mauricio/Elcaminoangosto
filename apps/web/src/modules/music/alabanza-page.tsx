@@ -217,7 +217,7 @@ export function AlabanzaPage() {
       descripcion: `${album.songIds.length} ${album.songIds.length === 1 ? 'canción' : 'canciones'}`,
       coverUrl: album.coverUrl ?? PORTADA_PREDETERMINADA_FAVORITOS,
       tono: albumDeLaCancion?.tono ?? 'vino',
-      discColor: albumDeLaCancion?.discColor ?? '#8f1639',
+      discColor: albumDeLaCancion?.discColor ?? '#8a6212',
     }
   }), [albumesFavoritos])
   const albumes = useMemo<AlbumDeCatalogo[]>(() => {

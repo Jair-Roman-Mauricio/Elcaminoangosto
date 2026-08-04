@@ -9,7 +9,7 @@
 ## 1. Principios visuales
 
 1. **Editorial y cinematográfico**: la landing es un recorrido de video a pantalla completa con texto sobrepuesto. La sensación es de cine y de revista, no de app.
-2. **Monocromático con dos acentos**: negro cálido + hueso. `vino` y `marino` se usan **con moderación** (hover, énfasis, estados).
+2. **Monocromático con un acento**: negro cálido + hueso. El acento es el **oro** del emblema (`oro`, y `noche` como apoyo frío), siempre **con moderación** (hover, énfasis, estados).
 3. **Aire**: mucho espacio negativo. La jerarquía nace de la tipografía y el espacio, no de bordes ni sombras.
 4. **Movimiento lento y sin rebote**: la curva de la landing es un ease-out puro (`cubic-bezier(.22,.61,.36,1)`) con transiciones largas (0.9 s). **No hay rebote.** Nunca introduzcas curvas *springy*.
 5. **Mono como voz por defecto**: el cuerpo de la landing es Space Mono. El serif (Newsreader) está reservado a los **versículos**.
@@ -26,8 +26,16 @@ Valores exactos de `docs/legacy-landing/styles.css`.
   --hueso:  #f7f6f2;   /* texto principal */
 
   /* — Acentos (usar con moderación) — */
-  --vino:   #b41e44;   /* acción, hover, énfasis devocional, peligro */
-  --marino: #1b3460;   /* estados fríos, enlaces sutiles, gráficos */
+  --oro:        #e3ac33;  /* relleno de marca: acción, hover, énfasis */
+  --oro-claro:  #f6d689;  /* destello: gradientes y realces */
+  --oro-hondo:  #8a6212;  /* oro legible sobre superficies claras */
+  --sobre-oro:  #0b0a07;  /* texto e iconos SOBRE un relleno de oro */
+  --noche:      #0c1322;  /* estados fríos, enlaces sutiles, gráficos */
+  --acento:     var(--oro) | var(--oro-hondo);  /* según el tema; ver más abajo */
+
+  /* Paleta anterior. Solo la usa la landing, aún sin migrar (ADR-012). */
+  --vino:   #b41e44;
+  --marino: #1b3460;
 
   /* — Derivados del hueso (opacidades) — */
   --texto:        var(--hueso);
@@ -44,16 +52,17 @@ Valores exactos de `docs/legacy-landing/styles.css`.
   /* — Semánticos de estado (extensión para la app) — */
   --exito:   #2e7d5b;
   --aviso:   #c9862b;
-  --peligro: var(--vino);
+  --peligro: #d0463a;  /* propio: el acento ya no puede señalar error */
 }
 ```
 
 **Detalles de la landing que se conservan:**
-- **Selección de texto**: fondo `vino`, texto `hueso`.
+- **Selección de texto**: fondo `oro`, texto `sobre-oro`.
 - **Foco visible**: `outline: 1px solid var(--hueso); outline-offset: 4px;` — nunca `outline: none`.
-- El acento `vino` en hover se usa **al 12% de opacidad como fondo** más el borde a color sólido (`.nav__cta`), o como fondo sólido con texto hueso (`.boton`).
+- El acento en hover se usa **al 10-12% de opacidad como fondo** más el borde a color sólido (`.nav__cta`), o como **relleno sólido de `oro` con texto `sobre-oro`** (`.boton`). Sobre el oro nunca va texto en hueso ni en blanco: no contrasta.
+- **Relleno frente a trazo**: el relleno siempre es `--oro` (mismo valor en ambos temas). El texto, los bordes finos y los subrayados usan `--acento`, que en oscuro sube a `#efc25c` y en claro baja a `--oro-hondo` para seguir siendo legible sobre blanco.
 
-> **Tema claro/oscuro (ADR-007).** La app tiene dos temas con el **claro por defecto**, mediante tokens semánticos (`--fondo`, `--contenido`, `--superficie-*`, `--linea`) que cambian con `data-theme` en `<html>`. Los acentos de marca (`vino`, `marino`) y los absolutos (`negro`, `hueso`) son fijos. **La landing, el login y las secciones de video del feed se fuerzan a oscuro** (experiencias inmersivas). El toggle vive en el nav; la elección persiste en `localStorage`.
+> **Tema claro/oscuro (ADR-007, revisado por ADR-012).** La app tiene dos temas con el **oscuro por defecto**, mediante tokens semánticos (`--fondo`, `--contenido`, `--superficie-*`, `--linea`) que cambian con `data-theme` en `<html>`. Los rellenos de marca (`oro`, `noche`) y los absolutos (`negro`, `hueso`) son fijos; `--acento` es la excepción y sí cambia con el tema. **La landing, el login y las secciones de video del feed se fuerzan a oscuro** (experiencias inmersivas). El toggle vive en el nav; la elección persiste en `localStorage`.
 
 **Única excepción documentada:** `#0d1117`, el negro azulado del panel del login (`apps/web/src/pages/panel-curvo.tsx`). No es un token ni un tercer acento: existe solo ahí, para que el panel continúe la atmósfera fría de la fotografía en vez de cortar contra el `--negro` puro. No lo uses en ningún otro sitio.
 
@@ -147,7 +156,7 @@ La firma de movimiento es **una sola curva**, lenta y sin rebote. Cópiala liter
 - **Scrub de video por scroll**: cada capítulo consume ~10 s de video a lo largo de `260vh`.
 - **Reveal de overlay**: `opacity` + `translateY` con `--ease`, escalonado por bloque.
 - **Contador de capítulos** lateral: el ítem activo pasa de `opacity .5` a `1`.
-- **Botón**: en hover, `border-color` → `vino` y fondo → `vino` (o `rgba(vino,.12)` en la variante del nav). Es un **fill**, no un *wipe* de subrayado.
+- **Botón**: en hover, `border-color` → `acento` y fondo → `oro` con texto `sobre-oro` (o `oro/10` en la variante del nav). Es un **fill**, no un *wipe* de subrayado.
 - **Play/pause morph**: transición del icono para el reproductor de música y el video del feed. *(Componente nuevo; no existe en la landing.)*
 
 **`prefers-reduced-motion`** (obligatorio, RNF-6): la landing reduce `--fade` a `0.25s`, **desactiva Lenis por completo** y salta los reveals. Replícalo: sin smooth-scroll, sin scrub, transiciones cortas.
@@ -157,13 +166,13 @@ La firma de movimiento es **una sola curva**, lenta y sin rebote. Cópiala liter
 **Derivados de la landing** (existen hoy, migrarlos fielmente):
 
 - **Eyebrow** — microlabel mono uppercase con regla `::after`.
-- **BrandLogo** — símbolo de puerta angosta + cruz + camino, con lockup horizontal `ElCaminoAngosto`; variantes `light`, `dark`, `wine` y `adaptive` para landing, login y plataforma.
-- **Boton** — variantes `primary` (borde `linea-fuerte`, fondo `rgba(negro,.2)`; hover → fondo `vino`) y `sutil` (sin borde, subrayado con `text-underline-offset: .45em`; hover → subrayado `marino`).
+- **BrandLogo** — símbolo de puerta angosta + cruz + camino, con lockup horizontal `ElCaminoAngosto`; variantes `light`, `dark`, `oro` y `adaptive` para landing, login y plataforma.
+- **Boton** — variantes `primary` (borde `linea-fuerte`, fondo `rgba(negro,.2)`; hover → fondo `oro`) y `sutil` (sin borde, subrayado con `text-underline-offset: .45em`; hover → subrayado `acento`).
 - **Nav** — fija arriba, `padding: clamp(1.1rem,2.4vw,2rem) var(--gutter)` respetando `env(safe-area-inset-top)`. Marca + enlaces + CTA. **No tiene altura fija de 8 rem.**
 - **Counter** — contador vertical de capítulos (lateral izquierdo; oculto ≤820px).
 - **ScrollHint** — indicador inferior con línea en degradado.
 - **Overlay** — bloque de texto sobre video, con `scrim` (degradado local, nunca un velo sobre todo el video) y posiciones `top-center | top-left | bottom-left | center | split`.
-- **Verse** — versículo en Newsreader 300 + su referencia en eyebrow. En superficies fotográficas puede usar la variante `login`, que fija el texto en hueso y añade subrayado vino para preservar contraste.
+- **Verse** — versículo en Newsreader 300 + su referencia en eyebrow. En superficies fotográficas puede usar la variante `login`, que fija el texto en hueso y añade subrayado de acento para preservar contraste.
 - **Stage** — capas de video fijas con viñeta (`stage-vignette`) y `--video-scale: 1.04` (1.06 en móvil) para ocultar barras negras quemadas en los archivos fuente.
 
 **Nuevos, para los módulos de la plataforma** (heredan los tokens de arriba):
@@ -174,7 +183,7 @@ La firma de movimiento es **una sola curva**, lenta y sin rebote. Cópiala liter
 - **FeedViewport** (TikTok-like) — contenedor vertical con `scroll-snap`, controles laterales (like/comentar/compartir), overlay de autor y caption.
 - **CourseShell** (Udemy-like) — sidebar de módulos/lecciones + área de contenido + barra de progreso.
 - **ChatPanel** — lista de conversaciones + hilo + composer + botón "Solicitar subir de nivel".
-- **FormControls** — inputs con borde `--linea`, foco `--hueso` (outline, no glow); `textarea { resize: none }`. En el login, los campos se expresan como líneas inferiores y el CTA como cápsula rellena en `vino`, de color fijo incluso en hover; `IBM Plex Sans` se usa en título y controles para reforzar legibilidad, mientras los eyebrows conservan Space Mono.
+- **FormControls** — inputs con borde `--linea`, foco `--hueso` (outline, no glow); `textarea { resize: none }`. En el login, los campos se expresan como líneas inferiores y el CTA como cápsula rellena en `oro`, de color fijo incluso en hover; `IBM Plex Sans` se usa en título y controles para reforzar legibilidad, mientras los eyebrows conservan Space Mono.
 - **PanelCurvo** — banda oscura con borde en S para el login. La curva se midió píxel a píxel sobre la obra original y se reproduce con un `path` SVG normalizado (`viewBox 100×100` + `preserveAspectRatio="none"`), no con una imagen: así se estira a cualquier ancho y el formulario nunca se queda sin sitio. Su amplitud se reduce al 70% de la original por esa razón.
 
 ### Preset de Tailwind
@@ -185,7 +194,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        negro: '#0a0a0a', hueso: '#f7f6f2', vino: '#b41e44', marino: '#1b3460',
+        negro: '#0a0a0a', hueso: '#f7f6f2', oro: '#e3ac33', sobreoro: '#0b0a07', noche: '#0c1322',
         superficie: { 0: '#0a0a0a', 1: '#101010', 2: '#181818' },
         exito: '#2e7d5b', aviso: '#c9862b',
       },
@@ -219,7 +228,7 @@ La landing usa **GSAP + ScrollTrigger + Lenis** (no Webflow). Plan:
 **Do**
 - Usa el *eyebrow* mono con su regla para categorizar todo (es la firma).
 - Deja respirar: `--gutter` generoso, pocas cosas por pantalla.
-- Un solo acento por acción: `vino` para la principal.
+- Un solo acento por acción: `oro` para la principal.
 - Pon el *scrim* **solo bajo el texto**, con un degradado direccional; nunca un velo plano sobre todo el video.
 
 **Don't**

@@ -35,8 +35,10 @@ export function KitUiPage() {
         <div className="grid grid-cols-2 gap-aire-s cine:grid-cols-4">
           <Muestra nombre="negro" clase="bg-fondo border border-linea" />
           <Muestra nombre="hueso" clase="bg-hueso" />
-          <Muestra nombre="vino" clase="bg-vino" />
-          <Muestra nombre="marino" clase="bg-marino" />
+          <Muestra nombre="oro" clase="bg-oro" />
+          <Muestra nombre="acento" clase="bg-acento" />
+          <Muestra nombre="noche" clase="bg-noche" />
+          <Muestra nombre="peligro" clase="bg-peligro" />
           <Muestra nombre="superficie-1" clase="bg-superficie-1 border border-linea" />
           <Muestra nombre="superficie-2" clase="bg-superficie-2 border border-linea" />
           <Muestra nombre="exito" clase="bg-exito" />

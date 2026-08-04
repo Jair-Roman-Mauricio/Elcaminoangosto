@@ -20,7 +20,7 @@ const FORMATO_FECHA = new Intl.DateTimeFormat('es-PE', {
 const CLASE_ARCHIVO =
   'font-mono text-body-s text-texto-tenue file:mr-aire-s file:rounded file:border ' +
   'file:border-linea file:bg-superficie-2 file:px-aire-s file:py-1 file:font-mono ' +
-  'file:text-eyebrow file:uppercase file:tracking-label file:text-contenido hover:file:border-vino'
+  'file:text-eyebrow file:uppercase file:tracking-label file:text-contenido hover:file:border-acento'
 
 /**
  * Videos cristianos en el módulo Contenido (HU-9.3): el admin ve todos —
@@ -72,7 +72,7 @@ export function VideosPanel() {
       )}
 
       {(cambiarEstado.isError || eliminar.isError) && (
-        <p role="alert" className="m-0 font-ui text-body-s text-vino">
+        <p role="alert" className="m-0 font-ui text-body-s text-peligro">
           {mensajeDeError(cambiarEstado.error ?? eliminar.error)}
         </p>
       )}
@@ -315,7 +315,7 @@ function ModalSubirVideo({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
           <p className="m-0 font-mono text-body-s text-texto-tenue">Publicando…</p>
         )}
         {error && (
-          <p role="alert" className="m-0 font-ui text-body-s text-vino">
+          <p role="alert" className="m-0 font-ui text-body-s text-peligro">
             {error}
           </p>
         )}

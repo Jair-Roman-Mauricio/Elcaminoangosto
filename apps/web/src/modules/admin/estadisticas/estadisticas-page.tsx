@@ -327,7 +327,7 @@ function Barra({ valor, maximo }: { valor: number; maximo: number }) {
       aria-hidden="true"
       className="hidden h-1.5 w-32 shrink-0 overflow-hidden rounded-full bg-superficie-2 sm:block"
     >
-      <span className="block h-full rounded-full bg-vino" style={{ width: `${porcentaje}%` }} />
+      <span className="block h-full rounded-full bg-oro" style={{ width: `${porcentaje}%` }} />
     </span>
   )
 }

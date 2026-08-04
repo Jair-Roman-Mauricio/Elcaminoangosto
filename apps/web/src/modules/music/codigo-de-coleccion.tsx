@@ -40,7 +40,7 @@ export function AvisoDeCodigoNuevo() {
           {codigoReciente}
         </p>
 
-        <p className="m-0 font-ui text-body-s text-vino">
+        <p className="m-0 font-ui text-body-s text-acento">
           Apúntalo ahora: no se guarda en ninguna parte y no hay forma de recuperarlo.
           Si lo pierdes, pierdes la colección.
         </p>

@@ -13,7 +13,6 @@ import { AvisoDeCodigoNuevo } from '../modules/music/codigo-de-coleccion'
 import { PageTransition } from '../components/page-transition'
 import { Sidebar } from '../components/sidebar'
 import { BrandLogo, cn } from '@elcamino/ui/static'
-import { ThemeToggle } from '../components/theme'
 import { useSession } from '../auth/session'
 
 const PlayerBar = lazy(() => import('../modules/music/player-bar').then((modulo) => ({ default: modulo.PlayerBar })))
@@ -123,7 +122,7 @@ export function AppLayout() {
           onClick={() => setMenuAbierto(true)}
           aria-label="Abrir el menú"
           aria-expanded={menuAbierto}
-          className="rounded border border-linea p-2 text-contenido transition-colors duration-fade ease-camino hover:border-vino"
+          className="rounded border border-linea p-2 text-contenido transition-colors duration-fade ease-camino hover:border-acento"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
             <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" strokeWidth="1.4" />
@@ -145,9 +144,6 @@ export function AppLayout() {
           paginaAlabanza && 'alabanza-shell',
           vistaDeReproduccion && 'alabanza-shell--player',
         )}>
-          <div className="theme-toggle-anchor flex items-center gap-aire-s">
-            <ThemeToggle />
-          </div>
           <nav aria-label="Ruta actual" className="relative -top-1 mb-aire-xs hidden h-10 items-center gap-aire-xs md:flex">
             {migas.map(([to, label], index) => (
               <span key={`${to}-${label}`} className="flex items-center gap-aire-xs">
@@ -157,7 +153,7 @@ export function AppLayout() {
                   className={cn(
                     'font-mono text-[0.6rem] uppercase tracking-[0.12em] no-underline transition-colors duration-fade',
                     index === migas.length - 1
-                      ? 'text-contenido underline decoration-vino decoration-2 underline-offset-8'
+                      ? 'text-contenido underline decoration-acento decoration-2 underline-offset-8'
                       : 'text-texto-tenue hover:text-contenido',
                   )}
                 >

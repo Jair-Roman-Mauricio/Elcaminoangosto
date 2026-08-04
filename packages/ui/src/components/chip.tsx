@@ -27,7 +27,7 @@ const base =
   'font-mono text-eyebrow'
 
 /**
- * Nunca hay un tono relleno: en esta interfaz **el relleno de vino significa
+ * Nunca hay un tono relleno: en esta interfaz **el relleno de oro significa
  * «esto se puede pulsar»** (`Boton`). Una etiqueta rellena se lee como botón y
  * el usuario intenta hacer clic en un estado. Para señalar gravedad, el
  * contorno de acento y, si hace falta más, un punto delante del texto.
@@ -36,7 +36,7 @@ const tonos: Record<ChipTono, string> = {
   /** Informativo: no reclama atención. */
   neutro: 'border-linea text-texto-tenue',
   /** Pide atención: pendiente, bloqueado, en espera. */
-  acento: 'border-vino text-vino',
+  acento: 'border-acento text-acento',
 }
 
 const tamanos: Record<ChipTamano, string> = {

@@ -139,7 +139,7 @@ export function EntrarPage() {
         <div className="flex flex-col items-center justify-center gap-aire-s px-gutter pt-aire-l text-center md:min-h-screen md:gap-aire-m md:pt-0">
           <BrandLogo layout="horizontal" tone="light" size="lg" />
 
-          <span aria-hidden className="h-px w-12 bg-vino md:w-16" />
+          <span aria-hidden className="h-px w-12 bg-oro md:w-16" />
 
           <p className="m-0 hidden font-mono text-eyebrow uppercase leading-relaxed tracking-label text-texto-tenue md:block">
             Camina con
@@ -196,13 +196,13 @@ export function EntrarPage() {
               <Link
                   to="/recuperar"
                   data-sin-transicion
-                  className="relative self-end font-mono text-eyebrow uppercase tracking-label text-texto-tenue no-underline transition-colors duration-fade ease-camino hover:text-hueso after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-vino after:transition-[width] after:duration-fade after:ease-camino hover:after:w-full focus-visible:after:w-full"
+                  className="relative self-end font-mono text-eyebrow uppercase tracking-label text-texto-tenue no-underline transition-colors duration-fade ease-camino hover:text-hueso after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-oro after:transition-[width] after:duration-fade after:ease-camino hover:after:w-full focus-visible:after:w-full"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
 
               {errorServidor && (
-                <p role="alert" className="m-0 font-ui text-body-s text-vino">
+                <p role="alert" className="m-0 font-ui text-body-s text-peligro">
                   {errorServidor}
                 </p>
               )}
@@ -234,7 +234,7 @@ export function EntrarPage() {
 
             <Link
               to="/"
-              className="relative self-center font-mono text-eyebrow uppercase tracking-label text-texto-debil no-underline transition-colors duration-fade ease-camino hover:text-texto-tenue after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-vino after:transition-[width] after:duration-fade after:ease-camino hover:after:w-full focus-visible:after:w-full"
+              className="relative self-center font-mono text-eyebrow uppercase tracking-label text-texto-debil no-underline transition-colors duration-fade ease-camino hover:text-texto-tenue after:absolute after:bottom-[-0.4em] after:left-0 after:h-[2px] after:w-0 after:bg-oro after:transition-[width] after:duration-fade after:ease-camino hover:after:w-full focus-visible:after:w-full"
             >
               ← Volver a la plataforma
             </Link>
@@ -263,7 +263,7 @@ const Campo = ({ id, label, error, ...props }: CampoProps) => (
         'rounded-none border-0 border-b px-0 py-aire-xs',
         'font-ui text-body text-hueso placeholder:text-texto-debil',
         'hover:border-linea-fuerte focus:border-hueso',
-        error ? 'border-vino' : 'border-linea',
+        error ? 'border-peligro' : 'border-linea',
       ].join(' ')}
       {...props}
     />

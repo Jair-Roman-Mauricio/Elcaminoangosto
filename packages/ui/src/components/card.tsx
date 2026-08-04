@@ -100,7 +100,7 @@ function PlaceholderMedia({ titulo }: { titulo: string }) {
       >
         {titulo.trim().charAt(0).toUpperCase() || '·'}
       </span>
-      <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-vino/40" />
+      <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-oro/40" />
     </div>
   )
 }

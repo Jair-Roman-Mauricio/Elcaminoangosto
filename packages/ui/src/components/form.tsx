@@ -11,9 +11,10 @@ const controlBase = cn(
   'w-full rounded border bg-transparent px-aire-s py-aire-xs',
   'font-mono text-body text-contenido placeholder:text-texto-debil',
   'transition-colors duration-fade ease-camino',
-  // Foco visible al color de contenido; error en vino.
+  // Foco visible al color de contenido; error en el rojo de estado, que ya no
+  // comparte color con el acento de marca.
   'focus:border-contenido focus:outline-none',
-  'aria-[invalid=true]:border-vino',
+  'aria-[invalid=true]:border-peligro',
 )
 
 export interface FieldProps {
@@ -45,7 +46,7 @@ export function Field({ label, htmlFor, error, errorId, hint, children, classNam
           campos cuando varios comparten fila en una rejilla. */}
       {hint && <p className="m-0 font-mono text-body-s text-texto-debil">{hint}</p>}
       {error && (
-        <p id={errorId} role="alert" className="m-0 font-mono text-body-s text-vino">
+        <p id={errorId} role="alert" className="m-0 font-mono text-body-s text-peligro">
           {error}
         </p>
       )}
