@@ -10,7 +10,8 @@ export interface Lectura {
   tipo: TipoDeLectura
   titulo: string
   entradilla: string | null
-  parrafos: string[]
+  /** Cuerpo en Markdown: párrafos, subtítulos e imágenes. */
+  cuerpo: string
   /** Sección dentro de la revista. Nula en un devocional. */
   seccion: string | null
   autor: string
@@ -85,6 +86,16 @@ export function useLectura(id: string | null) {
   return useQuery({
     queryKey: ['lecturas', 'una', id],
     queryFn: () => apiClient.get<Lectura>(`/lecturas/${id}`),
+    enabled: Boolean(id),
+    staleTime: 60 * 1000,
+  })
+}
+
+/** Tres lecturas para seguir después de esta, de la misma sección. */
+export function useRelacionadas(id: string | null) {
+  return useQuery({
+    queryKey: ['lecturas', 'relacionadas', id],
+    queryFn: () => apiClient.get<Lectura[]>(`/lecturas/${id}/relacionadas`),
     enabled: Boolean(id),
     staleTime: 60 * 1000,
   })

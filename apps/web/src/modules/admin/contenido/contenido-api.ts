@@ -280,13 +280,15 @@ export function useEliminarCancion() {
 /**
  * Lo que se manda al publicar o editar una lectura.
  *
- * Los párrafos viajan ya partidos: el servidor guarda un arreglo, no un texto
- * con saltos, para que la pantalla sepa dónde respira sin volver a adivinarlo.
+ * El cuerpo viaja en Markdown: es lo que produce el editor y lo que sabe
+ * expresar subtítulos, imágenes por sección y citas sin inventar un campo
+ * nuevo cada vez que el artículo necesita algo más.
  */
 export interface FichaLectura {
   titulo: string
   entradilla: string | null
-  parrafos: string[]
+  /** Cuerpo en Markdown, tal como lo deja el editor. */
+  cuerpo: string
   autor: string
   seccion: string | null
   referencia: string | null

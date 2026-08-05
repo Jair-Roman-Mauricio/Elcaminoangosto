@@ -10,6 +10,7 @@ import {
   type FichaLectura,
 } from './contenido-api'
 import type { Lectura } from '../../lecturas/lecturas-api'
+import { EditorLectura } from '../../../components/editor-lectura'
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-PE', {
   day: 'numeric',
@@ -164,19 +165,6 @@ const FICHA_VACIA = {
   referencia: '',
 }
 
-/**
- * Parte el cuerpo en párrafos por líneas en blanco.
- *
- * Es la misma convención que ya usa la ficha de una tarjeta, así que quien
- * publica no tiene que aprender dos formas de separar un texto.
- */
-function enParrafos(cuerpo: string): string[] {
-  return cuerpo
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-}
-
 function ModalEscribirLectura({
   tipo,
   abierto,
@@ -195,7 +183,6 @@ function ModalEscribirLectura({
   const [error, setError] = useState<string | null>(null)
 
   const ocupado = fase !== 'elegir'
-  const parrafos = enParrafos(ficha.cuerpo)
 
   const campo = (clave: keyof typeof FICHA_VACIA) => ({
     value: ficha[clave],
@@ -237,7 +224,7 @@ function ModalEscribirLectura({
       const cuerpo: FichaLectura = {
         titulo: ficha.titulo.trim(),
         entradilla: oNulo(ficha.entradilla),
-        parrafos,
+        cuerpo: ficha.cuerpo,
         autor: ficha.autor.trim(),
         seccion: esRevista ? oNulo(ficha.seccion) : null,
         referencia: oNulo(ficha.referencia),
@@ -253,7 +240,12 @@ function ModalEscribirLectura({
     }
   }
 
-  const completo = ficha.titulo.trim().length >= 3 && ficha.autor.trim().length >= 2 && parrafos.length > 0
+  const completo =
+    ficha.titulo.trim().length >= 3 &&
+    ficha.autor.trim().length >= 2 &&
+    // El editor deja marcas aunque el documento esté vacío; lo que cuenta es
+    // que quede algo legible después de quitarlas.
+    ficha.cuerpo.replace(/[#>\-*_`\s]/g, '').length > 0
 
   return (
     <Modal
@@ -267,7 +259,7 @@ function ModalEscribirLectura({
       }
       className="max-w-4xl"
     >
-      <div className="grid gap-aire-s sm:grid-cols-2">
+      <div className="grid gap-aire-s sm:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
         <div className="flex flex-col gap-aire-s">
           <Field label="Portada (opcional)" htmlFor="lectura-portada" hint="La imagen de la tarjeta.">
             <input
@@ -333,23 +325,15 @@ function ModalEscribirLectura({
             />
           </Field>
 
-          <Field
-            label="Texto"
-            htmlFor="lectura-cuerpo"
-            hint="Separa los párrafos con una línea en blanco."
-          >
-            <Textarea
-              id="lectura-cuerpo"
-              maxLength={20000}
-              rows={14}
-              placeholder={'Primer párrafo…\n\nSegundo párrafo…'}
-              {...campo('cuerpo')}
+          {/* El artículo se escribe donde se va a leer: subtítulos que lo
+              parten en secciones, imágenes dentro de cada una y más al final.
+              Lo que se ve aquí es lo que sale publicado. */}
+          <Field label="Texto" htmlFor="lectura-cuerpo" hint="Con subtítulos, imágenes y citas.">
+            <EditorLectura
+              value={ficha.cuerpo}
+              onChange={(markdown) => setFicha((f) => ({ ...f, cuerpo: markdown }))}
             />
           </Field>
-
-          <p className="m-0 font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
-            {parrafos.length} párrafo(s)
-          </p>
         </div>
       </div>
 

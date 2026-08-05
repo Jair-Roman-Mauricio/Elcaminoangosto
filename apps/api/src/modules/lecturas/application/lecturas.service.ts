@@ -21,7 +21,8 @@ export interface LecturaCard {
   tipo: TipoDeLectura
   titulo: string
   entradilla: string | null
-  parrafos: string[]
+  /** Markdown: párrafos, subtítulos e imágenes. */
+  cuerpo: string
   seccion: string | null
   autor: string
   referencia: string | null
@@ -56,6 +57,22 @@ export interface OracionCard {
 
 /** Palabras por minuto de una lectura pausada, que es como se lee esto. */
 const PALABRAS_POR_MINUTO = 180
+
+/**
+ * Cuenta las palabras de un Markdown, sin contar sus marcas.
+ *
+ * Una imagen no se lee y un `##` no es una palabra: incluirlos inflaba los
+ * minutos de un artículo ilustrado y prometía más tiempo del que cuesta.
+ */
+function palabrasDe(markdown: string): number {
+  return markdown
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ') // imágenes
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // enlaces: queda el texto
+    .replace(/^[#>\-*\d.\s]+/gm, ' ') // marcas de bloque al inicio de línea
+    .replace(/[*_`~]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean).length
+}
 
 /**
  * API pública del bounded context `lecturas`.
@@ -93,7 +110,7 @@ export class LecturasService {
       tipo: TipoDeLectura
       titulo: string
       entradilla: string | null
-      parrafos: string[]
+      cuerpo: string
       seccion: string | null
       autor: string
       referencia: string | null
@@ -103,7 +120,7 @@ export class LecturasService {
     this.exigirAdmin(actor)
     const fila = await this.lecturas.crearLectura({
       ...input,
-      parrafos: this.exigirTexto(input.parrafos, 'La lectura'),
+      cuerpo: this.exigirTexto(input.cuerpo),
       // Se publica al crearse: el admin ya decidió al pulsar publicar.
       publishedAt: new Date(),
     })
@@ -116,7 +133,7 @@ export class LecturasService {
     cambios: {
       titulo?: string | undefined
       entradilla?: string | null | undefined
-      parrafos?: string[] | undefined
+      cuerpo?: string | undefined
       seccion?: string | null | undefined
       autor?: string | undefined
       referencia?: string | null | undefined
@@ -125,12 +142,25 @@ export class LecturasService {
     },
   ): Promise<void> {
     this.exigirAdmin(actor)
-    const { oculto, parrafos, ...resto } = cambios
+    const { oculto, cuerpo, ...resto } = cambios
     await this.lecturas.editarLectura(id, {
       ...resto,
-      ...(parrafos ? { parrafos: this.exigirTexto(parrafos, 'La lectura') } : {}),
+      ...(cuerpo === undefined ? {} : { cuerpo: this.exigirTexto(cuerpo) }),
       ...(oculto === undefined ? {} : { estado: oculto ? 'OCULTO' : 'VISIBLE' }),
     })
+  }
+
+  /** Tres lecturas para seguir después de esta. Vacío si no hay más. */
+  async relacionadas(actor: Actor | null, id: string): Promise<LecturaCard[]> {
+    const fila = await this.lecturas.lectura(id, this.esAdmin(actor))
+    if (!fila) throw new NotFoundException('Esa lectura no existe')
+    const filas = await this.lecturas.relacionadas({
+      excluir: fila.id,
+      tipo: fila.tipo,
+      seccion: fila.seccion,
+      limite: 3,
+    })
+    return Promise.all(filas.map((otra) => this.aLectura(otra)))
   }
 
   async eliminar(actor: Actor, id: string): Promise<void> {
@@ -222,7 +252,7 @@ export class LecturasService {
     },
   ): Promise<{ id: string }> {
     this.exigirAdmin(actor)
-    const lineas = this.exigirTexto(input.lineas, 'La oración')
+    const lineas = this.exigirLineas(input.lineas)
     const fila = await this.lecturas.crearOracion({
       ...input,
       lineas,
@@ -246,7 +276,7 @@ export class LecturasService {
   ): Promise<void> {
     this.exigirAdmin(actor)
     const { oculto, lineas, marcas, ...resto } = cambios
-    const limpias = lineas ? this.exigirTexto(lineas, 'La oración') : undefined
+    const limpias = lineas ? this.exigirLineas(lineas) : undefined
     await this.lecturas.editarOracion(id, {
       ...resto,
       ...(limpias ? { lineas: limpias } : {}),
@@ -263,13 +293,13 @@ export class LecturasService {
   // ── Interioridades ───────────────────────────────────────────────────────
 
   private async aLectura(fila: LecturaEntity): Promise<LecturaCard> {
-    const palabras = fila.parrafos.join(' ').split(/\s+/).filter(Boolean).length
+    const palabras = palabrasDe(fila.cuerpo)
     return {
       id: fila.id,
       tipo: fila.tipo,
       titulo: fila.titulo,
       entradilla: fila.entradilla,
-      parrafos: fila.parrafos,
+      cuerpo: fila.cuerpo,
       seccion: fila.seccion,
       autor: fila.autor,
       referencia: fila.referencia,
@@ -306,11 +336,18 @@ export class LecturasService {
     }
   }
 
-  /** Limpia un cuerpo partido: sin líneas vacías ni todo en blanco. */
-  private exigirTexto(crudos: string[], que: string): string[] {
-    const limpios = crudos.map((p) => p.trim()).filter(Boolean)
-    if (limpios.length === 0) throw new BadRequestException(`${que} no puede estar vacía`)
-    return limpios
+  /** Limpia las líneas de una oración: sin vacías ni todo en blanco. */
+  private exigirLineas(crudas: string[]): string[] {
+    const limpias = crudas.map((l) => l.trim()).filter(Boolean)
+    if (limpias.length === 0) throw new BadRequestException('La oración no puede estar vacía')
+    return limpias
+  }
+
+  /** Un cuerpo en blanco no es una lectura, por muchos saltos que traiga. */
+  private exigirTexto(crudo: string): string {
+    const limpio = crudo.trim()
+    if (!limpio) throw new BadRequestException('La lectura no puede estar vacía')
+    return limpio
   }
 
   /**

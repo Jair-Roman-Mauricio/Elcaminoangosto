@@ -16,7 +16,20 @@ export function DevocionalesPage() {
   const { data, isPending, isError } = useDevocionales()
   const [abierto, setAbierto] = useState<Lectura | null>(null)
 
-  if (abierto) return <LectorEditorial lectura={abierto} onVolver={() => setAbierto(null)} />
+  const abrirOtra = (id: string) => {
+    const otra = (data ?? []).find((l) => l.id === id)
+    if (otra) setAbierto(otra)
+  }
+
+  if (abierto) {
+    return (
+      <LectorEditorial
+        lectura={abierto}
+        onVolver={() => setAbierto(null)}
+        onAbrirOtra={abrirOtra}
+      />
+    )
+  }
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-aire-m">

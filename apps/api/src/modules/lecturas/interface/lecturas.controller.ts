@@ -15,7 +15,7 @@ import {
 const LecturaSchema = z.object({
   titulo: z.string().trim().min(3).max(160),
   entradilla: z.string().trim().max(400).nullable().default(null),
-  parrafos: z.array(z.string()).min(1).max(60),
+  cuerpo: z.string().trim().min(1).max(60000),
   autor: z.string().trim().min(2).max(120),
   seccion: z.string().trim().max(80).nullable().default(null),
   referencia: z.string().trim().max(120).nullable().default(null),
@@ -78,6 +78,13 @@ export class LecturasController {
   @ApiOperation({ summary: 'Una lectura, sea devocional o artículo' })
   async lectura(@UsuarioOpcional() u: CurrentUserContext | null, @Param('id') id: string) {
     return this.lecturas.ver(u ? actorDe(u) : null, id)
+  }
+
+  @Get('lecturas/:id/relacionadas')
+  @Public()
+  @ApiOperation({ summary: 'Tres lecturas para seguir después de esta' })
+  async relacionadas(@UsuarioOpcional() u: CurrentUserContext | null, @Param('id') id: string) {
+    return this.lecturas.relacionadas(u ? actorDe(u) : null, id)
   }
 
   @Get('lecturas/:id/comments')

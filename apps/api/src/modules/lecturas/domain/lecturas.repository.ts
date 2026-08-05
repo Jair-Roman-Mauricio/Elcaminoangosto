@@ -18,8 +18,12 @@ export interface LecturaEntity {
   tipo: TipoDeLectura
   titulo: string
   entradilla: string | null
-  /** Cuerpo ya partido: la pantalla necesita saber dónde respira el texto. */
-  parrafos: string[]
+  /**
+   * Cuerpo en Markdown: párrafos, subtítulos que parten el texto en secciones
+   * e imágenes dentro de ellas. Las imágenes viven en un bucket público, así
+   * que sus direcciones no caducan y pueden viajar dentro del propio texto.
+   */
+  cuerpo: string
   /** Sección dentro de la revista: «Testimonio», «Familia»… Nula en un devocional. */
   seccion: string | null
   autor: string
@@ -76,6 +80,17 @@ export abstract class LecturasRepository {
     cambios: Cambios<Omit<LecturaEntity, 'id' | 'createdAt'>>,
   ): Promise<void>
   abstract eliminarLectura(id: string): Promise<void>
+  /**
+   * Otras lecturas del mismo tipo para seguir leyendo. Las de la misma sección
+   * primero: quien termina un artículo de «Familia» suele querer otro de
+   * «Familia», no lo más reciente que se haya publicado.
+   */
+  abstract relacionadas(input: {
+    excluir: string
+    tipo: TipoDeLectura
+    seccion: string | null
+    limite: number
+  }): Promise<LecturaEntity[]>
 
   // ── Conversación bajo un artículo ────────────────────────────────────────
 

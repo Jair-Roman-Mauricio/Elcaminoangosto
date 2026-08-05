@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, count, desc, eq, gte } from 'drizzle-orm'
+import { and, count, desc, eq, gte, ne } from 'drizzle-orm'
 import { DRIZZLE, type Database } from '../../shared'
 import { lecturaComentarios, lecturas, oracionesGuiadas } from '../../shared/database/schema'
 import {
@@ -61,6 +61,32 @@ export class DrizzleLecturasRepository extends LecturasRepository {
 
   async eliminarLectura(id: string): Promise<void> {
     await this.db.delete(lecturas).where(eq(lecturas.id, id))
+  }
+
+  // Se piden de más y se ordenan en memoria: son pocas filas y así la
+  // preferencia por la misma sección se lee de un vistazo en el servicio.
+  async relacionadas(input: {
+    excluir: string
+    tipo: TipoDeLectura
+    seccion: string | null
+    limite: number
+  }): Promise<LecturaEntity[]> {
+    const filas = await this.db
+      .select()
+      .from(lecturas)
+      .where(
+        and(
+          eq(lecturas.tipo, input.tipo),
+          eq(lecturas.estado, 'VISIBLE'),
+          ne(lecturas.id, input.excluir),
+        ),
+      )
+      .orderBy(desc(lecturas.publishedAt), desc(lecturas.createdAt))
+      .limit(input.limite * 4)
+
+    const mismaSeccion = filas.filter((f) => input.seccion && f.seccion === input.seccion)
+    const otras = filas.filter((f) => !mismaSeccion.includes(f))
+    return [...mismaSeccion, ...otras].slice(0, input.limite)
   }
 
   // ── Conversación bajo un artículo ────────────────────────────────────────

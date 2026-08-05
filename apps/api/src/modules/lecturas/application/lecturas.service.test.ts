@@ -20,7 +20,7 @@ const nuevaLectura = (over: Partial<LecturaEntity> & { id: string }): LecturaEnt
   tipo: 'ARTICULO',
   titulo: 'Cuando la fe se hereda',
   entradilla: null,
-  parrafos: ['Un párrafo cualquiera.'],
+  cuerpo: 'Un párrafo cualquiera.',
   seccion: null,
   autor: 'Rafael Román',
   referencia: null,
@@ -63,6 +63,18 @@ class FakeLecturasRepo extends LecturasRepository {
   }
   async eliminarLectura(id: string) {
     this.filas.delete(id)
+  }
+  async relacionadas(input: {
+    excluir: string
+    tipo: TipoDeLectura
+    seccion: string | null
+    limite: number
+  }) {
+    const otras = [...this.filas.values()].filter(
+      (l) => l.tipo === input.tipo && l.estado === 'VISIBLE' && l.id !== input.excluir,
+    )
+    const misma = otras.filter((l) => input.seccion && l.seccion === input.seccion)
+    return [...misma, ...otras.filter((l) => !misma.includes(l))].slice(0, input.limite)
   }
 
   async comentariosDe(lecturaId: string, incluirOcultos: boolean) {
@@ -146,15 +158,30 @@ describe('LecturasService', () => {
     })
 
     it('los minutos salen del propio texto y nunca son cero', async () => {
-      repo.seed(nuevaLectura({ id: 'corto', parrafos: ['Dos palabras'] }))
+      repo.seed(nuevaLectura({ id: 'corto', cuerpo: 'Dos palabras' }))
       repo.seed(
-        nuevaLectura({ id: 'largo', parrafos: [Array.from({ length: 900 }, () => 'palabra').join(' ')] }),
+        nuevaLectura({ id: 'largo', cuerpo: Array.from({ length: 900 }, () => 'palabra').join(' ') }),
       )
 
       const [corto, largo] = await servicio.listar(ADMIN, 'ARTICULO')
 
       expect(corto!.minutos).toBe(1)
       expect(largo!.minutos).toBe(5)
+    })
+
+    it('los minutos no cuentan las marcas ni las imágenes del Markdown', async () => {
+      const texto = Array.from({ length: 180 }, () => 'palabra').join(' ')
+      repo.seed(nuevaLectura({ id: 'limpio', cuerpo: texto }))
+      repo.seed(
+        nuevaLectura({
+          id: 'ilustrado',
+          cuerpo: `## Un subtítulo\n\n![Un pie de foto](https://cdn.test/a.png)\n\n${texto}`,
+        }),
+      )
+
+      const [limpio, ilustrado] = await servicio.listar(ADMIN, 'ARTICULO')
+
+      expect(ilustrado!.minutos).toBe(limpio!.minutos)
     })
 
     it('una portada que aún no está lista no tumba el listado', async () => {
@@ -171,13 +198,39 @@ describe('LecturasService', () => {
     })
   })
 
+  describe('para seguir leyendo', () => {
+    it('prefiere las de la misma sección y nunca se ofrece a sí misma', async () => {
+      repo.seed(nuevaLectura({ id: 'actual', seccion: 'Familia' }))
+      repo.seed(nuevaLectura({ id: 'suelta-1', seccion: null }))
+      repo.seed(nuevaLectura({ id: 'familia-1', seccion: 'Familia' }))
+      repo.seed(nuevaLectura({ id: 'suelta-2', seccion: null }))
+
+      const seguir = await servicio.relacionadas(null, 'actual')
+
+      expect(seguir[0]!.id).toBe('familia-1')
+      expect(seguir.map((l) => l.id)).not.toContain('actual')
+      expect(seguir).toHaveLength(3)
+    })
+
+    it('no se inventa nada cuando es la única', async () => {
+      repo.seed(nuevaLectura({ id: 'sola' }))
+      await expect(servicio.relacionadas(null, 'sola')).resolves.toEqual([])
+    })
+
+    it('lo oculto no se ofrece como siguiente lectura', async () => {
+      repo.seed(nuevaLectura({ id: 'actual' }))
+      repo.seed(nuevaLectura({ id: 'retirada', estado: 'OCULTO' }))
+      await expect(servicio.relacionadas(null, 'actual')).resolves.toEqual([])
+    })
+  })
+
   describe('publicar', () => {
     it('solo el admin publica', async () => {
       const input = {
         tipo: 'DEVOCIONAL' as const,
         titulo: 'Lo que el dinero no alcanza',
         entradilla: null,
-        parrafos: ['Una historia.'],
+        cuerpo: 'Una historia.',
         seccion: null,
         autor: 'Rafael Román',
         referencia: null,
@@ -188,7 +241,7 @@ describe('LecturasService', () => {
       await expect(servicio.publicar(ADMIN, input)).resolves.toHaveProperty('id')
     })
 
-    it('descarta los párrafos en blanco y rechaza un texto vacío', async () => {
+    it('recorta el cuerpo y rechaza un texto vacío', async () => {
       const base = {
         tipo: 'DEVOCIONAL' as const,
         titulo: 'Título',
@@ -201,13 +254,13 @@ describe('LecturasService', () => {
 
       const { id } = await servicio.publicar(ADMIN, {
         ...base,
-        parrafos: ['  Uno  ', '   ', 'Dos'],
+        cuerpo: '  Uno\n\nDos  ',
       })
-      expect(repo.filas.get(id)!.parrafos).toEqual(['Uno', 'Dos'])
+      expect(repo.filas.get(id)!.cuerpo).toBe('Uno\n\nDos')
 
-      await expect(
-        servicio.publicar(ADMIN, { ...base, parrafos: ['   ', ''] }),
-      ).rejects.toBeInstanceOf(BadRequestException)
+      await expect(servicio.publicar(ADMIN, { ...base, cuerpo: '   \n\n ' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      )
     })
   })
 

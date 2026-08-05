@@ -1,5 +1,7 @@
-import { useState, type ReactNode } from 'react'
-import type { Lectura } from './lecturas-api'
+import type { ReactNode } from 'react'
+import { EditorLectura } from '../../components/editor-lectura'
+import { TarjetaDeLectura } from './tarjeta-de-lectura'
+import { useRelacionadas, type Lectura } from './lecturas-api'
 
 const formatoFecha = new Intl.DateTimeFormat('es-PE', {
   day: 'numeric',
@@ -8,61 +10,101 @@ const formatoFecha = new Intl.DateTimeFormat('es-PE', {
 })
 
 /**
+ * Las redes de la plataforma.
+ *
+ * Viven en un solo sitio para que cambiar una cuenta no sea una cacería por el
+ * código. Si una queda vacía, su icono no se muestra: es mejor no ofrecer una
+ * red que llevar a una página que no existe.
+ *
+ * OJO: las direcciones de abajo están puestas por el nombre de la marca y hay
+ * que confirmarlas con las cuentas reales antes de publicar.
+ */
+const REDES: { nombre: string; url: string; icono: ReactNode }[] = [
+  {
+    nombre: 'YouTube',
+    url: 'https://www.youtube.com/@elcaminoangosto',
+    icono: (
+      <path d="M23 12s0-3.2-.4-4.7a3 3 0 0 0-2.1-2.1C18.9 4.7 12 4.7 12 4.7s-6.9 0-8.5.5A3 3 0 0 0 1.4 7.3C1 8.8 1 12 1 12s0 3.2.4 4.7a3 3 0 0 0 2.1 2.1c1.6.5 8.5.5 8.5.5s6.9 0 8.5-.5a3 3 0 0 0 2.1-2.1C23 15.2 23 12 23 12ZM9.8 15.3V8.7l5.7 3.3-5.7 3.3Z" />
+    ),
+  },
+  {
+    nombre: 'Facebook',
+    url: 'https://www.facebook.com/elcaminoangosto',
+    icono: (
+      <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.5 2.9h-2.3v7A10 10 0 0 0 22 12Z" />
+    ),
+  },
+  {
+    nombre: 'TikTok',
+    url: 'https://www.tiktok.com/@elcaminoangosto',
+    icono: (
+      <path d="M16.6 5.8a5 5 0 0 1-3-4.3h-3.3v13.4a2.9 2.9 0 1 1-2.1-2.8V8.7A6.2 6.2 0 1 0 13.6 15V8.9a8.2 8.2 0 0 0 4.8 1.5V7.1a4.9 4.9 0 0 1-1.8-1.3Z" />
+    ),
+  },
+]
+
+/**
  * Lector de una lectura, en clave de revista.
  *
- * Cinco decisiones que vienen del oficio editorial y no del gusto:
+ * Las decisiones que vienen del oficio editorial y no del gusto:
  *
- * 1. **Disonancia de escala.** El titular es enorme —más grande de lo que
- *    parece prudente— y va en mayúsculas con el interlineado más corto que su
- *    propio tamaño, de modo que las líneas se traban entre sí y forman un
- *    bloque. Ese salto contra el cuerpo pequeño es lo que hace que una página
- *    se lea como una revista y no como un documento.
- * 2. **Medida corta.** Unos 62 caracteres por línea. Más ancho y el ojo pierde
+ * 1. **La imagen entra primero y ocupa todo.** Rompe el margen de la página y
+ *    llega a los bordes: es lo que decide si alguien se queda a leer.
+ * 2. **Disonancia de escala.** El titular es enorme —más de lo que parece
+ *    prudente— en mayúsculas y con el interlineado más corto que su propio
+ *    tamaño, de modo que las líneas se traban y forman un bloque.
+ * 3. **Medida corta.** Unos 62 caracteres por línea. Más ancho y el ojo pierde
  *    el renglón al volver; es la causa más común de que un texto largo se
  *    abandone.
- * 3. **Entradilla en itálica.** Separa la voz que presenta de la que narra,
- *    sin necesidad de rótulos.
- * 4. **Serif para el cuerpo.** En el sistema el serif está reservado a los
+ * 4. **Entradilla en itálica.** Separa la voz que presenta de la que narra.
+ * 5. **Serif para el cuerpo.** En el sistema el serif está reservado a los
  *    versículos; aquí se extiende porque una lectura larga ES esa misma voz.
- * 5. **La firma entre reglas.** Un renglón fino arriba y abajo basta para
- *    cerrar la cabecera: no hace falta una caja.
+ *
+ * El cuerpo llega en Markdown y lo pinta el mismo editor con el que se
+ * escribió, en modo solo lectura: lo que ve quien publica es exactamente lo
+ * que se lee después.
  */
 export function LectorEditorial({
   lectura,
   onVolver,
+  onAbrirOtra,
   children,
 }: {
   lectura: Lectura
   onVolver: () => void
+  /** Ir a otra lectura desde «para seguir leyendo». Sin esto, no se ofrecen. */
+  onAbrirOtra?: (id: string) => void
   /** Lo que va después del texto: la conversación, si la sección la admite. */
   children?: ReactNode
 }) {
   const etiquetas = [lectura.seccion, lectura.referencia].filter(Boolean) as string[]
 
   return (
-    <article className="mx-auto flex w-full max-w-5xl flex-col gap-aire-l pb-aire-l">
-      <button
-        type="button"
-        onClick={onVolver}
-        className="self-start border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-acento"
-      >
-        ← Volver
-      </button>
+    <article className="flex flex-col gap-aire-l pb-aire-l">
+      <div className="mx-auto w-full max-w-5xl">
+        <button
+          type="button"
+          onClick={onVolver}
+          className="self-start border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-acento"
+        >
+          ← Volver
+        </button>
+      </div>
 
-      {/* Portada a sangre. En una revista la imagen entra antes que el texto:
-          es lo que decide si alguien se queda. */}
+      {/* La portada rompe el margen de la página y llega a los bordes del área
+          de lectura: media pantalla de imagen antes de la primera palabra. */}
       {lectura.portadaUrl && (
         <img
           src={lectura.portadaUrl}
           alt=""
-          className="animate-[mensaje-entra_900ms_var(--ease)_both] max-h-[68vh] w-full object-cover"
+          className="animate-[mensaje-entra_900ms_var(--ease)_both] -mx-gutter h-[min(78vh,44rem)] w-[calc(100%+2*theme(spacing.gutter))] max-w-none object-cover"
         />
       )}
 
-      {/* La columna de lectura va centrada y lo de compartir flota fuera, para
-          que nada le robe ancho al texto. */}
+      {/* La columna de lectura va centrada y las redes flotan fuera, para que
+          nada le robe ancho al texto. */}
       <div className="relative mx-auto w-full max-w-[46rem]">
-        <Compartir titulo={lectura.titulo} />
+        <Redes />
 
         <header className="flex flex-col gap-aire-s">
           <p className="m-0 self-start border border-linea px-[0.5rem] py-[0.2rem] font-mono text-[0.68rem] uppercase tracking-label text-texto-tenue">
@@ -90,16 +132,12 @@ export function LectorEditorial({
           </p>
         </header>
 
-        <div className="mt-aire-m flex flex-col gap-aire-s">
-          {lectura.parrafos.map((parrafo, i) => (
-            <p
-              key={`${lectura.id}-${i}`}
-              className="m-0 max-w-[62ch] font-serif text-[clamp(1.05rem,1.5vw,1.28rem)] leading-[1.62] text-contenido"
-            >
-              {parrafo}
-            </p>
-          ))}
-        </div>
+        <EditorLectura
+          key={lectura.id}
+          value={lectura.cuerpo}
+          editable={false}
+          className="editor-lectura--revista mt-aire-m"
+        />
 
         {etiquetas.length > 0 && (
           <ul className="m-0 mt-aire-l flex list-none flex-wrap gap-aire-xs p-0">
@@ -118,71 +156,80 @@ export function LectorEditorial({
         <p className="m-0 mt-aire-m border-t border-linea pt-aire-s text-right font-mono text-body-s uppercase tracking-label text-texto-tenue">
           {lectura.autor}
         </p>
-
-        {children && <div className="mt-aire-l">{children}</div>}
       </div>
+
+      {onAbrirOtra && (
+        <div className="mx-auto w-full max-w-5xl">
+          <SeguirLeyendo lectura={lectura} onAbrir={onAbrirOtra} />
+        </div>
+      )}
+
+      {children && <div className="mx-auto w-full max-w-[46rem]">{children}</div>}
     </article>
   )
 }
 
 /**
- * Compartir, en una columna pegada al margen.
+ * Para seguir leyendo: tres de la misma sección.
  *
- * Ahora que cada artículo tiene su propia dirección, el enlace sirve de algo:
- * quien encuentra algo que le habla suele querer mandárselo a alguien, y ese
- * alguien tiene que caer en el artículo y no en el índice.
+ * Va antes de los comentarios y no después: quien terminó el texto decide ahí
+ * si sigue leyendo o se va, y para entonces la conversación todavía no le dice
+ * nada.
  */
-function Compartir({ titulo }: { titulo: string }) {
-  const [copiado, setCopiado] = useState(false)
+function SeguirLeyendo({
+  lectura,
+  onAbrir,
+}: {
+  lectura: Lectura
+  onAbrir: (id: string) => void
+}) {
+  const { data } = useRelacionadas(lectura.id)
+  const otras = data ?? []
+  if (otras.length === 0) return null
 
-  const enlace = () => (typeof window === 'undefined' ? '' : window.location.href)
+  return (
+    <section className="flex flex-col gap-aire-s border-t border-linea pt-aire-l">
+      <h2 className="m-0 font-mono text-body-s uppercase tracking-label text-texto-tenue">
+        {lectura.seccion ? `Más de ${lectura.seccion}` : 'Para seguir leyendo'}
+      </h2>
+      <div className="grid gap-[2px] sm:grid-cols-3">
+        {otras.map((otra) => (
+          <TarjetaDeLectura
+            key={otra.id}
+            lectura={otra}
+            onAbrir={() => onAbrir(otra.id)}
+            tamano="pequena"
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
 
-  const copiar = async () => {
-    try {
-      await navigator.clipboard.writeText(enlace())
-      setCopiado(true)
-      window.setTimeout(() => setCopiado(false), 2000)
-    } catch {
-      // Sin permiso de portapapeles no hay nada que avisar: el enlace sigue
-      // estando en la barra de direcciones.
-    }
-  }
-
-  const clase =
-    'grid size-10 place-items-center border border-linea text-texto-tenue transition-colors duration-fade ease-camino hover:border-acento hover:text-acento'
+/** Las redes, en una columna pegada al margen, como en una revista digital. */
+function Redes() {
+  const activas = REDES.filter((red) => red.url)
+  if (activas.length === 0) return null
 
   return (
     // Solo cuando de verdad cabe fuera de la columna: por debajo de 1200 el
-    // margen izquierdo lo ocupa el menú y los botones se le echarían encima.
+    // margen izquierdo lo ocupa el menú y los iconos se le echarían encima.
     <div className="absolute -left-[6rem] top-[0.2rem] hidden flex-col gap-[2px] [@media(min-width:1200px)]:flex">
-      <button type="button" onClick={() => void copiar()} className={clase} title="Copiar el enlace">
-        {copiado ? (
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+      {activas.map((red) => (
+        <a
+          key={red.nombre}
+          href={red.url}
+          target="_blank"
+          rel="noreferrer"
+          title={red.nombre}
+          className="grid size-11 place-items-center border border-linea text-hueso no-underline transition-colors duration-fade ease-camino hover:border-acento hover:text-acento"
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden>
+            {red.icono}
           </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.7">
-            <path
-              d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-        <span className="sr-only">Copiar el enlace</span>
-      </button>
-      <a
-        href={`https://wa.me/?text=${encodeURIComponent(`${titulo} ${enlace()}`)}`}
-        target="_blank"
-        rel="noreferrer"
-        className={`${clase} no-underline`}
-        title="Compartir por WhatsApp"
-      >
-        <svg viewBox="0 0 24 24" className="size-4" fill="currentColor">
-          <path d="M12.04 2a9.9 9.9 0 0 0-8.5 15l-1.3 4.8 4.9-1.3A9.9 9.9 0 1 0 12.04 2Zm0 1.8a8.1 8.1 0 1 1-4.1 15.1l-.3-.2-2.9.8.8-2.8-.2-.3a8.1 8.1 0 0 1 6.7-12.6Zm-3 4c-.2 0-.5.1-.7.4-.3.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.7 2.8 4.3 3.8 2.1.8 2.5.7 3 .6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.6-.3-1.6-.8c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.2-.1-1.1-.4-2-1.2-.7-.6-1.2-1.4-1.4-1.7-.1-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5v-.5l-.8-1.9c-.2-.4-.4-.4-.6-.4h-.4Z" />
-        </svg>
-        <span className="sr-only">Compartir por WhatsApp</span>
-      </a>
+          <span className="sr-only">{red.nombre}</span>
+        </a>
+      ))}
     </div>
   )
 }

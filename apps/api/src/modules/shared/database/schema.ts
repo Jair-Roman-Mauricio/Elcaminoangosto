@@ -320,7 +320,7 @@ export const lecturas = pgTable('lecturas', {
   tipo: tipoDeLecturaEnum('tipo').notNull(),
   titulo: text('titulo').notNull(),
   entradilla: text('entradilla'),
-  parrafos: text('parrafos').array().notNull(),
+  cuerpo: text('cuerpo').notNull(),
   seccion: text('seccion'),
   autor: text('autor').notNull(),
   referencia: text('referencia'),

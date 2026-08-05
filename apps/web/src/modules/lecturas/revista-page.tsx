@@ -48,7 +48,11 @@ export function RevistaPage() {
       return <p className="m-0 font-ui text-body text-texto-tenue">Cargando…</p>
     }
     return (
-      <LectorEditorial lectura={abierto.data} onVolver={() => navegar('/revista')}>
+      <LectorEditorial
+        lectura={abierto.data}
+        onVolver={() => navegar('/revista')}
+        onAbrirOtra={abrir}
+      >
         <Conversacion lecturaId={abierto.data.id} />
       </LectorEditorial>
     )
