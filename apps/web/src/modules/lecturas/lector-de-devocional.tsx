@@ -1,8 +1,7 @@
 import { EditorLectura } from '../../components/editor-lectura'
 import { FondoDeDevocional, type ClaveDeFondo } from './fondos-de-devocional'
 import { RedesDeLaLectura } from './redes-de-la-lectura'
-import { TarjetaDeDevocional } from './tarjeta-de-devocional'
-import { useRelacionadas, type Lectura } from './lecturas-api'
+import type { Lectura } from './lecturas-api'
 
 const formatoFecha = new Intl.DateTimeFormat('es-PE', {
   day: 'numeric',
@@ -18,21 +17,17 @@ const formatoFecha = new Intl.DateTimeFormat('es-PE', {
  * a la revista —dos secciones que se leen igual acaban siendo la misma— y
  * también que quepa de una sentada, que es lo que un devocional promete.
  *
- * La ilustración se queda quieta mientras el texto baja: es la imagen de lo que
- * se está leyendo, no una foto que se abandona al primer desplazamiento.
+ * No lleva «para seguir leyendo» al final: un devocional se lee y se guarda, y
+ * ofrecer el siguiente en la misma página empuja a seguir en vez de dejar que
+ * lo leído se asiente. Para eso está el listado.
  */
 export function LectorDeDevocional({
   lectura,
   onVolver,
-  onAbrirOtra,
 }: {
   lectura: Lectura
   onVolver: () => void
-  onAbrirOtra?: (id: string) => void
 }) {
-  const relacionadas = useRelacionadas(onAbrirOtra ? lectura.id : null)
-  const otras = relacionadas.data ?? []
-
   return (
     <div className="flex flex-col gap-aire-l">
       {/* El telón se come el margen de la página, como la portada de un
@@ -101,34 +96,19 @@ export function LectorDeDevocional({
             </p>
           </div>
 
-          {/* La ilustración manda en su mitad y se queda quieta mientras el
-              texto baja: es la imagen de lo que se está leyendo, no una foto
-              que se abandona al primer desplazamiento. En móvil se apila y
-              deja de pegarse, que ahí robaría toda la pantalla. */}
+          {/* La ilustración se centra en el alto del devocional y tira hacia
+              el medio de la banda: pegada arriba y al canto derecho quedaba
+              desparejada del texto que acompaña. */}
           {lectura.ilustracionUrl && (
             <img
               src={lectura.ilustracionUrl}
               alt=""
-              className="animate-[mensaje-entra_900ms_var(--ease)_both] mx-auto max-h-[70vh] w-full object-contain drop-shadow-[0_1.5rem_3rem_rgba(0,0,0,0.6)] md:sticky md:top-aire-m md:scale-[1.08]"
+              className="animate-[mensaje-entra_900ms_var(--ease)_both] mx-auto max-h-[70vh] w-full self-center object-contain drop-shadow-[0_1.5rem_3rem_rgba(0,0,0,0.6)] md:-translate-x-[6%] md:scale-[1.1]"
             />
           )}
         </div>
       </section>
 
-      {onAbrirOtra && otras.length > 0 && (
-        <section className="flex w-full flex-col gap-aire-s border-t border-linea px-gutter pt-aire-l">
-          <h2 className="m-0 font-mono text-body-s uppercase tracking-label text-texto-tenue">
-            Para seguir leyendo
-          </h2>
-          <ul className="m-0 flex list-none flex-col divide-y divide-linea p-0">
-            {otras.map((otra) => (
-              <li key={otra.id}>
-                <TarjetaDeDevocional lectura={otra} onAbrir={() => onAbrirOtra(otra.id)} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   )
 }

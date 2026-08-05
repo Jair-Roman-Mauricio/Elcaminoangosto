@@ -16,18 +16,9 @@ export function DevocionalesPage() {
   const { data, isPending, isError } = useDevocionales()
   const [abierto, setAbierto] = useState<Lectura | null>(null)
 
-  const abrirOtra = (id: string) => {
-    const otra = (data ?? []).find((l) => l.id === id)
-    if (otra) setAbierto(otra)
-  }
-
   if (abierto) {
     return (
-      <LectorDeDevocional
-        lectura={abierto}
-        onVolver={() => setAbierto(null)}
-        onAbrirOtra={abrirOtra}
-      />
+      <LectorDeDevocional lectura={abierto} onVolver={() => setAbierto(null)} />
     )
   }
 
