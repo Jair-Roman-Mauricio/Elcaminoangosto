@@ -6,6 +6,8 @@ import { useRegistrarVisita } from '../lib/analitica'
 /** Un plano de la historia: su video y lo que se lee encima. */
 interface Escena {
   video: string
+  /** Voz de este plano. Suena cuando el plano entra, y con él termina. */
+  voz: string
   /** Frase que aparece sobre el plano. El primero entra en silencio. */
   mensaje: string | null
   /** Referencia bíblica, cuando la frase la tiene. */
@@ -20,27 +22,36 @@ interface Escena {
  * a plena luz. Quien llega hasta el final ha dado la vuelta entera.
  */
 const ESCENAS: Escena[] = [
-  { video: '/videos-lading/plano-01.mp4', mensaje: null },
+  { video: '/videos-lading/plano-01.mp4',
+    voz: '/videos-lading/voz-01.mp3', mensaje: null },
   {
     video: '/videos-lading/plano-02.mp4',
+    voz: '/videos-lading/voz-02.mp3',
     mensaje: 'Por sus heridas, fuimos sanados',
     referencia: 'Isaías 53:5',
   },
-  { video: '/videos-lading/plano-03.mp4', mensaje: 'Vino a caminar donde tú caminas' },
-  { video: '/videos-lading/plano-04.mp4', mensaje: 'Se detuvo por uno' },
+  { video: '/videos-lading/plano-03.mp4',
+    voz: '/videos-lading/voz-03.mp3', mensaje: 'Vino a caminar donde tú caminas' },
+  { video: '/videos-lading/plano-04.mp4',
+    voz: '/videos-lading/voz-04.mp3', mensaje: 'Se detuvo por uno' },
   {
     video: '/videos-lading/plano-05.mp4',
+    voz: '/videos-lading/voz-05.mp3',
     mensaje: 'Aun la tormenta lo obedece',
     referencia: 'Marcos 4:39',
   },
-  { video: '/videos-lading/plano-06.mp4', mensaje: 'Cargó lo que no le tocaba' },
-  { video: '/videos-lading/plano-07.mp4', mensaje: 'Pero el domingo llegó' },
+  { video: '/videos-lading/plano-06.mp4',
+    voz: '/videos-lading/voz-06.mp3', mensaje: 'Cargó lo que no le tocaba' },
+  { video: '/videos-lading/plano-07.mp4',
+    voz: '/videos-lading/voz-07.mp3', mensaje: 'Pero el domingo llegó' },
   {
     video: '/videos-lading/plano-08.mp4',
+    voz: '/videos-lading/voz-08.mp3',
     mensaje: 'El camino se recorre juntos',
     referencia: 'Mateo 7:14',
   },
-  { video: '/videos-lading/plano-09.mp4', mensaje: 'Su mano sigue abierta' },
+  { video: '/videos-lading/plano-09.mp4',
+    voz: '/videos-lading/voz-09.mp3', mensaje: 'Su mano sigue abierta' },
 ]
 
 const ULTIMA = ESCENAS.length - 1
@@ -60,9 +71,35 @@ export function LandingCinematica() {
   useRegistrarVisita('landing')
   const [escena, setEscena] = useState(0)
   const [conVoz, setConVoz] = useState(false)
+  /** Si se silenció a mano. Entonces no se vuelve a intentar por su cuenta. */
+  const silenciadoRef = useRef(false)
   const [terminado, setTerminado] = useState(false)
-  const vozRef = useRef<HTMLAudioElement>(null)
+  /**
+   * Una pista por plano, creadas una sola vez y precargadas.
+   *
+   * Se descartó el audio único de 90 s: tenía que casar con nueve videos que
+   * cada navegador arranca con milisegundos distintos, y acababa desfasado
+   * siempre. Con una pista por plano no hay nada que sincronizar — la voz
+   * empieza cuando su plano empieza, y si sobra silencio al final, mejor.
+   */
+  const vocesRef = useRef<HTMLAudioElement[]>([])
+  const escenaRef = useRef(0)
   const videosRef = useRef<(HTMLVideoElement | null)[]>([])
+
+  useEffect(() => {
+    vocesRef.current = ESCENAS.map((e) => {
+      const pista = new Audio(e.voz)
+      pista.preload = 'auto'
+      return pista
+    })
+    const pistas = vocesRef.current
+    return () => {
+      for (const pista of pistas) {
+        pista.pause()
+        pista.src = ''
+      }
+    }
+  }, [])
 
   const irA = useCallback((indice: number) => {
     setEscena(Math.max(0, Math.min(ULTIMA, indice)))
@@ -72,10 +109,25 @@ export function LandingCinematica() {
   // El plano activo empieza desde su primer fotograma. Sin esto, al volver
   // atrás se retomaba a mitad y el corte no cuadraba con el texto.
   useEffect(() => {
+    escenaRef.current = escena
     const video = videosRef.current[escena]
-    if (!video) return
-    video.currentTime = 0
-    void video.play().catch(() => undefined)
+    if (video) {
+      video.currentTime = 0
+      void video.play().catch(() => undefined)
+    }
+
+    // La voz del plano anterior calla en seco: dos voces solapadas no se
+    // entienden, y aquí cada frase pertenece a una imagen concreta.
+    vocesRef.current.forEach((pista, i) => {
+      if (i === escena) return
+      pista.pause()
+      pista.currentTime = 0
+    })
+
+    const voz = vocesRef.current[escena]
+    if (!voz || silenciadoRef.current) return
+    voz.currentTime = 0
+    void voz.play().then(() => setConVoz(true)).catch(() => undefined)
   }, [escena])
 
   /**
@@ -127,18 +179,49 @@ export function LandingCinematica() {
   }, [])
 
   /**
-   * La voz solo puede sonar tras un gesto: ningún navegador deja arrancar
-   * audio audible sin él. Se pide con un botón en vez de robarlo al primer
-   * clic, que sería una sorpresa desagradable en un altavoz compartido.
+   * La voz suena desde el principio.
+   *
+   * Ningún navegador deja arrancar audio audible sin un gesto previo, así que
+   * no basta con pedirlo al montar: se intenta, y si lo bloquean queda armado
+   * para el primer movimiento de quien entra —una rueda, una tecla, un toque—.
+   * No se le pide permiso a nadie; se le da la opción de callarla.
+   *
+   * Si la silencia a mano, no vuelve a intentarse: repetirlo sería discutir
+   * con quien ya decidió.
    */
+  useEffect(() => {
+    const intentar = () => {
+      const voz = vocesRef.current[escenaRef.current]
+      if (!voz || silenciadoRef.current || !voz.paused) return
+      void voz
+        .play()
+        .then(() => {
+          setConVoz(true)
+          quitarEscuchas()
+        })
+        .catch(() => undefined)
+    }
+
+    const gestos = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const
+    const quitarEscuchas = () => {
+      for (const gesto of gestos) window.removeEventListener(gesto, intentar)
+    }
+
+    intentar()
+    for (const gesto of gestos) window.addEventListener(gesto, intentar, { passive: true })
+    return quitarEscuchas
+  }, [])
+
   const alternarVoz = () => {
-    const voz = vozRef.current
+    const voz = vocesRef.current[escena]
     if (!voz) return
     if (conVoz) {
       voz.pause()
+      silenciadoRef.current = true
       setConVoz(false)
       return
     }
+    silenciadoRef.current = false
     void voz.play().then(() => setConVoz(true)).catch(() => undefined)
   }
 
@@ -248,7 +331,6 @@ export function LandingCinematica() {
         ))}
       </nav>
 
-      <audio ref={vozRef} src="/videos-lading/voz.mp3" preload="none" onEnded={() => setConVoz(false)} />
     </div>
   )
 }
