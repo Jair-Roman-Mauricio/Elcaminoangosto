@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Eyebrow } from '@elcamino/ui'
 import { useOraciones, type OracionGuiada } from './lecturas-api'
 import { neonDeCategoria } from './neon-de-categoria'
 import { RezoEnMarcha } from './rezo-en-marcha'
@@ -74,14 +73,12 @@ export function OracionesPage() {
         }}
       />
 
-      <header className="flex flex-col items-center gap-aire-xs text-center">
-        <Eyebrow>Oraciones guiadas</Eyebrow>
+      {/* Un solo rótulo: el nombre de la sección y nada más. Todo lo que se
+          añada aquí se lo quita a la estampa, que es lo que hay que mirar. */}
+      <header className="flex flex-col items-center text-center">
         <h1 className="m-0 font-ui text-h-l font-medium tracking-titulo text-contenido">
-          Cuando no sabes qué decir
+          Oraciones guiadas
         </h1>
-        <p className="m-0 max-w-prose font-ui text-body text-texto-tenue">
-          Una voz que ora contigo. Solo tienes que seguirla.
-        </p>
       </header>
 
       {isError && (
@@ -154,15 +151,17 @@ function Carrusel({
     onIndice((indice + paso + oraciones.length) % oraciones.length)
 
   return (
-    <div className="flex w-full flex-col items-center gap-aire-s">
-      <div className="flex w-full items-center justify-center gap-aire-s">
+    // `min-h-0` es lo que deja que el hijo se encoja: sin él, un flex item se
+    // niega a bajar de su tamaño natural y empuja el resto fuera de la pantalla.
+    <div className="flex w-full min-h-0 flex-1 flex-col items-center gap-aire-s">
+      <div className="flex w-full min-h-0 flex-1 items-center justify-center gap-aire-s">
         {oraciones.length > 1 && (
           <FlechaDelCarrusel hacia="anterior" onClick={() => mover(-1)} />
         )}
 
         <article
           key={actual.id}
-          className="flex min-w-0 flex-1 animate-[mensaje-entra_600ms_var(--ease)_both] flex-col items-center gap-aire-s"
+          className="flex h-full min-h-0 min-w-0 flex-1 animate-[mensaje-entra_600ms_var(--ease)_both] flex-col items-center justify-center gap-aire-s"
         >
           {actual.tema && (
             // Pegada a la imagen, no flotando: la categoría es de la estampa.
@@ -181,7 +180,7 @@ function Carrusel({
             <img
               src={actual.imagenUrl}
               alt=""
-              className="max-h-[min(38vh,22rem)] w-auto max-w-full object-contain"
+              className="min-h-0 w-auto max-w-full flex-1 object-contain"
               // El brillo va en el borde del dibujo, no en una caja: por eso es
               // `drop-shadow` y no `box-shadow`, que dibujaría un rectángulo.
               style={{
@@ -191,7 +190,7 @@ function Carrusel({
           ) : (
             <span
               aria-hidden
-              className="grid h-[min(38vh,22rem)] w-full max-w-sm place-items-center rounded-full"
+              className="grid w-full max-w-sm flex-1 place-items-center rounded-full"
               style={{
                 background: `radial-gradient(closest-side, rgba(${neonDeCategoria(actual.tema)}, 0.18), transparent)`,
               }}
