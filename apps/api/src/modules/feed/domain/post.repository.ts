@@ -86,6 +86,12 @@ export abstract class PostRepository {
   /** Publica u oculta una tarjeta. Al publicar se fija `publishedAt`. */
   abstract updateStatus(id: string, status: PostStatus): Promise<PostEntity>
 
+  /** Cambia la ficha del lienzo. El medio y el autor no se tocan aquí. */
+  abstract updateFicha(
+    id: string,
+    cambios: { [K in keyof PostFicha | 'caption']?: string | null | undefined },
+  ): Promise<PostEntity>
+
   /** Borra la tarjeta. El medio lo elimina el servicio, después. */
   abstract remove(id: string): Promise<void>
 }

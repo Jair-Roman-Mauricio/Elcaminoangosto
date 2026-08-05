@@ -4,6 +4,9 @@ import type { Lectura, OracionGuiada } from '../../lecturas/lecturas-api'
 
 /* Contratos del módulo Contenido (espejo del servidor). */
 
+/** Los cambios llegan de un formulario parcial: admiten `undefined` explícito. */
+type Cambios<T> = { [K in keyof T]?: T[K] | undefined }
+
 export type EstadoTarjeta = 'PUBLISHED' | 'HIDDEN' | 'REPORTED'
 
 /** Ficha de la tarjeta: lo que se lee en el lienzo del feed. */
@@ -24,6 +27,10 @@ export interface TarjetaAdmin {
   caption: string | null
   title: string | null
   manifesto: string | null
+  /** El resto de la ficha, para poder corregirla sin volver a escribirla. */
+  story: string | null
+  origin: string | null
+  reference: string | null
   status: EstadoTarjeta
   /** UPLOADED | PROCESSING | READY | FAILED: por qué una tarjeta aún no se ve. */
   mediaStatus: string
@@ -67,6 +74,22 @@ export function useEliminarTarjeta() {
   const invalidar = useInvalidarTarjetas()
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/feed/${id}`),
+    onSuccess: invalidar,
+  })
+}
+
+/**
+ * Corregir la ficha de una tarjeta ya publicada. El medio no se toca: cambiar
+ * la imagen es publicar otra tarjeta.
+ */
+export function useEditarTarjeta() {
+  const invalidar = useInvalidarTarjetas()
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...cambios
+    }: { id: string; caption?: string | null | undefined } & Cambios<FichaTarjeta>) =>
+      apiClient.patch(`/feed/${id}`, cambios),
     onSuccess: invalidar,
   })
 }
@@ -118,6 +141,16 @@ function useInvalidarVideos() {
     void qc.invalidateQueries({ queryKey: ['contenido', 'videos'] })
     void qc.invalidateQueries({ queryKey: ['videos'] })
   }
+}
+
+/** Corregir la ficha de un video. El archivo no se cambia desde aquí. */
+export function useEditarVideo() {
+  const invalidar = useInvalidarVideos()
+  return useMutation({
+    mutationFn: ({ id, ...cambios }: { id: string } & Cambios<FichaVideo>) =>
+      apiClient.patch(`/videos/${id}`, cambios),
+    onSuccess: invalidar,
+  })
 }
 
 export function usePublicarVideo() {
@@ -344,7 +377,10 @@ export function usePublicarLectura(tipo: 'DEVOCIONAL' | 'ARTICULO') {
 export function useEditarLectura() {
   const invalidar = useInvalidarLecturas()
   return useMutation({
-    mutationFn: ({ id, ...cambios }: { id: string; oculto?: boolean } & Partial<FichaLectura>) =>
+    mutationFn: ({
+      id,
+      ...cambios
+    }: { id: string; oculto?: boolean | undefined } & Cambios<FichaLectura>) =>
       apiClient.patch(`/lecturas/${id}`, cambios),
     onSuccess: invalidar,
   })
@@ -375,8 +411,18 @@ export function usePublicarOracion() {
 export function useEditarOracion() {
   const invalidar = useInvalidarLecturas()
   return useMutation({
-    mutationFn: ({ id, oculto }: { id: string; oculto: boolean }) =>
-      apiClient.patch(`/oraciones/${id}`, { oculto }),
+    mutationFn: ({
+      id,
+      ...cambios
+    }: {
+      id: string
+      oculto?: boolean | undefined
+      titulo?: string | undefined
+      tema?: string | null | undefined
+      lineas?: string[] | undefined
+      marcas?: number[] | null | undefined
+      audioAssetId?: string | undefined
+    }) => apiClient.patch(`/oraciones/${id}`, cambios),
     onSuccess: invalidar,
   })
 }

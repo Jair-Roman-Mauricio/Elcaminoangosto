@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Boton, Chip, Field, Input, Modal, ModalConfirmacion, Textarea } from '@elcamino/ui'
 import { subirMedioReanudable, esperarProcesado } from '../../../lib/media-upload'
 import { ApiError } from '../../../lib/api-client'
 import {
   useVideosAdmin,
+  useEditarVideo,
   usePublicarVideo,
   useCambiarEstadoVideo,
   useEliminarVideo,
@@ -32,6 +33,7 @@ export function VideosPanel() {
   const cambiarEstado = useCambiarEstadoVideo()
   const eliminar = useEliminarVideo()
   const [subiendo, setSubiendo] = useState(false)
+  const [aCorregir, setACorregir] = useState<VideoAdmin | null>(null)
   const [aEliminar, setAEliminar] = useState<VideoAdmin | null>(null)
 
   const lista = videos ?? []
@@ -64,6 +66,7 @@ export function VideosPanel() {
                 video={v}
                 ocupado={cambiarEstado.isPending || eliminar.isPending}
                 onCambiarEstado={(status) => cambiarEstado.mutate({ id: v.id, status })}
+                onCorregir={() => setACorregir(v)}
                 onEliminar={() => setAEliminar(v)}
               />
             </li>
@@ -77,7 +80,14 @@ export function VideosPanel() {
         </p>
       )}
 
-      <ModalSubirVideo abierto={subiendo} onCerrar={() => setSubiendo(false)} />
+      <ModalSubirVideo
+        abierto={subiendo || aCorregir !== null}
+        video={aCorregir}
+        onCerrar={() => {
+          setSubiendo(false)
+          setACorregir(null)
+        }}
+      />
 
       <ModalConfirmacion
         abierto={aEliminar !== null}
@@ -99,11 +109,13 @@ function VideoEnLista({
   video,
   ocupado,
   onCambiarEstado,
+  onCorregir,
   onEliminar,
 }: {
   video: VideoAdmin
   ocupado: boolean
   onCambiarEstado: (status: 'PUBLISHED' | 'HIDDEN') => void
+  onCorregir: () => void
   onEliminar: () => void
 }) {
   const publicado = video.status === 'PUBLISHED'
@@ -144,6 +156,9 @@ function VideoEnLista({
       </p>
 
       <div className="mt-auto flex flex-wrap gap-aire-xs pt-aire-xs">
+        <Boton variante="pastilla" disabled={ocupado} onClick={onCorregir}>
+          Editar
+        </Boton>
         <Boton
           variante="pastilla"
           disabled={ocupado}
@@ -168,8 +183,26 @@ const FICHA_VACIA = { title: '', series: '', description: '', reference: '' }
  * pasa por la cola de transcodificación (E8), así que puede tardar y necesita
  * el worker en marcha.
  */
-function ModalSubirVideo({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => void }) {
+/**
+ * El mismo formulario sube y corrige.
+ *
+ * Al corregir se tocan solo los textos: el archivo se queda donde está. Cambiar
+ * el video es publicar otro, y mezclarlo deja fichas que describen algo que ya
+ * no se ve.
+ */
+function ModalSubirVideo({
+  abierto,
+  video,
+  onCerrar,
+}: {
+  abierto: boolean
+  /** El video que se corrige. Nulo: se está subiendo uno nuevo. */
+  video: VideoAdmin | null
+  onCerrar: () => void
+}) {
+  const esCorreccion = video !== null
   const publicar = usePublicarVideo()
+  const editar = useEditarVideo()
   const [fase, setFase] = useState<Fase>('elegir')
   const [pct, setPct] = useState(0)
   const [ficha, setFicha] = useState(FICHA_VACIA)
@@ -177,6 +210,17 @@ function ModalSubirVideo({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
   const [error, setError] = useState<string | null>(null)
 
   const ocupado = fase !== 'elegir'
+
+  useEffect(() => {
+    if (!abierto || !video) return
+    setFicha({
+      title: video.title,
+      series: video.series ?? '',
+      description: video.description ?? '',
+      reference: video.reference ?? '',
+    })
+  }, [abierto, video])
+
   const campo = (clave: keyof typeof FICHA_VACIA) => ({
     value: ficha[clave],
     disabled: ocupado,
@@ -200,8 +244,31 @@ function ModalSubirVideo({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
   const oNulo = (valor: string) => valor.trim() || null
 
   const subir = async () => {
-    if (!archivo || ficha.title.trim().length < 2) return
+    if (ficha.title.trim().length < 2) return
     setError(null)
+
+    // Corregir no toca el archivo: se manda solo la ficha y se termina.
+    if (esCorreccion) {
+      try {
+        setFase('publicando')
+        await editar.mutateAsync({
+          id: video.id,
+          title: ficha.title.trim(),
+          series: oNulo(ficha.series),
+          description: oNulo(ficha.description),
+          reference: oNulo(ficha.reference),
+        })
+        setFase('elegir')
+        limpiar()
+        onCerrar()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Error inesperado')
+        setFase('elegir')
+      }
+      return
+    }
+
+    if (!archivo) return
     try {
       setFase('subiendo')
       const assetId = await subirMedioReanudable(archivo, 'VIDEO', 'feed-media', setPct)
@@ -231,13 +298,23 @@ function ModalSubirVideo({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
     <Modal
       abierto={abierto}
       onCerrar={cerrar}
-      titulo="Subir un video"
-      descripcion="El archivo se transcodifica antes de aparecer en el catálogo."
+      titulo={esCorreccion ? 'Editar el video' : 'Subir un video'}
+      descripcion={
+        esCorreccion
+          ? 'Se corrige la ficha. El archivo no se cambia.'
+          : 'El archivo se transcodifica antes de aparecer en el catálogo.'
+      }
       className="max-w-4xl"
     >
       <div className="grid gap-aire-s sm:grid-cols-2">
         <div className="flex flex-col gap-aire-s">
-          <Field label="Archivo" htmlFor="video-archivo" hint="MP4 o MOV.">
+          {/* Al corregir no se muestra: el archivo de un video no se cambia. */}
+          <Field
+            label="Archivo"
+            htmlFor="video-archivo"
+            hint="MP4 o MOV."
+            className={esCorreccion ? 'hidden' : ''}
+          >
             <input
               id="video-archivo"
               type="file"
@@ -328,9 +405,9 @@ function ModalSubirVideo({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
             variante="formulario"
             tamano="compacto"
             onClick={() => void subir()}
-            disabled={ocupado || !archivo || ficha.title.trim().length < 2}
+            disabled={ocupado || (!archivo && !esCorreccion) || ficha.title.trim().length < 2}
           >
-            {ocupado ? 'Subiendo…' : 'Subir y publicar'}
+            {ocupado ? 'Guardando…' : esCorreccion ? 'Guardar' : 'Subir y publicar'}
           </Boton>
         </div>
       </div>

@@ -45,6 +45,10 @@ export interface AdminCard {
   caption: string | null
   title: string | null
   manifesto: string | null
+  /** El resto de la ficha, para poder corregirla sin volver a escribirla. */
+  story: string | null
+  origin: string | null
+  reference: string | null
   status: PostStatus
   /** Estado del medio: explica por qué una tarjeta publicada aún no se ve. */
   mediaStatus: string
@@ -137,6 +141,9 @@ export class FeedService {
         caption: f.caption,
         title: f.title,
         manifesto: f.manifesto,
+        story: f.story,
+        origin: f.origin,
+        reference: f.reference,
         status: f.status,
         mediaStatus: f.mediaStatus,
         // Una tarjeta sin procesar todavía no tiene póster: se muestra sin él.
@@ -145,6 +152,26 @@ export class FeedService {
         createdAt: f.createdAt.toISOString(),
       })),
     )
+  }
+
+  /**
+   * Cambia la ficha de una tarjeta ya publicada.
+   *
+   * Solo los textos: el medio se queda donde está. Cambiar la imagen de una
+   * tarjeta es publicar otra, y confundir las dos cosas deja tarjetas cuyo
+   * relato no tiene nada que ver con lo que se ve.
+   */
+  async editar(
+    actor: Actor,
+    postId: string,
+    cambios: { caption?: string | null | undefined } & {
+      [K in keyof PostFicha]?: PostFicha[K] | undefined
+    },
+  ): Promise<PostEntity> {
+    this.exigirAdmin(actor)
+    const post = await this.posts.findById(postId)
+    if (!post) throw new NotFoundException('Tarjeta no encontrada')
+    return this.posts.updateFicha(postId, cambios)
   }
 
   /** Publica u oculta una tarjeta ya subida. */

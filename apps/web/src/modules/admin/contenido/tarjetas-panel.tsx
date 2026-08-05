@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Boton, Chip, Field, Input, Modal, ModalConfirmacion, Textarea } from '@elcamino/ui'
 import { subirMedioReanudable, esperarProcesado } from '../../../lib/media-upload'
 import { ApiError } from '../../../lib/api-client'
 import {
   useTarjetasAdmin,
   useCambiarEstadoTarjeta,
+  useEditarTarjeta,
   useEliminarTarjeta,
   usePublicarTarjetaAdmin,
   type TarjetaAdmin,
@@ -26,6 +27,7 @@ export function TarjetasPanel() {
   const cambiarEstado = useCambiarEstadoTarjeta()
   const eliminar = useEliminarTarjeta()
   const [subiendo, setSubiendo] = useState(false)
+  const [aCorregir, setACorregir] = useState<TarjetaAdmin | null>(null)
   const [aEliminar, setAEliminar] = useState<TarjetaAdmin | null>(null)
 
   const lista = tarjetas ?? []
@@ -58,6 +60,7 @@ export function TarjetasPanel() {
                 tarjeta={t}
                 ocupado={cambiarEstado.isPending || eliminar.isPending}
                 onCambiarEstado={(status) => cambiarEstado.mutate({ id: t.id, status })}
+                onCorregir={() => setACorregir(t)}
                 onEliminar={() => setAEliminar(t)}
               />
             </li>
@@ -71,7 +74,14 @@ export function TarjetasPanel() {
         </p>
       )}
 
-      <ModalSubirTarjeta abierto={subiendo} onCerrar={() => setSubiendo(false)} />
+      <ModalSubirTarjeta
+        abierto={subiendo || aCorregir !== null}
+        tarjeta={aCorregir}
+        onCerrar={() => {
+          setSubiendo(false)
+          setACorregir(null)
+        }}
+      />
 
       <ModalConfirmacion
         abierto={aEliminar !== null}
@@ -93,11 +103,13 @@ function TarjetaEnLista({
   tarjeta,
   ocupado,
   onCambiarEstado,
+  onCorregir,
   onEliminar,
 }: {
   tarjeta: TarjetaAdmin
   ocupado: boolean
   onCambiarEstado: (status: 'PUBLISHED' | 'HIDDEN') => void
+  onCorregir: () => void
   onEliminar: () => void
 }) {
   const publicada = tarjeta.status === 'PUBLISHED'
@@ -144,6 +156,9 @@ function TarjetaEnLista({
       </p>
 
       <div className="mt-auto flex flex-wrap gap-aire-xs pt-aire-xs">
+        <Boton variante="pastilla" disabled={ocupado} onClick={onCorregir}>
+          Editar
+        </Boton>
         <Boton
           variante="pastilla"
           disabled={ocupado}
@@ -182,8 +197,26 @@ const FICHA_VACIA = {
  * lee en el lienzo y, opcionalmente, el relato hablado. Reutiliza el mismo
  * camino que el maestro: TUS reanudable → espera del procesado → publicación.
  */
-function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => void }) {
+/**
+ * El mismo formulario sube y corrige.
+ *
+ * Al corregir solo se tocan los textos: el medio se queda donde está. Cambiar
+ * la imagen de una tarjeta es publicar otra, y mezclarlo deja tarjetas cuyo
+ * relato no tiene nada que ver con lo que se ve.
+ */
+function ModalSubirTarjeta({
+  abierto,
+  tarjeta,
+  onCerrar,
+}: {
+  abierto: boolean
+  /** La tarjeta que se corrige. Nula: se está subiendo una nueva. */
+  tarjeta: TarjetaAdmin | null
+  onCerrar: () => void
+}) {
+  const esCorreccion = tarjeta !== null
   const publicar = usePublicarTarjetaAdmin()
+  const editar = useEditarTarjeta()
   const inputRef = useRef<HTMLInputElement>(null)
   const [fase, setFase] = useState<Fase>('elegir')
   const [pct, setPct] = useState(0)
@@ -193,6 +226,19 @@ function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
   const [error, setError] = useState<string | null>(null)
 
   const ocupado = fase !== 'elegir'
+
+  useEffect(() => {
+    if (!abierto || !tarjeta) return
+    setFicha({
+      title: tarjeta.title ?? '',
+      manifesto: tarjeta.manifesto ?? '',
+      story: tarjeta.story ?? '',
+      origin: tarjeta.origin ?? '',
+      reference: tarjeta.reference ?? '',
+      caption: tarjeta.caption ?? '',
+    })
+  }, [abierto, tarjeta])
+
   const campo = (clave: keyof typeof FICHA_VACIA) => ({
     value: ficha[clave],
     disabled: ocupado,
@@ -218,8 +264,32 @@ function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
   const oNulo = (valor: string) => valor.trim() || null
 
   const subir = async () => {
-    if (!archivo) return
     setError(null)
+
+    // Corregir no toca el medio: se manda solo la ficha y se termina.
+    if (esCorreccion) {
+      try {
+        setFase('publicando')
+        await editar.mutateAsync({
+          id: tarjeta.id,
+          caption: oNulo(ficha.caption),
+          title: oNulo(ficha.title),
+          manifesto: oNulo(ficha.manifesto),
+          story: oNulo(ficha.story),
+          origin: oNulo(ficha.origin),
+          reference: oNulo(ficha.reference),
+        })
+        setFase('elegir')
+        limpiar()
+        onCerrar()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Error inesperado')
+        setFase('elegir')
+      }
+      return
+    }
+
+    if (!archivo) return
     try {
       const kind = archivo.type.startsWith('image/') ? 'IMAGE' : 'VIDEO'
       setFase('subiendo')
@@ -261,8 +331,12 @@ function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
     <Modal
       abierto={abierto}
       onCerrar={cerrar}
-      titulo="Subir una tarjeta"
-      descripcion="Un video vertical corto o una imagen. Se publica al terminar de procesarse."
+      titulo={esCorreccion ? 'Editar la tarjeta' : 'Subir una tarjeta'}
+      descripcion={
+        esCorreccion
+          ? 'Se corrigen los textos del lienzo. El video o la imagen no se cambian.'
+          : 'Un video vertical corto o una imagen. Se publica al terminar de procesarse.'
+      }
       className="max-w-4xl"
     >
       {/* Dos columnas: a la izquierda los archivos y los datos cortos; a la
@@ -270,10 +344,12 @@ function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
           una tira altísima. */}
       <div className="grid gap-aire-s sm:grid-cols-2">
         <div className="flex flex-col gap-aire-s">
+          {/* Al corregir no se muestran: el medio de una tarjeta no se cambia. */}
           <Field
             label="Archivo"
             htmlFor="tarjeta-archivo"
             hint="Video vertical corto o imagen."
+            className={esCorreccion ? 'hidden' : ''}
           >
             <input
               id="tarjeta-archivo"
@@ -289,7 +365,7 @@ function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
             />
           </Field>
 
-          {archivo && (
+          {archivo && !esCorreccion && (
             <p className="m-0 font-mono text-body-s text-contenido">
               {archivo.name} · {(archivo.size / (1024 * 1024)).toFixed(1)} MB
             </p>
@@ -326,6 +402,7 @@ function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
             label="Relato hablado (opcional)"
             htmlFor="tarjeta-audio"
             hint="Audio para escuchar en el lienzo."
+            className={esCorreccion ? 'hidden' : ''}
           >
             <input
               id="tarjeta-audio"
@@ -405,9 +482,9 @@ function ModalSubirTarjeta({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
             variante="formulario"
             tamano="compacto"
             onClick={() => void subir()}
-            disabled={ocupado || !archivo}
+            disabled={ocupado || (!archivo && !esCorreccion)}
           >
-            {ocupado ? 'Subiendo…' : 'Subir y publicar'}
+            {ocupado ? 'Guardando…' : esCorreccion ? 'Guardar' : 'Subir y publicar'}
           </Boton>
         </div>
       </div>

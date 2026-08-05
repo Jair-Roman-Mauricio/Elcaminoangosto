@@ -24,6 +24,13 @@ const PublicarSchema = z.object({
   audioAssetId: z.string().uuid().nullable().default(null),
 })
 
+/**
+ * Editar toca solo los textos: el medio de una tarjeta no se cambia. Cambiar la
+ * imagen es publicar otra tarjeta, y mezclarlo deja relatos que no tienen nada
+ * que ver con lo que se ve.
+ */
+const EditarFichaSchema = PublicarSchema.omit({ mediaAssetId: true }).partial()
+
 const EstadoSchema = z.object({ status: z.enum(['PUBLISHED', 'HIDDEN']) })
 
 const actorDe = (u: CurrentUserContext) => ({ id: u.id, role: u.role })
@@ -66,6 +73,17 @@ export class FeedController {
   @ApiOperation({ summary: 'Todas las tarjetas, en cualquier estado (módulo Contenido)' })
   async listarParaAdmin(@CurrentUser() u: CurrentUserContext) {
     return this.feed.listarParaAdmin(actorDe(u))
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Editar la ficha de una tarjeta' })
+  async editar(
+    @CurrentUser() u: CurrentUserContext,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(EditarFichaSchema)) body: z.infer<typeof EditarFichaSchema>,
+  ) {
+    return this.feed.editar({ id: u.id, role: u.role }, id, body)
   }
 
   @Patch(':id/status')

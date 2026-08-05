@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Boton, Chip, Field, Input, Modal, ModalConfirmacion, Textarea } from '@elcamino/ui'
 import { subirMedioReanudable, esperarProcesado } from '../../../lib/media-upload'
 import { ApiError } from '../../../lib/api-client'
@@ -31,6 +31,7 @@ export function LecturasPanel({ tipo }: { tipo: 'DEVOCIONAL' | 'ARTICULO' }) {
   const editar = useEditarLectura()
   const eliminar = useEliminarLectura()
   const [escribiendo, setEscribiendo] = useState(false)
+  const [aCorregir, setACorregir] = useState<Lectura | null>(null)
   const [aEliminar, setAEliminar] = useState<Lectura | null>(null)
 
   const lista = data ?? []
@@ -64,6 +65,7 @@ export function LecturasPanel({ tipo }: { tipo: 'DEVOCIONAL' | 'ARTICULO' }) {
                 lectura={lectura}
                 ocupado={editar.isPending || eliminar.isPending}
                 onAlternar={() => editar.mutate({ id: lectura.id, oculto: !lectura.oculto })}
+                onCorregir={() => setACorregir(lectura)}
                 onEliminar={() => setAEliminar(lectura)}
               />
             </li>
@@ -79,8 +81,12 @@ export function LecturasPanel({ tipo }: { tipo: 'DEVOCIONAL' | 'ARTICULO' }) {
 
       <ModalEscribirLectura
         tipo={tipo}
-        abierto={escribiendo}
-        onCerrar={() => setEscribiendo(false)}
+        abierto={escribiendo || aCorregir !== null}
+        lectura={aCorregir}
+        onCerrar={() => {
+          setEscribiendo(false)
+          setACorregir(null)
+        }}
       />
 
       <ModalConfirmacion
@@ -107,11 +113,13 @@ function LecturaEnLista({
   lectura,
   ocupado,
   onAlternar,
+  onCorregir,
   onEliminar,
 }: {
   lectura: Lectura
   ocupado: boolean
   onAlternar: () => void
+  onCorregir: () => void
   onEliminar: () => void
 }) {
   return (
@@ -141,6 +149,9 @@ function LecturaEnLista({
       </p>
 
       <div className="mt-auto flex flex-wrap gap-aire-xs pt-aire-xs">
+        <Boton variante="pastilla" disabled={ocupado} onClick={onCorregir}>
+          Editar
+        </Boton>
         <Boton variante="pastilla" disabled={ocupado} onClick={onAlternar}>
           {lectura.oculto ? 'Publicar' : 'Ocultar'}
         </Boton>
@@ -167,17 +178,30 @@ const FICHA_VACIA = {
   referencia: '',
 }
 
+/**
+ * El mismo formulario escribe y corrige.
+ *
+ * Editar y publicar piden exactamente los mismos datos, y tener dos pantallas
+ * distintas para lo mismo garantiza que una se quede atrás cuando se añada un
+ * campo. Lo único que cambia es que, al corregir, las imágenes ya subidas se
+ * conservan si no se elige otra.
+ */
 function ModalEscribirLectura({
   tipo,
   abierto,
+  lectura,
   onCerrar,
 }: {
   tipo: 'DEVOCIONAL' | 'ARTICULO'
   abierto: boolean
+  /** La lectura que se corrige. Nula: se está escribiendo una nueva. */
+  lectura: Lectura | null
   onCerrar: () => void
 }) {
   const esRevista = tipo === 'ARTICULO'
+  const esCorreccion = lectura !== null
   const publicar = usePublicarLectura(tipo)
+  const editar = useEditarLectura()
   const [ficha, setFicha] = useState(FICHA_VACIA)
   const [portada, setPortada] = useState<File | null>(null)
   // Qué redes acompañan a esta lectura y a dónde llevan. Se eligen una a una:
@@ -191,6 +215,22 @@ function ModalEscribirLectura({
   const [error, setError] = useState<string | null>(null)
 
   const ocupado = fase !== 'elegir'
+
+  // Al abrir se vuelca lo que ya tiene la lectura; al cerrar, el formulario se
+  // vacía solo, así que no hace falta limpiarlo aquí.
+  useEffect(() => {
+    if (!abierto || !lectura) return
+    setFicha({
+      titulo: lectura.titulo,
+      entradilla: lectura.entradilla ?? '',
+      cuerpo: lectura.cuerpo,
+      autor: lectura.autor,
+      seccion: lectura.seccion ?? '',
+      referencia: lectura.referencia ?? '',
+    })
+    setRedes(Object.entries(lectura.redes).map(([clave, url]) => ({ clave, url })))
+    setFondo(lectura.fondo ?? '')
+  }, [abierto, lectura])
 
   const campo = (clave: keyof typeof FICHA_VACIA) => ({
     value: ficha[clave],
@@ -220,9 +260,9 @@ function ModalEscribirLectura({
   const enviar = async () => {
     setError(null)
     try {
-      // La portada es opcional: un texto sin imagen se publica igual, con la
-      // tarjeta en gris. Lo que no se admite es un texto vacío.
-      let portadaAssetId: string | null = null
+      // Al corregir, lo que no se toca no se manda: mandar `null` habría
+      // borrado la portada de una lectura solo por no elegir otra.
+      let portadaAssetId: string | null | undefined = esCorreccion ? undefined : null
       if (portada) {
         setFase('subiendo')
         portadaAssetId = await subirMedioReanudable(portada, 'IMAGE', 'feed-media', setPct)
@@ -233,7 +273,7 @@ function ModalEscribirLectura({
 
       // La ilustración va por el mismo camino que la portada. Es opcional: sin
       // ella el devocional se lee igual, solo que a una columna.
-      let ilustracionAssetId: string | null = null
+      let ilustracionAssetId: string | null | undefined = esCorreccion ? undefined : null
       if (ilustracion) {
         setFase('subiendo')
         ilustracionAssetId = await subirMedioReanudable(ilustracion, 'IMAGE', 'feed-media', setPct)
@@ -243,7 +283,7 @@ function ModalEscribirLectura({
       }
 
       setFase('publicando')
-      const cuerpo: FichaLectura = {
+      const cuerpo = {
         titulo: ficha.titulo.trim(),
         entradilla: oNulo(ficha.entradilla),
         cuerpo: ficha.cuerpo,
@@ -257,7 +297,11 @@ function ModalEscribirLectura({
         ilustracionAssetId,
         fondo: fondo || null,
       }
-      await publicar.mutateAsync(cuerpo)
+      if (esCorreccion) {
+        await editar.mutateAsync({ id: lectura.id, ...cuerpo })
+      } else {
+        await publicar.mutateAsync(cuerpo as FichaLectura)
+      }
       setFase('elegir')
       limpiar()
       onCerrar()
@@ -278,17 +322,27 @@ function ModalEscribirLectura({
     <Modal
       abierto={abierto}
       onCerrar={cerrar}
-      titulo={esRevista ? 'Escribir un artículo' : 'Escribir un devocional'}
+      titulo={
+        esCorreccion
+          ? `Editar ${esRevista ? 'el artículo' : 'el devocional'}`
+          : `Escribir un ${esRevista ? 'artículo' : 'devocional'}`
+      }
       descripcion={
-        esRevista
-          ? 'Un tema hondo, con conversación debajo. Se publica al guardar.'
-          : 'Una lectura breve con su portada. Se publica al guardar.'
+        esCorreccion
+          ? 'Los cambios se ven en cuanto guardas. Las imágenes se conservan si no eliges otras.'
+          : esRevista
+            ? 'Un tema hondo, con conversación debajo. Se publica al guardar.'
+            : 'Una lectura breve con su portada. Se publica al guardar.'
       }
       className="max-w-4xl"
     >
       <div className="grid gap-aire-s sm:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
         <div className="flex flex-col gap-aire-s">
-          <Field label="Portada (opcional)" htmlFor="lectura-portada" hint="La imagen de la tarjeta.">
+          <Field
+            label="Portada (opcional)"
+            htmlFor="lectura-portada"
+            hint={esCorreccion ? 'Elige otra solo si quieres cambiarla.' : 'La imagen de la tarjeta.'}
+          >
             <input
               id="lectura-portada"
               type="file"
@@ -341,7 +395,11 @@ function ModalEscribirLectura({
               <Field
                 label="Ilustración (opcional)"
                 htmlFor="lectura-ilustracion"
-                hint="Recorte sin fondo (PNG). Va al lado del texto."
+                hint={
+                  esCorreccion
+                    ? 'Elige otra solo si quieres cambiarla.'
+                    : 'Recorte sin fondo (PNG). Va al lado del texto.'
+                }
               >
                 <input
                   id="lectura-ilustracion"
@@ -394,10 +452,16 @@ function ModalEscribirLectura({
               parten en secciones, imágenes dentro de cada una y más al final.
               Lo que se ve aquí es lo que sale publicado. */}
           <Field label="Texto" htmlFor="lectura-cuerpo" hint="Con subtítulos, imágenes y citas.">
-            <EditorLectura
-              value={ficha.cuerpo}
-              onChange={(markdown) => setFicha((f) => ({ ...f, cuerpo: markdown }))}
-            />
+            {/* El editor toma su contenido al nacer, así que al corregir no se
+                monta hasta tener el texto: montado antes nacía vacío y se
+                quedaba vacío, con el botón de guardar apagado para siempre. */}
+            {(!esCorreccion || ficha.cuerpo) && (
+              <EditorLectura
+                key={lectura?.id ?? 'nueva'}
+                value={ficha.cuerpo}
+                onChange={(markdown) => setFicha((f) => ({ ...f, cuerpo: markdown }))}
+              />
+            )}
           </Field>
         </div>
       </div>
@@ -428,7 +492,7 @@ function ModalEscribirLectura({
             onClick={() => void enviar()}
             disabled={ocupado || !completo}
           >
-            {ocupado ? 'Guardando…' : 'Publicar'}
+            {ocupado ? 'Guardando…' : esCorreccion ? 'Guardar' : 'Publicar'}
           </Boton>
         </div>
       </div>

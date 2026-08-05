@@ -116,6 +116,23 @@ export class DrizzlePostRepository extends PostRepository {
     return this.mapear(fila)
   }
 
+  async updateFicha(
+    id: string,
+    cambios: Record<string, string | null | undefined>,
+  ): Promise<PostEntity> {
+    // Sin campos que tocar no se escribe: un `update` con `set` vacío revienta.
+    const limpios = Object.fromEntries(Object.entries(cambios).filter(([, v]) => v !== undefined))
+    if (Object.keys(limpios).length === 0) {
+      const actual = await this.findById(id)
+      if (!actual) throw new NotFoundException('Tarjeta no encontrada')
+      return actual
+    }
+
+    const [fila] = await this.db.update(posts).set(limpios).where(eq(posts.id, id)).returning()
+    if (!fila) throw new NotFoundException('Tarjeta no encontrada')
+    return this.mapear(fila)
+  }
+
   async remove(id: string): Promise<void> {
     await this.db.delete(posts).where(eq(posts.id, id))
   }

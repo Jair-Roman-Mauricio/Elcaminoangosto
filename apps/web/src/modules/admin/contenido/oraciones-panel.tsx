@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Boton, Chip, Field, Input, Modal, ModalConfirmacion, Textarea } from '@elcamino/ui'
 import { subirMedioReanudable } from '../../../lib/media-upload'
 import { ApiError } from '../../../lib/api-client'
@@ -22,6 +22,7 @@ export function OracionesPanel() {
   const editar = useEditarOracion()
   const eliminar = useEliminarOracion()
   const [escribiendo, setEscribiendo] = useState(false)
+  const [aCorregir, setACorregir] = useState<OracionGuiada | null>(null)
   const [aEliminar, setAEliminar] = useState<OracionGuiada | null>(null)
 
   const lista = data ?? []
@@ -67,6 +68,13 @@ export function OracionesPanel() {
                   <Boton
                     variante="pastilla"
                     disabled={editar.isPending || eliminar.isPending}
+                    onClick={() => setACorregir(oracion)}
+                  >
+                    Editar
+                  </Boton>
+                  <Boton
+                    variante="pastilla"
+                    disabled={editar.isPending || eliminar.isPending}
                     onClick={() => editar.mutate({ id: oracion.id, oculto: !oracion.oculto })}
                   >
                     {oracion.oculto ? 'Publicar' : 'Ocultar'}
@@ -91,7 +99,14 @@ export function OracionesPanel() {
         </p>
       )}
 
-      <ModalSubirOracion abierto={escribiendo} onCerrar={() => setEscribiendo(false)} />
+      <ModalSubirOracion
+        abierto={escribiendo || aCorregir !== null}
+        oracion={aCorregir}
+        onCerrar={() => {
+          setEscribiendo(false)
+          setACorregir(null)
+        }}
+      />
 
       <ModalConfirmacion
         abierto={aEliminar !== null}
@@ -134,8 +149,26 @@ function leerMarcas(crudo: string): number[] | null {
   })
 }
 
-function ModalSubirOracion({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => void }) {
+/**
+ * El mismo formulario sube y corrige.
+ *
+ * Al corregir, la voz ya subida se conserva si no se elige otro archivo: pedir
+ * el audio de nuevo solo para arreglar una errata en la letra habría hecho que
+ * nadie arreglara ninguna errata.
+ */
+function ModalSubirOracion({
+  abierto,
+  oracion,
+  onCerrar,
+}: {
+  abierto: boolean
+  /** La oración que se corrige. Nula: se está subiendo una nueva. */
+  oracion: OracionGuiada | null
+  onCerrar: () => void
+}) {
+  const esCorreccion = oracion !== null
   const publicar = usePublicarOracion()
+  const editar = useEditarOracion()
   const [titulo, setTitulo] = useState('')
   const [tema, setTema] = useState('')
   const [texto, setTexto] = useState('')
@@ -146,6 +179,15 @@ function ModalSubirOracion({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
   const [error, setError] = useState<string | null>(null)
 
   const ocupado = fase !== 'elegir'
+
+  useEffect(() => {
+    if (!abierto || !oracion) return
+    setTitulo(oracion.titulo)
+    setTema(oracion.tema ?? '')
+    setTexto(oracion.lineas.join('\n'))
+    setMarcasCrudas(oracion.marcas ? oracion.marcas.join('\n') : '')
+  }, [abierto, oracion])
+
   const lineas = texto
     .split('\n')
     .map((l) => l.trim())
@@ -171,23 +213,35 @@ function ModalSubirOracion({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
   }
 
   const enviar = async () => {
-    if (!audio) return
+    // Una oración nueva no existe sin su voz; una que se corrige ya la tiene.
+    if (!audio && !esCorreccion) return
     setError(null)
     try {
-      setFase('subiendo')
-      // El audio no se transcodifica: se sube y ya se puede oír.
-      const audioAssetId = await subirMedioReanudable(audio, 'AUDIO', 'feed-media', setPct, {
-        procesar: false,
-      })
+      let audioAssetId: string | undefined
+      if (audio) {
+        setFase('subiendo')
+        // El audio no se transcodifica: se sube y ya se puede oír.
+        audioAssetId = await subirMedioReanudable(audio, 'AUDIO', 'feed-media', setPct, {
+          procesar: false,
+        })
+      }
 
       setFase('publicando')
-      await publicar.mutateAsync({
+      const cuerpo = {
         titulo: titulo.trim(),
         tema: tema.trim() || null,
         lineas,
         marcas,
-        audioAssetId,
-      })
+      }
+      if (esCorreccion) {
+        await editar.mutateAsync({
+          id: oracion.id,
+          ...cuerpo,
+          ...(audioAssetId ? { audioAssetId } : {}),
+        })
+      } else {
+        await publicar.mutateAsync({ ...cuerpo, audioAssetId: audioAssetId! })
+      }
       setFase('elegir')
       limpiar()
       onCerrar()
@@ -197,19 +251,28 @@ function ModalSubirOracion({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
     }
   }
 
-  const completo = titulo.trim().length >= 3 && lineas.length > 0 && audio !== null
+  const completo =
+    titulo.trim().length >= 3 && lineas.length > 0 && (audio !== null || esCorreccion)
 
   return (
     <Modal
       abierto={abierto}
       onCerrar={cerrar}
-      titulo="Subir una oración guiada"
-      descripcion="La voz y su letra. El texto se ilumina línea a línea mientras se escucha."
+      titulo={esCorreccion ? 'Editar la oración' : 'Subir una oración guiada'}
+      descripcion={
+        esCorreccion
+          ? 'La voz se conserva si no eliges otro archivo.'
+          : 'La voz y su letra. El texto se ilumina línea a línea mientras se escucha.'
+      }
       className="max-w-4xl"
     >
       <div className="grid gap-aire-s sm:grid-cols-2">
         <div className="flex flex-col gap-aire-s">
-          <Field label="Voz" htmlFor="oracion-audio" hint="El audio que guía la oración.">
+          <Field
+            label="Voz"
+            htmlFor="oracion-audio"
+            hint={esCorreccion ? 'Elige otro solo si quieres cambiarla.' : 'El audio que guía la oración.'}
+          >
             <input
               id="oracion-audio"
               type="file"
@@ -320,7 +383,7 @@ function ModalSubirOracion({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
             onClick={() => void enviar()}
             disabled={ocupado || !completo || marcasDesparejas}
           >
-            {ocupado ? 'Guardando…' : 'Publicar'}
+            {ocupado ? 'Guardando…' : esCorreccion ? 'Guardar' : 'Publicar'}
           </Boton>
         </div>
       </div>

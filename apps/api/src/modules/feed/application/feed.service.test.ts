@@ -37,6 +37,13 @@ class FakePostRepo extends PostRepository {
     p.status = status
     return { ...p }
   }
+  async updateFicha(id: string, cambios: Record<string, unknown>) {
+    const p = this.tarjetas.get(id)!
+    for (const [clave, valor] of Object.entries(cambios)) {
+      if (valor !== undefined) (p as unknown as Record<string, unknown>)[clave] = valor
+    }
+    return { ...p }
+  }
   async remove(id: string) {
     this.borradas.push(id)
     this.tarjetas.delete(id)
@@ -121,9 +128,29 @@ describe('administración de tarjetas (módulo Contenido)', () => {
     expect(media.eliminados).toEqual(['asset-1'])
   })
 
+  it('editar cambia la ficha y deja el medio donde está', async () => {
+    posts.seed(nuevaTarjeta({ id: 't1', mediaAssetId: 'asset-1', title: 'Antes' }))
+
+    const editada = await svc.editar(admin, 't1', { title: 'Después', manifesto: 'Una frase' })
+
+    expect(editada.title).toBe('Después')
+    expect(editada.manifesto).toBe('Una frase')
+    expect(editada.mediaAssetId).toBe('asset-1')
+  })
+
+  it('lo que no se manda al editar se queda como estaba', async () => {
+    posts.seed(nuevaTarjeta({ id: 't1', title: 'Se queda', story: 'El relato' }))
+
+    const editada = await svc.editar(admin, 't1', { manifesto: 'Nueva frase' })
+
+    expect(editada.title).toBe('Se queda')
+    expect(editada.story).toBe('El relato')
+  })
+
   it('una tarjeta que no existe no se administra', async () => {
     await expect(svc.cambiarEstado(admin, 'fantasma', 'HIDDEN')).rejects.toThrow(NotFoundException)
     await expect(svc.eliminar(admin, 'fantasma')).rejects.toThrow(NotFoundException)
+    await expect(svc.editar(admin, 'fantasma', { title: 'x' })).rejects.toThrow(NotFoundException)
   })
 
   it('un maestro no administra el contenido publicado, ni el suyo', async () => {
@@ -132,6 +159,7 @@ describe('administración de tarjetas (módulo Contenido)', () => {
     await expect(svc.listarParaAdmin(maestro)).rejects.toThrow(ForbiddenException)
     await expect(svc.cambiarEstado(maestro, 't1', 'HIDDEN')).rejects.toThrow(ForbiddenException)
     await expect(svc.eliminar(maestro, 't1')).rejects.toThrow(ForbiddenException)
+    await expect(svc.editar(maestro, 't1', { title: 'x' })).rejects.toThrow(ForbiddenException)
     expect(posts.borradas).toEqual([])
   })
 })
