@@ -153,100 +153,79 @@ function Carrusel({
   return (
     // `min-h-0` es lo que deja que el hijo se encoja: sin él, un flex item se
     // niega a bajar de su tamaño natural y empuja el resto fuera de la pantalla.
-    <div className="flex w-full min-h-0 flex-1 flex-col items-center gap-aire-s">
-      <div className="flex w-full min-h-0 flex-1 items-center justify-center gap-aire-s">
-        {oraciones.length > 1 && (
-          <FlechaDelCarrusel hacia="anterior" onClick={() => mover(-1)} />
-        )}
+    <div className="flex w-full min-h-0 flex-1 items-center justify-center gap-aire-s">
+      {oraciones.length > 1 && (
+        <FlechaDelCarrusel hacia="anterior" onClick={() => mover(-1)} />
+      )}
 
-        <article
-          key={actual.id}
-          className="flex h-full min-h-0 min-w-0 flex-1 animate-[mensaje-entra_600ms_var(--ease)_both] flex-col items-center justify-center gap-aire-xs"
-        >
-          {actual.tema && (
-            // Pegada a la imagen, no flotando: la categoría es de la estampa.
-            <p
-              className="m-0 rounded-full border px-[0.8rem] py-[0.2rem] font-mono text-[0.62rem] uppercase tracking-label"
-              style={{
-                borderColor: `rgba(${neonDeCategoria(actual.tema)}, 0.55)`,
-                color: `rgb(${neonDeCategoria(actual.tema)})`,
-              }}
-            >
-              {actual.tema}
-            </p>
-          )}
-
-          {/* Todas las estampas ocupan el mismo cuadro, venga la imagen alta o
-              ancha: si cada una midiera lo suyo, el título y el botón bailarían
-              al pasar de una a otra. `object-contain` las mete dentro sin
-              recortarlas —un recorte sin fondo no admite que le corten un
-              brazo— y `max-h-full` cede cuando la ventana es más baja que el
-              cuadro.
-              El corte por ALTURA de ventana es el que de verdad manda: en un
-              portátil bajo, un cuadro pensado para el ancho no cabía y cedía de
-              tamaño, con lo que la estampa cambiaba al pasar de una a otra. */}
-          <div className="flex h-[12rem] max-h-full w-full items-center justify-center overflow-hidden [@media(min-height:700px)]:h-[16rem] [@media(min-height:860px)]:h-[20rem]">
-            {actual.imagenUrl ? (
-              <img
-                src={actual.imagenUrl}
-                alt=""
-                className="max-h-full max-w-full object-contain"
-                // El brillo va en el borde del dibujo, no en una caja: por eso
-                // es `drop-shadow` y no `box-shadow`, que haría un rectángulo.
-                style={{
-                  filter: `drop-shadow(0 0 1.6rem rgba(${neonDeCategoria(actual.tema)}, 0.55)) drop-shadow(0 0 4rem rgba(${neonDeCategoria(actual.tema)}, 0.3))`,
-                }}
-              />
-            ) : (
-              <span
-                aria-hidden
-                className="h-full w-full max-w-sm rounded-full"
-                style={{
-                  background: `radial-gradient(closest-side, rgba(${neonDeCategoria(actual.tema)}, 0.18), transparent)`,
-                }}
-              />
-            )}
-          </div>
-
-          <h2 className="m-0 mt-aire-xs flex min-h-[2.4em] items-center text-center font-serif text-[clamp(1.5rem,3.4vw,2.4rem)] font-light leading-[1.15] text-contenido">
-            {actual.titulo}
-          </h2>
-
-          <button
-            type="button"
-            onClick={() => onRezar(actual)}
-            className="rounded-full border px-[2rem] py-[0.8rem] font-mono text-body-s uppercase tracking-boton text-hueso transition-colors duration-fade ease-camino"
+      <article
+        key={actual.id}
+        className="flex h-full min-h-0 min-w-0 flex-1 animate-[mensaje-entra_600ms_var(--ease)_both] flex-col items-center justify-center gap-aire-xs"
+      >
+        {actual.tema && (
+          // Pegada a la imagen, no flotando: la categoría es de la estampa.
+          <p
+            className="m-0 rounded-full border px-[0.8rem] py-[0.2rem] font-mono text-[0.62rem] uppercase tracking-label"
             style={{
-              borderColor: `rgba(${neonDeCategoria(actual.tema)}, 0.6)`,
-              background: `rgba(${neonDeCategoria(actual.tema)}, 0.14)`,
-              boxShadow: `0 0 2rem rgba(${neonDeCategoria(actual.tema)}, 0.3)`,
+              borderColor: `rgba(${neonDeCategoria(actual.tema)}, 0.55)`,
+              color: `rgb(${neonDeCategoria(actual.tema)})`,
             }}
           >
-            Orar conmigo
-          </button>
-        </article>
+            {actual.tema}
+          </p>
+        )}
 
-        {oraciones.length > 1 && <FlechaDelCarrusel hacia="siguiente" onClick={() => mover(1)} />}
-      </div>
-
-      {oraciones.length > 1 && (
-        <div className="flex items-center gap-aire-xs">
-          {oraciones.map((oracion, i) => (
-            <button
-              key={oracion.id}
-              type="button"
-              onClick={() => onIndice(i)}
-              aria-label={`Ir a ${oracion.titulo}`}
-              aria-current={i === indice ? 'true' : undefined}
-              className="size-2 rounded-full transition-colors duration-fade"
+        {/* Todas las estampas ocupan el mismo cuadro, venga la imagen alta o
+            ancha: si cada una midiera lo suyo, el título y el botón bailarían
+            al pasar de una a otra. `object-contain` las mete dentro sin
+            recortarlas —un recorte sin fondo no admite que le corten un
+            brazo— y `max-h-full` cede cuando la ventana es más baja que el
+            cuadro.
+            El corte por ALTURA de ventana es el que de verdad manda: en un
+            portátil bajo, un cuadro pensado para el ancho no cabía y cedía de
+            tamaño, con lo que la estampa cambiaba al pasar de una a otra. */}
+        <div className="flex h-[12rem] max-h-full w-full items-center justify-center overflow-hidden [@media(min-height:700px)]:h-[16rem] [@media(min-height:860px)]:h-[20rem]">
+          {actual.imagenUrl ? (
+            <img
+              src={actual.imagenUrl}
+              alt=""
+              className="max-h-full max-w-full object-contain"
+              // El brillo va en el borde del dibujo, no en una caja: por eso
+              // es `drop-shadow` y no `box-shadow`, que haría un rectángulo.
               style={{
-                background:
-                  i === indice ? `rgb(${neonDeCategoria(oracion.tema)})` : 'var(--linea)',
+                filter: `drop-shadow(0 0 1.6rem rgba(${neonDeCategoria(actual.tema)}, 0.55)) drop-shadow(0 0 4rem rgba(${neonDeCategoria(actual.tema)}, 0.3))`,
               }}
             />
-          ))}
+          ) : (
+            <span
+              aria-hidden
+              className="h-full w-full max-w-sm rounded-full"
+              style={{
+                background: `radial-gradient(closest-side, rgba(${neonDeCategoria(actual.tema)}, 0.18), transparent)`,
+              }}
+            />
+          )}
         </div>
-      )}
+
+        <h2 className="m-0 mt-aire-xs flex min-h-[2.4em] items-center text-center font-serif text-[clamp(1.5rem,3.4vw,2.4rem)] font-light leading-[1.15] text-contenido">
+          {actual.titulo}
+        </h2>
+
+        <button
+          type="button"
+          onClick={() => onRezar(actual)}
+          className="rounded-full border px-[2rem] py-[0.8rem] font-mono text-body-s uppercase tracking-boton text-hueso transition-colors duration-fade ease-camino"
+          style={{
+            borderColor: `rgba(${neonDeCategoria(actual.tema)}, 0.6)`,
+            background: `rgba(${neonDeCategoria(actual.tema)}, 0.14)`,
+            boxShadow: `0 0 2rem rgba(${neonDeCategoria(actual.tema)}, 0.3)`,
+          }}
+        >
+          Orar conmigo
+        </button>
+      </article>
+
+      {oraciones.length > 1 && <FlechaDelCarrusel hacia="siguiente" onClick={() => mover(1)} />}
     </div>
   )
 }
