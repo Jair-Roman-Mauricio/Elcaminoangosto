@@ -3,18 +3,24 @@ import { Eyebrow } from '@elcamino/ui'
 import { TarjetasPanel } from './tarjetas-panel'
 import { VideosPanel } from './videos-panel'
 import { CancionesPanel } from './canciones-panel'
+import { LecturasPanel } from './lecturas-panel'
+import { OracionesPanel } from './oraciones-panel'
 
-type Seccion = 'TARJETAS' | 'CANCIONES' | 'VIDEOS'
+type Seccion = 'TARJETAS' | 'CANCIONES' | 'VIDEOS' | 'DEVOCIONALES' | 'REVISTA' | 'ORACIONES'
 
 const SECCIONES: { valor: Seccion; label: string }[] = [
   { valor: 'TARJETAS', label: 'Tarjetas' },
   { valor: 'CANCIONES', label: 'Canciones' },
   { valor: 'VIDEOS', label: 'Videos' },
+  { valor: 'DEVOCIONALES', label: 'Devocionales' },
+  { valor: 'REVISTA', label: 'Revista' },
+  { valor: 'ORACIONES', label: 'Oraciones' },
 ]
 
 /**
  * Contenido (solo ADMIN): un único sitio para publicar y administrar lo que la
- * plataforma ofrece fuera de los cursos — tarjetas, canciones y videos.
+ * plataforma ofrece fuera de los cursos — tarjetas, canciones, videos, lecturas
+ * y oraciones guiadas.
  *
  * Cada pestaña se apoya en su bounded context: tarjetas en `feed`, videos en
  * `videos` (HU-9.3) y canciones en `music` (HU-9.2).
@@ -42,11 +48,12 @@ export function ContenidoPage() {
         <Eyebrow>Administración</Eyebrow>
         <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Contenido</h1>
         <p className="m-0 font-mono text-body-s text-texto-tenue">
-          Publica y administra lo que se ve fuera de los cursos: tarjetas, canciones y videos.
+          Publica y administra lo que se ve fuera de los cursos: tarjetas, canciones, videos,
+          devocionales, revista y oraciones guiadas.
         </p>
       </header>
 
-      <nav ref={navRef} aria-label="Tipo de contenido" className="relative flex gap-aire-m">
+      <nav ref={navRef} aria-label="Tipo de contenido" className="relative flex flex-wrap gap-aire-m">
         <span
           aria-hidden="true"
           className="pointer-events-none absolute bottom-0 left-0 h-0.5 bg-oro transition-[width,transform] duration-[600ms] ease-camino"
@@ -72,6 +79,9 @@ export function ContenidoPage() {
       {seccion === 'TARJETAS' && <TarjetasPanel />}
       {seccion === 'CANCIONES' && <CancionesPanel />}
       {seccion === 'VIDEOS' && <VideosPanel />}
+      {seccion === 'DEVOCIONALES' && <LecturasPanel tipo="DEVOCIONAL" />}
+      {seccion === 'REVISTA' && <LecturasPanel tipo="ARTICULO" />}
+      {seccion === 'ORACIONES' && <OracionesPanel />}
     </div>
   )
 }

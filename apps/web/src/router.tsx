@@ -39,6 +39,15 @@ const VideosCristianosPage = lazy(() =>
     default: m.VideosCristianosPage,
   })),
 )
+const DevocionalesPage = lazy(() =>
+  import('./modules/lecturas/devocionales-page').then((m) => ({ default: m.DevocionalesPage })),
+)
+const RevistaPage = lazy(() =>
+  import('./modules/lecturas/revista-page').then((m) => ({ default: m.RevistaPage })),
+)
+const OracionesPage = lazy(() =>
+  import('./modules/lecturas/oraciones-page').then((m) => ({ default: m.OracionesPage })),
+)
 const ComunidadPage = lazy(() =>
   import('./modules/community/comunidad-page').then((m) => ({ default: m.ComunidadPage })),
 )
@@ -76,6 +85,11 @@ export const router = createBrowserRouter([
       { path: '/tarjetas', element: conCarga(<FeedPage />) },
       { path: '/videos', element: conCarga(<VideosCristianosPage />) },
       { path: '/alabanza', element: conCarga(<AlabanzaPage />) },
+      { path: '/devocionales', element: conCarga(<DevocionalesPage />) },
+      { path: '/revista', element: conCarga(<RevistaPage />) },
+      // Cada artículo con su propia dirección: se comparte y se recarga.
+      { path: '/revista/:articuloId', element: conCarga(<RevistaPage />) },
+      { path: '/oraciones', element: conCarga(<OracionesPage />) },
       { path: '/comunidad', element: conCarga(<ComunidadPage />) },
       { path: '/comunidad/:id', element: conCarga(<HiloPage />) },
     ],

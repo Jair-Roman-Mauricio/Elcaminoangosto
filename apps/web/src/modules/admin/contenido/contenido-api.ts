@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../../lib/api-client'
+import type { Lectura, OracionGuiada } from '../../lecturas/lecturas-api'
 
 /* Contratos del módulo Contenido (espejo del servidor). */
 
@@ -270,6 +271,112 @@ export function useEliminarCancion() {
   const invalidar = useInvalidarMusica()
   return useMutation({
     mutationFn: (id: string) => apiClient.delete(`/music/songs/${id}`),
+    onSuccess: invalidar,
+  })
+}
+
+// ── Lecturas: devocionales, revista y oraciones guiadas ────────────────────
+
+/**
+ * Lo que se manda al publicar o editar una lectura.
+ *
+ * Los párrafos viajan ya partidos: el servidor guarda un arreglo, no un texto
+ * con saltos, para que la pantalla sepa dónde respira sin volver a adivinarlo.
+ */
+export interface FichaLectura {
+  titulo: string
+  entradilla: string | null
+  parrafos: string[]
+  autor: string
+  seccion: string | null
+  referencia: string | null
+  portadaAssetId: string | null
+}
+
+/**
+ * Las listas del admin son las mismas rutas públicas: al ir firmado incluyen
+ * también lo oculto. Se guardan bajo otra clave para que ocultar algo aquí no
+ * deje al lector con una copia vieja en la que sigue apareciendo.
+ */
+export function useLecturasAdmin(tipo: 'DEVOCIONAL' | 'ARTICULO') {
+  return useQuery({
+    queryKey: ['contenido', 'lecturas', tipo],
+    queryFn: () =>
+      apiClient.get<Lectura[]>(tipo === 'DEVOCIONAL' ? '/devocionales' : '/revista'),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useOracionesAdmin() {
+  return useQuery({
+    queryKey: ['contenido', 'oraciones'],
+    queryFn: () => apiClient.get<OracionGuiada[]>('/oraciones'),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+function useInvalidarLecturas() {
+  const qc = useQueryClient()
+  return () => {
+    void qc.invalidateQueries({ queryKey: ['contenido', 'lecturas'] })
+    void qc.invalidateQueries({ queryKey: ['contenido', 'oraciones'] })
+    void qc.invalidateQueries({ queryKey: ['lecturas'] })
+  }
+}
+
+export function usePublicarLectura(tipo: 'DEVOCIONAL' | 'ARTICULO') {
+  const invalidar = useInvalidarLecturas()
+  return useMutation({
+    mutationFn: (input: FichaLectura) =>
+      apiClient.post(tipo === 'DEVOCIONAL' ? '/devocionales' : '/revista', input),
+    onSuccess: invalidar,
+  })
+}
+
+export function useEditarLectura() {
+  const invalidar = useInvalidarLecturas()
+  return useMutation({
+    mutationFn: ({ id, ...cambios }: { id: string; oculto?: boolean } & Partial<FichaLectura>) =>
+      apiClient.patch(`/lecturas/${id}`, cambios),
+    onSuccess: invalidar,
+  })
+}
+
+export function useEliminarLectura() {
+  const invalidar = useInvalidarLecturas()
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/lecturas/${id}`),
+    onSuccess: invalidar,
+  })
+}
+
+export function usePublicarOracion() {
+  const invalidar = useInvalidarLecturas()
+  return useMutation({
+    mutationFn: (input: {
+      titulo: string
+      tema: string | null
+      lineas: string[]
+      marcas: number[] | null
+      audioAssetId: string
+    }) => apiClient.post('/oraciones', input),
+    onSuccess: invalidar,
+  })
+}
+
+export function useEditarOracion() {
+  const invalidar = useInvalidarLecturas()
+  return useMutation({
+    mutationFn: ({ id, oculto }: { id: string; oculto: boolean }) =>
+      apiClient.patch(`/oraciones/${id}`, { oculto }),
+    onSuccess: invalidar,
+  })
+}
+
+export function useEliminarOracion() {
+  const invalidar = useInvalidarLecturas()
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/oraciones/${id}`),
     onSuccess: invalidar,
   })
 }

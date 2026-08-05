@@ -8,6 +8,7 @@ import {
   boolean,
   timestamp,
   bigint,
+  doublePrecision,
   primaryKey,
   index,
   type AnyPgColumn,
@@ -301,6 +302,66 @@ export const hilos = pgTable('hilos', {
   estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
   respuestas: integer('respuestas').notNull().default(0),
   ultimaActividad: timestamp('ultima_actividad', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
+})
+
+/** Un devocional y un artículo de revista comparten forma; cambia la sección. */
+export const tipoDeLecturaEnum = pgEnum('tipo_de_lectura', ['DEVOCIONAL', 'ARTICULO'])
+
+/**
+ * Lectura: devocional o artículo de revista.
+ *
+ * El cuerpo se guarda ya partido en párrafos porque la pantalla los presenta
+ * uno a uno, con su ritmo. Partir un bloque al pintarlo obliga a adivinar
+ * dónde respira el texto.
+ */
+export const lecturas = pgTable('lecturas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tipo: tipoDeLecturaEnum('tipo').notNull(),
+  titulo: text('titulo').notNull(),
+  entradilla: text('entradilla'),
+  parrafos: text('parrafos').array().notNull(),
+  seccion: text('seccion'),
+  autor: text('autor').notNull(),
+  referencia: text('referencia'),
+  portadaAssetId: uuid('portada_asset_id').references(() => mediaAssets.id, {
+    onDelete: 'set null',
+  }),
+  estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  ...timestamps,
+})
+
+/**
+ * Oración guiada: una voz y su texto.
+ *
+ * Las líneas se iluminan al ritmo de la locución. `marcas` guarda el segundo en
+ * que empieza cada una cuando se conoce; si falta, la interfaz las reparte por
+ * longitud.
+ */
+export const oracionesGuiadas = pgTable('oraciones_guiadas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  titulo: text('titulo').notNull(),
+  tema: text('tema'),
+  lineas: text('lineas').array().notNull(),
+  marcas: doublePrecision('marcas').array(),
+  audioAssetId: uuid('audio_asset_id')
+    .notNull()
+    .references(() => mediaAssets.id, { onDelete: 'restrict' }),
+  estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  ...timestamps,
+})
+
+/** Comentarios de un artículo de revista. Anónimos, como todo aquí. */
+export const lecturaComentarios = pgTable('lectura_comentarios', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  lecturaId: uuid('lectura_id')
+    .notNull()
+    .references(() => lecturas.id, { onDelete: 'cascade' }),
+  cuerpo: text('cuerpo').notNull(),
+  autorHuella: text('autor_huella').notNull(),
+  estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
   ...timestamps,
 })
 
