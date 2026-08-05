@@ -11,7 +11,7 @@ export interface ContenidoMasVisto {
   /** Álbum de la canción o serie del video; nulo si no aplica. */
   contexto: string | null
   vistas: number
-  /** Personas distintas: quien repite no cuenta diez veces. */
+  /** Sesiones distintas: quien repite no cuenta diez veces. */
   visitantes: number
   ultimaVista: string | null
 }
@@ -24,13 +24,19 @@ export interface AlbumMasEscuchado {
   canciones: number
 }
 
+/**
+ * Quién entra. No se separa entre registrados y anónimos porque nadie tiene
+ * cuenta salvo la administración, cuyo tráfico se descuenta de todo.
+ */
 export interface FlujoDeVisitantes {
-  visitantesAnonimos: number
-  visitantesRegistrados: number
-  /** Sesiones que empezaron sin cuenta y acabaron con una. */
-  sesionesQueSeRegistraron: number
-  porDia: { dia: string; anonimos: number; registrados: number }[]
-  porSeccion: { seccion: string; visitas: number; anonimos: number }[]
+  /** Sesiones distintas en el periodo. */
+  visitantes: number
+  /** Entradas a secciones. */
+  visitas: number
+  /** Piezas abiertas: videos, tarjetas y canciones juntos. */
+  vistasDeContenido: number
+  porDia: { dia: string; visitantes: number; visitas: number }[]
+  porSeccion: { seccion: string; visitas: number; visitantes: number }[]
 }
 
 /** Cómo se ordena: por reproducciones o por sesiones distintas. */

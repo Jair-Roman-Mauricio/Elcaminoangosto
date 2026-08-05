@@ -80,7 +80,7 @@ function CabeceraDeSeccion({
             className="w-full sm:w-auto"
           >
             <option value="vistas">Reproducciones</option>
-            <option value="visitantes">Personas</option>
+            <option value="visitantes">Sesiones</option>
           </Select>
         )}
       </div>
@@ -92,8 +92,12 @@ function CabeceraDeSeccion({
  * Estadísticas de contenido y visitas (solo ADMIN).
  *
  * Todo se mide con un identificador aleatorio por sesión de navegador, así que
- * «visitantes» son sesiones distintas, no personas identificadas: no se guarda
- * IP ni huella (RNF-9).
+ * «visitantes» son SESIONES distintas, no personas: no se guarda IP ni huella
+ * (RNF-9). Quien vuelve mañana cuenta como una sesión nueva, y por eso la
+ * pantalla no dice «personas» en ningún sitio.
+ *
+ * El tráfico de la propia administración no entra en ningún número: hoy es la
+ * única cuenta que existe, y revisar tu plataforma no es una visita.
  */
 export function EstadisticasPage() {
   const [dias, setDias] = useState(30)
@@ -119,7 +123,7 @@ export function EstadisticasPage() {
           <Eyebrow>Administración</Eyebrow>
           <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Estadísticas</h1>
           <p className="m-0 font-mono text-body-s text-texto-tenue">
-            Qué se ve, qué se escucha y quién entra sin tener cuenta.
+            Qué se ve, qué se escucha y cuánta gente entra. Sin tu propio tráfico.
           </p>
         </div>
         <Field label="Periodo" htmlFor="periodo">
@@ -136,21 +140,24 @@ export function EstadisticasPage() {
       {/* ── Visitantes ─────────────────────────────────────────────────── */}
       <section className={`flex flex-col gap-aire-s bg-superficie-1 p-aire-m ${SOMBRA}`}>
         <h2 className="m-0 font-mono text-h-s font-normal text-contenido">Quién entra</h2>
+        {/* Tres números, ninguno derivado ni estimado: una sesión distinta, una
+            entrada a sección y una pieza abierta son tres filas contadas en la
+            base. Antes había un «se registraron» que hoy sería siempre cero. */}
         <div className="grid gap-aire-s sm:grid-cols-3">
           <Dato
-            valor={flujo?.visitantesAnonimos}
-            label="Sin cuenta"
-            nota="Sesiones que navegaron sin iniciar sesión"
+            valor={flujo?.visitantes}
+            label="Visitantes"
+            nota="Sesiones distintas de navegador"
           />
           <Dato
-            valor={flujo?.visitantesRegistrados}
-            label="Con cuenta"
-            nota="Sesiones que sí tenían sesión iniciada"
+            valor={flujo?.visitas}
+            label="Visitas"
+            nota="Entradas a una sección; quien recorre cuatro cuenta cuatro"
           />
           <Dato
-            valor={flujo?.sesionesQueSeRegistraron}
-            label="Se registraron"
-            nota="Empezaron sin cuenta y acabaron con una"
+            valor={flujo?.vistasDeContenido}
+            label="Piezas abiertas"
+            nota="Videos, tarjetas y canciones que alguien abrió"
           />
         </div>
 
@@ -166,8 +173,8 @@ export function EstadisticasPage() {
                     {s.seccion}
                   </span>
                   <Barra valor={s.visitas} maximo={flujo.porSeccion[0]?.visitas ?? 1} />
-                  <span className="shrink-0 text-right font-mono text-eyebrow text-texto-tenue sm:w-28">
-                    {s.visitas} · {s.anonimos} sin cuenta
+                  <span className="shrink-0 whitespace-nowrap text-right font-mono text-eyebrow text-texto-tenue sm:w-28">
+                    {s.visitas} · {s.visitantes} ses.
                   </span>
                 </li>
               ))}
@@ -185,12 +192,12 @@ export function EstadisticasPage() {
                 <li
                   key={d.dia}
                   className="flex flex-col gap-[0.15rem] border-l-2 border-linea pl-aire-xs"
-                  title={`${d.anonimos} sin cuenta · ${d.registrados} con cuenta`}
+                  title={`${d.visitantes} sesiones · ${d.visitas} visitas`}
                 >
                   <span className="font-mono text-eyebrow text-texto-debil">
                     {FORMATO_FECHA.format(new Date(`${d.dia}T00:00:00`))}
                   </span>
-                  <span className="font-mono text-body-s text-contenido">{d.anonimos}</span>
+                  <span className="font-mono text-body-s text-contenido">{d.visitantes}</span>
                 </li>
               ))}
             </ul>
@@ -308,10 +315,10 @@ function Ranking({
           {/* En móvil el recuento cae a la línea siguiente en vez de empujar
               la fila fuera de la tarjeta. */}
           <span
-            className="ml-auto shrink-0 text-right font-mono text-eyebrow text-texto-tenue sm:w-32"
+            className="ml-auto shrink-0 whitespace-nowrap text-right font-mono text-eyebrow text-texto-tenue sm:w-36"
             title={`${d.visitantes} sesiones distintas`}
           >
-            {d.vistas} {unidad} · {d.visitantes} pers.
+            {d.vistas} {unidad} · {d.visitantes} ses.
           </span>
         </li>
       ))}

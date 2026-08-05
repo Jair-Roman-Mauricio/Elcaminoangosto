@@ -424,6 +424,8 @@ function VisorDeTarjetas({
    */
   const [paso, setPaso] = useState(0)
   const visorRef = useRef<HTMLDivElement>(null)
+  const imagenRef = useRef<HTMLImageElement>(null)
+  const fichaRef = useRef<HTMLDivElement>(null)
   const total = cards.length
   const indice = ((paso % total) + total) % total
   const card = cards[indice]!
@@ -436,49 +438,109 @@ function VisorDeTarjetas({
 
   const mover = (avance: number) => setPaso((actual) => actual + avance)
 
+  /**
+   * La pieza entra desde arriba SIN remontarse.
+   *
+   * Antes se lograba con un `key` por tarjeta: React reemplazaba el nodo y la
+   * animación CSS volvía a correr. El precio era invisible hasta que se probaba
+   * con un trackpad: el navegador conserva el elemento bajo el cursor hasta que
+   * el puntero se mueve, y un nodo separado del documento ya no tiene camino
+   * hasta `window`, así que los eventos de rueda dejaban de llegar. Había que
+   * mover el ratón para revivirlo.
+   *
+   * Con la API de animaciones el elemento es siempre el mismo: solo se le pide
+   * que repita la entrada.
+   */
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    for (const nodo of [imagenRef.current, fichaRef.current]) {
+      nodo?.animate(
+        [
+          { opacity: 0, transform: 'translate3d(0, -14px, 0) scale(0.994)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 600, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' },
+      )
+    }
+  }, [indice])
+
   const ventana: number[] = []
   for (let posicion = paso - VENTANA_ARRIBA; posicion <= paso + VENTANA_ABAJO; posicion += 1) {
     ventana.push(posicion)
   }
 
   /**
-   * La rueda recorre la colección.
+   * La rueda recorre la colección: UN GESTO, UNA TARJETA.
    *
    * El listener va a mano y no como `onWheel` porque React los registra
-   * pasivos, y sin poder frenar el evento la página entera se movía a la vez
-   * que la tira. Solo se frena cuando queda colección hacia ese lado: en los
-   * extremos el gesto vuelve a ser de la página y no atrapa a nadie dentro.
+   * pasivos, y sin poder frenar el evento la página se movía a la vez que la
+   * tira.
    *
-   * El acumulador existe por los trackpads, que mandan decenas de eventos de
-   * dos o tres píxeles: sin umbral, un solo gesto saltaba media colección.
+   * Lo difícil es el trackpad. Un deslizamiento de dos dedos no manda un
+   * evento: manda decenas de tres o cuatro píxeles, y sigue mandándolos por
+   * inercia más de un segundo después de levantar los dedos. Acumular y
+   * disparar por umbral —lo que hacía antes— convertía un gesto en media
+   * docena de saltos, porque la inercia volvía a llenar el acumulador enseguida.
+   *
+   * Por eso, tras cada salto se BLOQUEA hasta que el gesto termina de verdad,
+   * y el final se detecta por silencio: 150 ms sin un solo evento. La inercia
+   * no tiene pausas, así que nunca desbloquea. Una rueda de ratón sí las tiene
+   * entre clic y clic, y avanza tarjeta a tarjeta como se espera.
+   *
+   * El listener va en `window` y decide por COORDENADAS, no por el elemento
+   * del evento. Colgado del contenedor solo funcionaba una vez: al cambiar de
+   * tarjeta, React reemplaza la imagen —lleva `key` para animar la entrada— y
+   * el navegador conserva el elemento bajo el cursor hasta que el puntero se
+   * mueve. Los eventos siguientes apuntaban a algo que ya no estaba en el
+   * documento y no llegaban al visor: había que mover el ratón para revivirlo.
    */
   useEffect(() => {
     const zona = visorRef.current
     if (!zona) return
 
+    /** Píxeles acumulados que cuentan como intención de avanzar. */
+    const UMBRAL = 40
+    /** Silencio que marca el final de un gesto, inercia incluida. */
+    const PAUSA = 150
+
     let acumulado = 0
-    let ultimoSalto = 0
+    let ultimoEvento = 0
+    let bloqueado = false
 
     const alRodar = (evento: WheelEvent) => {
-      const direccion = Math.sign(evento.deltaY)
-      if (direccion === 0) return
+      // Un deslizamiento horizontal es del navegador —el gesto de volver
+      // atrás—, no del visor. Frenarlo dejaba al usuario sin salida.
+      if (Math.abs(evento.deltaY) <= Math.abs(evento.deltaX)) return
 
-      // La colección no tiene extremos, así que el gesto siempre es del visor.
-      evento.preventDefault()
+      const caja = zona.getBoundingClientRect()
+      const dentro =
+        evento.clientX >= caja.left &&
+        evento.clientX <= caja.right &&
+        evento.clientY >= caja.top &&
+        evento.clientY <= caja.bottom
+      if (!dentro) return
+
       const ahora = evento.timeStamp
-      // Un gesto nuevo empieza cuenta nueva; si no, la inercia del anterior
-      // seguiría empujando.
-      if (ahora - ultimoSalto > 320) acumulado = 0
-      acumulado += evento.deltaY
-      if (Math.abs(acumulado) < 60) return
+      if (ahora - ultimoEvento > PAUSA) {
+        acumulado = 0
+        bloqueado = false
+      }
+      ultimoEvento = ahora
 
+      // La colección no tiene extremos: el gesto vertical siempre es del visor.
+      evento.preventDefault()
+      if (bloqueado) return
+
+      acumulado += evento.deltaY
+      if (Math.abs(acumulado) < UMBRAL) return
+
+      bloqueado = true
       acumulado = 0
-      ultimoSalto = ahora
-      mover(direccion)
+      mover(Math.sign(evento.deltaY))
     }
 
-    zona.addEventListener('wheel', alRodar, { passive: false })
-    return () => zona.removeEventListener('wheel', alRodar)
+    window.addEventListener('wheel', alRodar, { passive: false })
+    return () => window.removeEventListener('wheel', alRodar)
   }, [])
 
   return (
@@ -503,10 +565,7 @@ function VisorDeTarjetas({
           del sistema donde se usa— con su versículo, y de pie el título y la
           posición en la colección, en letra menor para que no compitan.
           Entra con la pieza, no antes: son la misma tarjeta. */}
-      <div
-        key={card.id}
-        className="flex animate-[visor-entra_600ms_var(--ease)_both] flex-col gap-aire-m"
-      >
+      <div ref={fichaRef} className="flex flex-col gap-aire-m">
         {apreciacion && (
           <Verse {...(ficha.referencia ? { referencia: ficha.referencia } : {})}>
             {apreciacion}
@@ -533,10 +592,10 @@ function VisorDeTarjetas({
             con la URL cruda, cambiar de pieza dejaba el centro en negro
             mientras bajaban 4.000 px que nadie iba a ver. */}
         <img
-          key={card.id}
+          ref={imagenRef}
           {...atributosImagen(card.posterUrl ?? card.mediaUrl)}
           alt={card.title ?? card.caption ?? 'Tarjeta de fe'}
-          className="h-full w-full animate-[visor-entra_600ms_var(--ease)_both] object-contain transition-[filter] duration-fade ease-camino group-hover:brightness-110"
+          className="h-full w-full object-contain transition-[filter] duration-fade ease-camino group-hover:brightness-110"
         />
       </button>
 

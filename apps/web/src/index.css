@@ -5416,23 +5416,35 @@
   background: var(--negro);
 }
 
-/* Cambio de pieza en el visor de Tarjetas de Fe. La tarjeta entra DESDE
-   ARRIBA y se asienta, en lugar de aparecer de golpe: el salto seco delataba
-   que es la misma caja cambiando de contenido. */
-@keyframes visor-entra {
+/* La entrada de cada pieza en el visor de Tarjetas de Fe ya no vive aquí: se
+   pide con la API de animaciones desde `feed-page.tsx`, para que el elemento no
+   tenga que remontarse y siga recibiendo los eventos de rueda. */
+
+/* Entrada del mensaje sobre cada plano de la landing. Sube apenas y se asienta:
+   una frase que aparece de golpe sobre un video en movimiento se lee como un
+   subtítulo, no como una voz. */
+@keyframes mensaje-entra {
   from {
     opacity: 0;
-    transform: translate3d(0, -0.9rem, 0) scale(0.994);
+    transform: translate3d(0, 1.2rem, 0);
+    filter: blur(6px);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tarjeta-visor img,
-  [class*='visor-entra'] {
-    animation: none !important;
+/* Latido del botón de entrada de la landing. El anillo se expande y se apaga:
+   dice «pulsa aquí» sin tener que escribirlo. */
+@keyframes latido {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
   }
 }

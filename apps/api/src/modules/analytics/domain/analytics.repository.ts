@@ -5,7 +5,7 @@ export type TipoDeContenido = 'VIDEO' | 'POST' | 'SONG'
 /**
  * Cómo se ordena un ranking. «vistas» cuenta cada reproducción; «visitantes»
  * cuenta sesiones distintas, que responde a otra pregunta: si algo llega a
- * mucha gente o si a poca que repite.
+ * muchos o si a pocos que repiten.
  */
 export type OrdenDeRanking = 'vistas' | 'visitantes'
 
@@ -16,7 +16,7 @@ export interface ContenidoMasVisto {
   /** Álbum de la canción o serie del video; nulo si no aplica. */
   contexto: string | null
   vistas: number
-  /** Personas distintas: una sesión que repite no cuenta diez veces. */
+  /** Sesiones distintas: una que repite no cuenta diez veces. */
   visitantes: number
   ultimaVista: Date | null
 }
@@ -33,25 +33,29 @@ export interface AlbumMasEscuchado {
 /** Un día del flujo de visitas. */
 export interface DiaDeVisitas {
   dia: string
-  /** Sesiones distintas sin cuenta. */
-  anonimos: number
-  /** Sesiones distintas con sesión iniciada. */
-  registrados: number
+  /** Sesiones distintas que entraron ese día. */
+  visitantes: number
+  /** Entradas a secciones: una sesión que recorre cuatro cuenta cuatro. */
+  visitas: number
 }
 
-/** Resumen del flujo de quien entra sin cuenta. */
+/**
+ * Resumen de quién entra.
+ *
+ * Ya no se separa entre registrados y anónimos: **nadie tiene cuenta salvo la
+ * administración**, así que esa división medía una sola cosa —si el admin
+ * estaba con la sesión abierta— y no decía nada del público. Ese tráfico se
+ * descuenta, no se cuenta aparte: mirar tu propia plataforma no es una visita.
+ */
 export interface FlujoDeVisitantes {
-  /** Sesiones distintas sin cuenta en el periodo. */
-  visitantesAnonimos: number
-  /** Sesiones distintas que sí tenían cuenta. */
-  visitantesRegistrados: number
-  /**
-   * Sesiones que empezaron sin cuenta y acabaron con una: la conversión que
-   * de verdad importa.
-   */
-  sesionesQueSeRegistraron: number
+  /** Sesiones distintas en el periodo. */
+  visitantes: number
+  /** Entradas a secciones. */
+  visitas: number
+  /** Piezas abiertas: videos, tarjetas y canciones juntos. */
+  vistasDeContenido: number
   porDia: DiaDeVisitas[]
-  porSeccion: { seccion: string; visitas: number; anonimos: number }[]
+  porSeccion: { seccion: string; visitas: number; visitantes: number }[]
 }
 
 export abstract class AnalyticsRepository {

@@ -33,3 +33,7 @@ apps/web/output/
 .kombai/
 *.log
 coverage/
+
+# Originales de los videos de la landing: pesan 23 MB y solo sirven de
+# respaldo local. Lo que se publica es la versión ya recortada de public/.
+apps/web/videos-originales/

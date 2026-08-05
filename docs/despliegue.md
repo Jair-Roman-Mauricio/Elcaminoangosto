@@ -162,6 +162,19 @@ versionado.
 
 ## Protección de ramas
 
-`main` y `develop` exigen Pull Request y los tres checks de CI en verde. Sin *force push* ni borrado.
+`main` y `develop` exigen Pull Request y CI en verde, sin *force push* ni borrado. Los checks
+obligatorios **no son los mismos en las dos ramas**:
+
+| Rama | Checks obligatorios |
+|---|---|
+| `develop` | `Conventional Commits` · `Lint · Typecheck · Test · Build` · `Migraciones y RLS` |
+| `main` | `Lint · Typecheck · Test · Build` · `Migraciones y RLS` |
+
+`Conventional Commits` **no se exige en `main` a propósito**: el job se salta los PR hacia `main`
+(`ci.yml`, `if: github.base_ref == 'develop'`) porque un release agrupa commits ya validados y
+merge commits que no siguen el formato. Mientras estuvo en la lista de obligatorios, GitHub lo
+contaba como pendiente y **ningún PR de release podía fusionarse**: el check exigido no podía
+ocurrir nunca. Cada commit de trabajo sigue validándose al entrar a `develop`, que es donde el
+job sí corre.
 
 No se exige aprobación de un revisor porque GitHub no permite aprobar el propio PR y hoy hay un único mantenedor: eso dejaría el repositorio bloqueado. Cuando entre una segunda persona, súbelo a `required_approving_review_count: 1` y activa `require_code_owner_reviews`.
