@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type UIEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { usePerfil, useSession } from '../../auth/session'
-import { useVideos, type VideoCatalogo } from './videos-api'
+import { useComentarVideo, useComentariosDeVideo, useVideos, type VideoCatalogo } from './videos-api'
 import { useRegistrarVista, useRegistrarVisita } from '../../lib/analitica'
 
 /**
@@ -33,34 +31,6 @@ function aVideoCristiano(v: VideoCatalogo): VideoCristiano {
   }
 }
 
-interface ComentarioDeVideo {
-  id: string
-  autor: string
-  mensaje: string
-  avatar?: string
-  tiempo: string
-  meGusta: string
-}
-
-const COMENTARIOS_INICIALES: Record<string, ComentarioDeVideo[]> = {
-  bienaventurados: [
-    { id: 'c-01', autor: 'Lucía R.', mensaje: 'Necesitaba escuchar esto hoy. Gracias por compartirlo.', avatar: '/posters/1.jpg', tiempo: 'Hace 8 min', meGusta: '128' },
-    { id: 'c-02', autor: 'Samuel Ortega', mensaje: 'Bienaventurados los que encuentran paz aun en medio del camino.', avatar: '/posters/3.jpg', tiempo: 'Hace 24 min', meGusta: '84' },
-    { id: 'c-03', autor: 'María Fernanda', mensaje: 'Mateo 5 siempre vuelve a poner mi corazón en su lugar.', avatar: '/posters/4.jpg', tiempo: 'Hace 1 h', meGusta: '46' },
-  ],
-  'camino-desierto': [
-    { id: 'c-11', autor: 'Andrés L.', mensaje: 'Él sigue abriendo camino aunque todavía no podamos verlo.', avatar: '/posters/2.jpg', tiempo: 'Hace 12 min', meGusta: '97' },
-    { id: 'c-12', autor: 'Claudia Paz', mensaje: 'Esta palabra llegó justo en el momento indicado.', avatar: '/posters/4.jpg', tiempo: 'Hace 45 min', meGusta: '52' },
-  ],
-  enviados: [
-    { id: 'c-21', autor: 'David y Ana', mensaje: 'La misión también se construye acompañándonos.', avatar: '/posters/1.jpg', tiempo: 'Hace 18 min', meGusta: '71' },
-    { id: 'c-22', autor: 'Josué M.', mensaje: 'Nadie debería caminar solo.', avatar: '/posters/3.jpg', tiempo: 'Hace 2 h', meGusta: '33' },
-  ],
-  'tumba-vacia': [
-    { id: 'c-31', autor: 'Elena Torres', mensaje: 'La esperanza tiene la última palabra.', avatar: '/posters/4.jpg', tiempo: 'Hace 5 min', meGusta: '204' },
-    { id: 'c-32', autor: 'Matías R.', mensaje: 'Él vive. Esa verdad lo cambia todo.', avatar: '/posters/2.jpg', tiempo: 'Hace 38 min', meGusta: '119' },
-  ],
-}
 
 function alternarEnColeccion(actuales: Set<string>, id: string) {
   const siguientes = new Set(actuales)
@@ -69,20 +39,46 @@ function alternarEnColeccion(actuales: Set<string>, id: string) {
   return siguientes
 }
 
+/** Cuándo se escribió, en corto. */
+const fechaCorta = new Intl.DateTimeFormat('es-PE', {
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+const cuando = (iso: string) => fechaCorta.format(new Date(iso))
+
 export function VideosCristianosPage() {
-  const navigate = useNavigate()
-  const { session } = useSession()
-  const { data: perfil } = usePerfil()
   const { data: catalogo, isPending } = useVideos()
   useRegistrarVisita('videos')
   const VIDEOS = useMemo(() => (catalogo ?? []).map(aVideoCristiano), [catalogo])
   const [videoActivoId, setVideoActivoId] = useState('')
-  const [silenciado, setSilenciado] = useState(true)
+  /**
+   * Los videos suenan al entrar.
+   *
+   * Estaban silenciados de origen por una razón real —ningún navegador
+   * reproduce con sonido sin un gesto previo—, pero llegar a una sección de
+   * video y no oír nada parece una avería. Se intenta con sonido y solo se
+   * silencia si el navegador lo impide, que es lo que hace `VideoActivo`.
+   *
+   * La excepción es el recorrido guiado: mientras habla, aquí se calla.
+   */
+  const [silenciado, setSilenciado] = useState(
+    () => document.body.dataset.recorrido === 'activo',
+  )
+
+  // Al terminar el recorrido, el sonido vuelve solo.
+  useEffect(() => {
+    const observador = new MutationObserver(() => {
+      if (document.body.dataset.recorrido !== 'activo') setSilenciado(false)
+    })
+    observador.observe(document.body, { attributes: true, attributeFilter: ['data-recorrido'] })
+    return () => observador.disconnect()
+  }, [])
   const [gustados, setGustados] = useState<Set<string>>(() => new Set())
   const [aviso, setAviso] = useState('')
   const [comentariosAbiertosPara, setComentariosAbiertosPara] = useState<string | null>(null)
   const [comentarioNuevo, setComentarioNuevo] = useState('')
-  const [comentariosNuevos, setComentariosNuevos] = useState<Record<string, ComentarioDeVideo[]>>({})
   const feedRef = useRef<HTMLDivElement>(null)
 
   // Al llegar el catálogo, el primer video pasa a ser el activo.
@@ -96,9 +92,12 @@ export function VideosCristianosPage() {
 
   const indiceActivo = Math.max(0, VIDEOS.findIndex(({ id }) => id === videoActivoId))
   const videoDeComentarios = VIDEOS.find(({ id }) => id === comentariosAbiertosPara) ?? VIDEOS[indiceActivo]
-  const comentariosVisibles = videoDeComentarios
-    ? [...(comentariosNuevos[videoDeComentarios.id] ?? []), ...(COMENTARIOS_INICIALES[videoDeComentarios.id] ?? [])]
-    : []
+  // Los comentarios viven en el servidor. Antes eran una lista inventada más
+  // lo que se escribía en memoria, que desaparecía al recargar: escribir para
+  // nadie es peor que no poder escribir.
+  const comentarios = useComentariosDeVideo(comentariosAbiertosPara)
+  const comentar = useComentarVideo(comentariosAbiertosPara)
+  const comentariosVisibles = comentarios.data ?? []
 
   useEffect(() => {
     if (!comentariosAbiertosPara) return
@@ -162,27 +161,16 @@ export function VideosCristianosPage() {
     }
   }
 
-  function publicarComentario(event: FormEvent<HTMLFormElement>) {
+  async function publicarComentario(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!session) {
-      navigate('/entrar', { state: { desde: '/videos' } })
-      return
+    const texto = comentarioNuevo.trim()
+    if (!comentariosAbiertosPara || !texto) return
+    try {
+      await comentar.mutateAsync(texto)
+      setComentarioNuevo('')
+    } catch {
+      // El aviso del formulario ya lo cuenta; no hay nada que deshacer.
     }
-    if (!comentariosAbiertosPara || !comentarioNuevo.trim()) return
-    const autor = perfil?.displayName ?? session.user.email?.split('@')[0] ?? 'Usuario'
-    const comentario: ComentarioDeVideo = {
-      id: crypto.randomUUID(),
-      autor,
-      mensaje: comentarioNuevo.trim(),
-      ...(perfil?.avatarUrl ? { avatar: perfil.avatarUrl } : {}),
-      tiempo: 'Ahora',
-      meGusta: '0',
-    }
-    setComentariosNuevos((actuales) => ({
-      ...actuales,
-      [comentariosAbiertosPara]: [comentario, ...(actuales[comentariosAbiertosPara] ?? [])],
-    }))
-    setComentarioNuevo('')
   }
 
   return (
@@ -251,7 +239,9 @@ export function VideosCristianosPage() {
                     />
                     <ActionButton
                       label="Comentarios"
-                      count={String((comentariosNuevos[video.id] ?? []).length)}
+                      count={
+                        comentariosAbiertosPara === video.id ? String(comentariosVisibles.length) : ''
+                      }
                       expanded={comentariosAbiertosPara === video.id}
                       onClick={() => setComentariosAbiertosPara((actual) => actual === video.id ? null : video.id)}
                       icon={<CommentIcon />}
@@ -283,56 +273,52 @@ export function VideosCristianosPage() {
           </header>
 
           <div className="shorts-comments__list">
+            {comentarios.isPending && <p className="shorts-comments__vacio">Cargando…</p>}
+            {!comentarios.isPending && comentariosVisibles.length === 0 && (
+              <p className="shorts-comments__vacio">Todavía nadie ha comentado. Empieza tú.</p>
+            )}
+            {/* Ni avatar ni «me gusta»: aquí nadie tiene cuenta ni foto, y el
+                contador de likes que había antes era un número inventado. */}
             {comentariosVisibles.map((comentario) => (
               <article key={comentario.id} className="shorts-comment">
                 <div className="shorts-comment__avatar" aria-hidden="true">
-                  {comentario.avatar
-                    ? <img src={comentario.avatar} alt="" />
-                    : <span>{comentario.autor.slice(0, 1).toUpperCase()}</span>}
+                  <span>{comentario.autor.slice(-1)}</span>
                 </div>
                 <div className="shorts-comment__body">
                   <strong>{comentario.autor}</strong>
                   <p>{comentario.mensaje}</p>
                   <div>
-                    <small>{comentario.tiempo}</small>
-                    <button type="button">Responder</button>
+                    <small>{cuando(comentario.createdAt)}</small>
                   </div>
                 </div>
-                <button type="button" className="shorts-comment__like" aria-label={`Me gusta el comentario de ${comentario.autor}`}>
-                  <HeartIcon />
-                  <span>{comentario.meGusta}</span>
-                </button>
               </article>
             ))}
           </div>
 
+          {/* Sin candado: comentar no pide cuenta porque no hay cuentas. Cada
+              quien lleva un alias dentro del video y nada más. */}
           <footer className="shorts-comments__composer">
-            {session ? (
-              <form onSubmit={publicarComentario}>
-                <div className="shorts-comments__user" aria-hidden="true">
-                  {perfil?.avatarUrl
-                    ? <img src={perfil.avatarUrl} alt="" />
-                    : <span>{(perfil?.displayName ?? session.user.email ?? 'U').slice(0, 1).toUpperCase()}</span>}
-                </div>
-                <label>
-                  <span className="sr-only">Escribe un comentario</span>
-                  <input
-                    type="text"
-                    value={comentarioNuevo}
-                    onChange={(event) => setComentarioNuevo(event.target.value)}
-                    placeholder="Añade un comentario…"
-                    maxLength={320}
-                  />
-                </label>
-                <button type="submit" disabled={!comentarioNuevo.trim()}>Publicar</button>
-              </form>
-            ) : (
-              <button type="button" onClick={() => navigate('/videos?access=required&for=comentarios')}>
-                <CommentIcon />
-                Iniciar sesión para comentar
+            <form onSubmit={(event) => void publicarComentario(event)}>
+              <label>
+                <span className="sr-only">Escribe un comentario</span>
+                <input
+                  type="text"
+                  value={comentarioNuevo}
+                  onChange={(event) => setComentarioNuevo(event.target.value)}
+                  placeholder="Comenta sin registrarte…"
+                  maxLength={320}
+                />
+              </label>
+              <button type="submit" disabled={comentar.isPending || !comentarioNuevo.trim()}>
+                {comentar.isPending ? 'Enviando…' : 'Publicar'}
               </button>
-            )}
+            </form>
           </footer>
+          {comentar.isError && (
+            <p role="alert" className="shorts-comments__vacio">
+              No se pudo publicar. Inténtalo de nuevo en un momento.
+            </p>
+          )}
         </aside>
 
         <nav className="shorts-feed__navigation" aria-label="Cambiar video">
@@ -362,7 +348,13 @@ function VideoActivo({ video, activo, silenciado }: { video: VideoCristiano; act
 
     if (activo) {
       setPausado(false)
-      void elemento.play().catch(() => setPausado(true))
+      // Con sonido si se puede. Si el navegador lo rechaza —no hubo gesto
+      // todavía—, se reintenta en silencio: mejor ver el video mudo y poder
+      // activarlo que quedarse con un fotograma congelado.
+      void elemento.play().catch(() => {
+        elemento.muted = true
+        void elemento.play().catch(() => setPausado(true))
+      })
       const animarProgreso = () => {
         sincronizarBarraDeVideo(elemento, timelineRef.current)
         frameId = window.requestAnimationFrame(animarProgreso)

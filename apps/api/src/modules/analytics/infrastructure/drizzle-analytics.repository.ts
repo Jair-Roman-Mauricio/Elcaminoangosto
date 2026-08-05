@@ -49,9 +49,13 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
   }
 
   /**
-   * El ranking se calcula sobre `content_views` y se une al contenido solo para
-   * darle nombre. Así una pieza borrada no desaparece del histórico: aparece
-   * sin título en vez de falsear el total.
+   * El ranking se calcula sobre `content_views` unido a su contenido.
+   *
+   * La unión es INTERNA a propósito: lo que ya no existe no se cuenta. Antes
+   * era externa y las piezas borradas seguían apareciendo como «Contenido
+   * eliminado» con sus vistas intactas, así que el ranking mezclaba lo que se
+   * puede volver a ver con lo que ya no está. Para decidir qué publicar, una
+   * fila que no se puede abrir es ruido.
    */
   async masVistos(input: {
     kind: TipoDeContenido
@@ -72,14 +76,14 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
     return this.db
       .select({
         contentId: contentViews.contentId,
-        titulo: sql<string>`coalesce(${titulo}, 'Contenido eliminado')`,
+        titulo: sql<string>`${titulo}`,
         contexto: sql<string | null>`${contexto}`,
         vistas: sql<number>`count(*)`.mapWith(Number),
         visitantes: sql<number>`count(distinct ${contentViews.sessionId})`.mapWith(Number),
         ultimaVista: sql<Date | null>`max(${contentViews.createdAt})`,
       })
       .from(contentViews)
-      .leftJoin(tabla, eq(tabla.id, contentViews.contentId))
+      .innerJoin(tabla, eq(tabla.id, contentViews.contentId))
       .where(and(...filtros))
       .groupBy(contentViews.contentId, titulo, contexto)
       .orderBy(
@@ -134,10 +138,23 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
 
     // Las vistas de contenido viven en otra tabla: se cuentan aparte y no se
     // suman a las visitas, que miden entrar a una sección, no abrir una pieza.
+    //
+    // Solo cuentan las de piezas que siguen existiendo, igual que en los
+    // rankings: si una fila no se puede abrir, no dice nada de lo que hay hoy.
     const [contenido] = await this.db
       .select({ vistas: sql<number>`count(*)`.mapWith(Number) })
       .from(contentViews)
-      .where(and(gte(contentViews.createdAt, desde), soloPublico.contenido))
+      .where(
+        and(
+          gte(contentViews.createdAt, desde),
+          soloPublico.contenido,
+          sql`(
+            exists (select 1 from ${videos} v where v.id = ${contentViews.contentId})
+            or exists (select 1 from ${posts} p where p.id = ${contentViews.contentId})
+            or exists (select 1 from ${songs} s where s.id = ${contentViews.contentId})
+          )`,
+        ),
+      )
 
     const porDia = await this.db
       .select({

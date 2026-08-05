@@ -24,9 +24,36 @@ export interface VideoConMedioEntity extends VideoEntity {
   authorName: string
 }
 
+/** Un comentario de video, tal como se guarda. */
+export interface ComentarioDeVideoEntity {
+  id: string
+  videoId: string
+  cuerpo: string
+  autorHuella: string
+  estado: 'VISIBLE' | 'OCULTO'
+  createdAt: Date
+}
+
 export abstract class VideoRepository {
   /** Catálogo público: publicados con el medio listo, más recientes primero. */
   abstract findPublished(): Promise<VideoConMedioEntity[]>
+
+  /** Comentarios de un video, del más nuevo al más viejo. */
+  abstract comentariosDe(
+    videoId: string,
+    incluirOcultos: boolean,
+  ): Promise<ComentarioDeVideoEntity[]>
+
+  abstract comentar(input: {
+    videoId: string
+    cuerpo: string
+    autorHuella: string
+  }): Promise<ComentarioDeVideoEntity>
+
+  /** Cuántos comentarios lleva esa huella desde un instante dado. */
+  abstract comentariosDesde(autorHuella: string, desde: Date): Promise<number>
+
+  abstract cambiarEstadoDeComentario(id: string, estado: 'VISIBLE' | 'OCULTO'): Promise<void>
 
   /** Todos, en cualquier estado, para el módulo Contenido (ADMIN). */
   abstract findAll(): Promise<VideoConMedioEntity[]>

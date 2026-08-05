@@ -1,9 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { and, desc, eq, type SQL } from 'drizzle-orm'
+import { and, count, desc, eq, gte, type SQL } from 'drizzle-orm'
 import { DRIZZLE, type Database } from '../../shared'
-import { mediaAssets, profiles, videos } from '../../shared/database/schema'
+import { mediaAssets, profiles, videoComentarios, videos } from '../../shared/database/schema'
 import {
   VideoRepository,
+  type ComentarioDeVideoEntity,
   type VideoConMedioEntity,
   type VideoEntity,
   type VideoStatus,
@@ -114,4 +115,48 @@ export class DrizzleVideoRepository extends VideoRepository {
       createdAt: f.createdAt,
     }
   }
+  async comentariosDe(
+    videoId: string,
+    incluirOcultos: boolean,
+  ): Promise<ComentarioDeVideoEntity[]> {
+    return this.db
+      .select()
+      .from(videoComentarios)
+      .where(
+        incluirOcultos
+          ? eq(videoComentarios.videoId, videoId)
+          : and(
+              eq(videoComentarios.videoId, videoId),
+              eq(videoComentarios.estado, 'VISIBLE'),
+            ),
+      )
+      .orderBy(desc(videoComentarios.createdAt))
+  }
+
+  async comentar(input: {
+    videoId: string
+    cuerpo: string
+    autorHuella: string
+  }): Promise<ComentarioDeVideoEntity> {
+    const [fila] = await this.db.insert(videoComentarios).values(input).returning()
+    return fila!
+  }
+
+  async comentariosDesde(autorHuella: string, desde: Date): Promise<number> {
+    const [fila] = await this.db
+      .select({ total: count() })
+      .from(videoComentarios)
+      .where(
+        and(
+          eq(videoComentarios.autorHuella, autorHuella),
+          gte(videoComentarios.createdAt, desde),
+        ),
+      )
+    return fila?.total ?? 0
+  }
+
+  async cambiarEstadoDeComentario(id: string, estado: 'VISIBLE' | 'OCULTO'): Promise<void> {
+    await this.db.update(videoComentarios).set({ estado }).where(eq(videoComentarios.id, id))
+  }
+
 }

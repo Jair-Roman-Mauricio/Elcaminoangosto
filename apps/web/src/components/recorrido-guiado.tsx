@@ -226,13 +226,20 @@ export function RecorridoGuiado() {
    * Va por un atributo en el `body` y una regla de CSS, no tocando clases del
    * botón: el botón es del layout y el recorrido no tiene por qué manosearlo.
    */
+  /**
+   * Marca en el `body` que hay un recorrido en curso.
+   *
+   * En móvil sirve para que lata el botón del menú, y en cualquier tamaño para
+   * que la sección de videos se silencie: dos voces a la vez no se entienden, y
+   * la que manda mientras dura la presentación es la del recorrido.
+   */
   useEffect(() => {
-    if (!activo || !esMovil) return
+    if (!activo) return
     document.body.dataset.recorrido = 'activo'
     return () => {
       delete document.body.dataset.recorrido
     }
-  }, [activo, esMovil])
+  }, [activo])
 
   // Escapar es lo primero que intenta quien quiere salir de algo.
   useEffect(() => {

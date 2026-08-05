@@ -304,6 +304,22 @@ export const hilos = pgTable('hilos', {
   ...timestamps,
 })
 
+/**
+ * Comentarios de un video. Abiertos y anónimos, igual que la comunidad: la
+ * huella da un alias dentro del video y sostiene el límite por persona, nada
+ * más.
+ */
+export const videoComentarios = pgTable('video_comentarios', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  videoId: uuid('video_id')
+    .notNull()
+    .references(() => videos.id, { onDelete: 'cascade' }),
+  cuerpo: text('cuerpo').notNull(),
+  autorHuella: text('autor_huella').notNull(),
+  estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
+  ...timestamps,
+})
+
 export const hiloRespuestas = pgTable('hilo_respuestas', {
   id: uuid('id').primaryKey().defaultRandom(),
   hiloId: uuid('hilo_id')

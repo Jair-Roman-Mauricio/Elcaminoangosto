@@ -4,7 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { VideoRepository, type VideoEntity, type VideoStatus } from '../domain/video.repository'
+import { createHash } from 'node:crypto'
+import {
+  VideoRepository,
+  type ComentarioDeVideoEntity,
+  type VideoEntity,
+  type VideoStatus,
+} from '../domain/video.repository'
 import { MediaService } from '../../media'
 import type { Actor } from '../../shared'
 
@@ -21,6 +27,15 @@ export interface VideoCard {
   /** URL firmada del póster (primer fotograma). */
   posterUrl: string | null
   publishedAt: string | null
+}
+
+/** Un comentario tal como lo consume la interfaz: con alias, nunca con huella. */
+export interface ComentarioDeVideo {
+  id: string
+  autor: string
+  mensaje: string
+  createdAt: string
+  oculto: boolean
 }
 
 /** Video como lo ve el admin: incluye ocultos y los que aún se procesan. */
@@ -48,6 +63,9 @@ export interface AdminVideo {
  */
 @Injectable()
 export class VideosService {
+  /** Cuántos comentarios puede escribir una persona por hora. */
+  private static readonly LIMITE_POR_HORA = 20
+
   constructor(
     private readonly videos: VideoRepository,
     private readonly media: MediaService,
@@ -163,4 +181,71 @@ export class VideosService {
       throw new ForbiddenException('Solo un admin administra los videos')
     }
   }
+  // ── Comentarios: abiertos, anónimos y con alias por video ────────────────
+
+  /**
+   * Comentarios de un video.
+   *
+   * Los alias se calculan al leer y no se guardan, igual que en la comunidad:
+   * la misma persona es «Caminante 2» aquí y otro número en otro video. Es lo
+   * justo para seguir una conversación sin convertir el anonimato en un
+   * seudónimo que se pueda perseguir de un sitio a otro.
+   */
+  async comentarios(actor: Actor | null, videoId: string): Promise<ComentarioDeVideo[]> {
+    const admin = actor?.role === 'ADMIN'
+    const filas = await this.videos.comentariosDe(videoId, admin)
+    const alias = new Map<string, string>()
+    // Se numera por orden de llegada, y llegan del más nuevo al más viejo.
+    for (const fila of [...filas].reverse()) {
+      if (!alias.has(fila.autorHuella)) alias.set(fila.autorHuella, `Caminante ${alias.size + 1}`)
+    }
+    return filas.map((fila) => this.aComentario(fila, alias.get(fila.autorHuella)!))
+  }
+
+  /**
+   * Comentar. No hace falta cuenta: nadie tiene una.
+   *
+   * El límite es por persona y por hora. No frena a quien borre los datos de su
+   * navegador y vuelva, pero sí el caso normal, que es un guion dejado
+   * corriendo.
+   */
+  async comentar(input: {
+    videoId: string
+    cuerpo: string
+    autorId: string
+  }): Promise<ComentarioDeVideo> {
+    const limpio = input.autorId.trim()
+    if (limpio.length < 16) throw new BadRequestException('Identificador de autor inválido')
+
+    const cuerpo = input.cuerpo.trim()
+    if (!cuerpo) throw new BadRequestException('El comentario está vacío')
+    if (cuerpo.length > 320) throw new BadRequestException('El comentario es demasiado largo')
+
+    const huella = createHash('sha256').update(limpio).digest('hex')
+    const haceUnaHora = new Date(Date.now() - 60 * 60 * 1000)
+    if ((await this.videos.comentariosDesde(huella, haceUnaHora)) >= VideosService.LIMITE_POR_HORA) {
+      throw new ForbiddenException(
+        'Has comentado mucho en poco tiempo. Espera un momento antes de volver a escribir.',
+      )
+    }
+
+    const fila = await this.videos.comentar({ videoId: input.videoId, cuerpo, autorHuella: huella })
+    return this.aComentario(fila, 'Tú')
+  }
+
+  async ocultarComentario(actor: Actor, id: string, oculto: boolean): Promise<void> {
+    if (actor.role !== 'ADMIN') throw new ForbiddenException('Solo un admin modera los comentarios')
+    await this.videos.cambiarEstadoDeComentario(id, oculto ? 'OCULTO' : 'VISIBLE')
+  }
+
+  private aComentario(fila: ComentarioDeVideoEntity, autor: string): ComentarioDeVideo {
+    return {
+      id: fila.id,
+      autor,
+      mensaje: fila.cuerpo,
+      createdAt: fila.createdAt.toISOString(),
+      oculto: fila.estado === 'OCULTO',
+    }
+  }
+
 }

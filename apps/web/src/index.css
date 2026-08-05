@@ -5487,3 +5487,12 @@ body[data-recorrido='activo'] [aria-label='Abrir el menú']::after {
     animation: none;
   }
 }
+
+/* Estado vacío y avisos del hilo de comentarios de un video. */
+.shorts-comments__vacio {
+  margin: 0;
+  padding: 1.25rem 1.1rem;
+  color: var(--texto-tenue);
+  font: 0.8rem/1.5 var(--ui);
+  text-align: center;
+}
