@@ -26,31 +26,52 @@ const PARADAS: Parada[] = [
     detalleMovil: 'Con el botón de arriba se abren las secciones. Mira',
   },
   {
-    desde: 13.98,
+    desde: 11.4,
     ruta: '/tarjetas',
     titulo: 'Tarjetas de Fe',
     detalle: 'Una palabra para hoy, cuando no hay fuerzas para un capítulo entero',
   },
   {
-    desde: 24.86,
+    // La voz encadena «con una basta para empezar» con la presentación de los
+    // videos dentro de la misma frase, así que el corte va por palabra y no
+    // por el final del bloque anterior.
+    desde: 19.52,
     ruta: '/videos',
     titulo: 'Videos cristianos',
     detalle: 'Historias cortas: fe en los minutos que ya tienes',
   },
   {
-    desde: 35.38,
+    desde: 31.96,
     ruta: '/alabanza',
     titulo: 'Alabanza',
     detalle: 'Música para los días en que las palabras no salen',
   },
   {
-    desde: 45.8,
+    desde: 42.68,
+    ruta: '/devocionales',
+    titulo: 'Devocionales',
+    detalle: 'Historias breves para leer de una sentada. No enseñan: acompañan',
+  },
+  {
+    desde: 53.3,
+    ruta: '/oraciones',
+    titulo: 'Oraciones guiadas',
+    detalle: 'Eliges una, la voz empieza y tú solo la sigues',
+  },
+  {
+    desde: 67.16,
+    ruta: '/revista',
+    titulo: 'Revista',
+    detalle: 'Temas que no caben en un párrafo, y tu opinión al final',
+  },
+  {
+    desde: 77.86,
     ruta: '/comunidad',
     titulo: 'Comunidad',
     detalle: 'Pregunta sin dar tu nombre; responde quien ya pasó por ahí',
   },
   {
-    desde: 57.1,
+    desde: 87.18,
     ruta: '/tarjetas',
     titulo: 'Empieza por donde quieras',
     detalle: 'No hace falta recorrerlo todo hoy',
@@ -59,7 +80,7 @@ const PARADAS: Parada[] = [
 
 const AUDIO = '/videos-lading/recorrido-plataforma.mp3'
 /** Dónde acaba de hablar. Con o sin voz, el recorrido dura lo mismo. */
-const FIN = 65.4
+const FIN = 94.04
 
 /**
  * Recorrido guiado de la plataforma.
@@ -119,13 +140,25 @@ export function RecorridoGuiado() {
     vozRef.current = voz
 
     const arranque = performance.now()
+    // Quién manda el tiempo se decide una sola vez, al arrancar. Mirar
+    // `voz.paused` en cada vuelta parecía equivalente y no lo es: mientras el
+    // audio carga, o si se pausa un instante, el reloj saltaba al tiempo de
+    // pared —que va por su cuenta— y el recorrido daba un brinco.
+    let laVozManda = false
     void voz.play().then(
-      () => setConVoz(true),
+      () => {
+        laVozManda = true
+        setConVoz(true)
+      },
       () => setConVoz(false),
     )
 
+    // Si la voz llega hasta el final, el recorrido se acaba con ella y no
+    // espera a que el reloj alcance la marca.
+    voz.addEventListener('ended', terminar)
+
     const reloj = window.setInterval(() => {
-      const t = !voz.paused ? voz.currentTime : (performance.now() - arranque) / 1000
+      const t = laVozManda ? voz.currentTime : (performance.now() - arranque) / 1000
       if (t >= FIN) {
         terminar()
         return
@@ -142,6 +175,7 @@ export function RecorridoGuiado() {
 
     return () => {
       window.clearInterval(reloj)
+      voz.removeEventListener('ended', terminar)
       voz.pause()
     }
   }, [activo, terminar])
