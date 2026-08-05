@@ -4,7 +4,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 // Cada pantalla se descarga al visitar su ruta: quien entra a escuchar música
 // no arrastra el panel de administración.
 const LandingPage = lazy(() =>
-  import('./landing/landing-page').then((m) => ({ default: m.LandingPage })),
+  import('./landing/landing-cinematica').then((m) => ({ default: m.LandingCinematica })),
 )
 const EntrarPage = lazy(() => import('./pages/entrar').then((m) => ({ default: m.EntrarPage })))
 const RecuperarContrasenaPage = lazy(() =>
