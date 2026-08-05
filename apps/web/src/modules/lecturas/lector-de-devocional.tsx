@@ -50,7 +50,7 @@ export function LectorDeDevocional({
           </>
         )}
 
-        <div className="relative grid min-h-[34rem] items-center gap-aire-m px-gutter py-aire-l md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:py-0">
+        <div className="relative grid min-h-[34rem] items-start gap-aire-m px-gutter py-aire-l md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
           <div className="flex flex-col items-start gap-aire-s">
             <button
               type="button"
@@ -82,42 +82,41 @@ export function LectorDeDevocional({
             </p>
 
             <RedesDeLaLectura redes={lectura.redes} orientacion="fila" />
+
+            <EditorLectura
+              key={lectura.id}
+              value={lectura.cuerpo}
+              editable={false}
+              className="editor-lectura--revista mt-aire-s w-full"
+            />
+
+            {lectura.referencia && (
+              <p className="m-0 border border-oro-hondo px-[0.55rem] py-[0.25rem] font-mono text-[0.68rem] uppercase tracking-label text-acento">
+                {lectura.referencia}
+              </p>
+            )}
+
+            <p className="m-0 w-full border-t border-linea pt-aire-s text-right font-mono text-body-s uppercase tracking-label text-texto-tenue">
+              {lectura.autor}
+            </p>
           </div>
 
-          {/* La ilustración manda en su mitad y se sale de la banda por arriba
-              y por abajo: contenida con margen parecía una foto pegada, no la
-              imagen de lo que se está leyendo. */}
+          {/* La ilustración manda en su mitad y se queda quieta mientras el
+              texto baja: es la imagen de lo que se está leyendo, no una foto
+              que se abandona al primer desplazamiento. En móvil se apila y
+              deja de pegarse, que ahí robaría toda la pantalla. */}
           {lectura.ilustracionUrl && (
             <img
               src={lectura.ilustracionUrl}
               alt=""
-              className="animate-[mensaje-entra_900ms_var(--ease)_both] mx-auto h-full w-full self-stretch object-contain drop-shadow-[0_1.5rem_3rem_rgba(0,0,0,0.6)] md:my-[-3rem] md:h-[calc(100%+6rem)] md:scale-[1.12]"
+              className="animate-[mensaje-entra_900ms_var(--ease)_both] mx-auto max-h-[70vh] w-full object-contain drop-shadow-[0_1.5rem_3rem_rgba(0,0,0,0.6)] md:sticky md:top-aire-m md:scale-[1.08]"
             />
           )}
         </div>
       </section>
 
-      <div className="w-full max-w-[46rem] px-gutter">
-        <EditorLectura
-          key={lectura.id}
-          value={lectura.cuerpo}
-          editable={false}
-          className="editor-lectura--revista"
-        />
-
-        {lectura.referencia && (
-          <p className="m-0 mt-aire-m border border-linea px-[0.55rem] py-[0.25rem] font-mono text-[0.68rem] uppercase tracking-label text-acento [display:inline-block]">
-            {lectura.referencia}
-          </p>
-        )}
-
-        <p className="m-0 mt-aire-m border-t border-linea pt-aire-s text-right font-mono text-body-s uppercase tracking-label text-texto-tenue">
-          {lectura.autor}
-        </p>
-      </div>
-
       {onAbrirOtra && otras.length > 0 && (
-        <section className="flex w-full flex-col gap-aire-s border-t border-linea pt-aire-l">
+        <section className="flex w-full flex-col gap-aire-s border-t border-linea px-gutter pt-aire-l">
           <h2 className="m-0 font-mono text-body-s uppercase tracking-label text-texto-tenue">
             Para seguir leyendo
           </h2>
