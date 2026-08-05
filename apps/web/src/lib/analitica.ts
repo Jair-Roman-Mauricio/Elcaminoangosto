@@ -34,7 +34,11 @@ async function enviar(ruta: string, cuerpo: Record<string, unknown>): Promise<vo
   }
 }
 
-export type TipoDeContenido = 'VIDEO' | 'POST' | 'SONG'
+/**
+ * Qué se abrió. `LECTURA` vale para devocionales y artículos: los dos son la
+ * misma tabla y es ella la que dice cuál es cuál.
+ */
+export type TipoDeContenido = 'VIDEO' | 'POST' | 'SONG' | 'LECTURA' | 'ORACION'
 
 /** Registra que alguien vio una pieza de contenido. */
 export function registrarVista(kind: TipoDeContenido, contentId: string): void {

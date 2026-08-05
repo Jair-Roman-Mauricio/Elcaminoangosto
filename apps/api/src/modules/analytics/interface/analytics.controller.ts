@@ -12,7 +12,7 @@ import {
   ZodValidationPipe,
 } from '../../shared'
 
-const TipoSchema = z.enum(['VIDEO', 'POST', 'SONG'])
+const TipoSchema = z.enum(['VIDEO', 'POST', 'SONG', 'LECTURA', 'ORACION'])
 
 /**
  * El identificador de sesión lo genera el cliente y es aleatorio. Se limita su

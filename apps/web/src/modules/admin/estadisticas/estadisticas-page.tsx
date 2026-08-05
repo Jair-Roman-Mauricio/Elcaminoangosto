@@ -106,11 +106,17 @@ export function EstadisticasPage() {
   const [videosFiltro, setVideosFiltro] = useState<Filtro>(FILTRO_INICIAL)
   const [tarjetasFiltro, setTarjetasFiltro] = useState<Filtro>(FILTRO_INICIAL)
   const [cancionesFiltro, setCancionesFiltro] = useState<Filtro>(FILTRO_INICIAL)
+  const [lecturasFiltro, setLecturasFiltro] = useState<Filtro>(FILTRO_INICIAL)
+  const [oracionesFiltro, setOracionesFiltro] = useState<Filtro>(FILTRO_INICIAL)
   const [albumesBusqueda, setAlbumesBusqueda] = useState('')
 
   const videos = useMasVistos('VIDEO', dias, videosFiltro.busqueda, videosFiltro.orden)
   const tarjetas = useMasVistos('POST', dias, tarjetasFiltro.busqueda, tarjetasFiltro.orden)
   const canciones = useMasVistos('SONG', dias, cancionesFiltro.busqueda, cancionesFiltro.orden)
+  // Un solo ranking para devocionales y revista: son la misma tabla y la
+  // columna de contexto ya dice de cuál de las dos secciones viene cada uno.
+  const lecturas = useMasVistos('LECTURA', dias, lecturasFiltro.busqueda, lecturasFiltro.orden)
+  const oraciones = useMasVistos('ORACION', dias, oracionesFiltro.busqueda, oracionesFiltro.orden)
   const albumes = useAlbumesMasEscuchados(dias, albumesBusqueda)
   const visitantes = useFlujoDeVisitantes(dias)
 
@@ -157,7 +163,7 @@ export function EstadisticasPage() {
           <Dato
             valor={flujo?.vistasDeContenido}
             label="Piezas abiertas"
-            nota="Videos, tarjetas y canciones que alguien abrió"
+            nota="Todo lo que alguien abrió: videos, tarjetas, canciones, lecturas y oraciones"
           />
         </div>
 
@@ -229,6 +235,30 @@ export function EstadisticasPage() {
           onFiltro={setTarjetasFiltro}
         />
         <Ranking datos={tarjetas.data} cargando={tarjetas.isPending} unidad="vistas" />
+      </section>
+
+      {/* ── Devocionales y revista ─────────────────────────────────────── */}
+      <section className={`flex flex-col gap-aire-s bg-superficie-1 p-aire-m ${SOMBRA}`}>
+        <CabeceraDeSeccion
+          titulo="Lecturas más abiertas"
+          id="lecturas"
+          placeholder="Buscar por título"
+          filtro={lecturasFiltro}
+          onFiltro={setLecturasFiltro}
+        />
+        <Ranking datos={lecturas.data} cargando={lecturas.isPending} unidad="lecturas" />
+      </section>
+
+      {/* ── Oraciones guiadas ──────────────────────────────────────────── */}
+      <section className={`flex flex-col gap-aire-s bg-superficie-1 p-aire-m ${SOMBRA}`}>
+        <CabeceraDeSeccion
+          titulo="Oraciones más rezadas"
+          id="oraciones"
+          placeholder="Buscar por título"
+          filtro={oracionesFiltro}
+          onFiltro={setOracionesFiltro}
+        />
+        <Ranking datos={oraciones.data} cargando={oraciones.isPending} unidad="veces" />
       </section>
 
       {/* ── Canciones y álbumes ────────────────────────────────────────── */}

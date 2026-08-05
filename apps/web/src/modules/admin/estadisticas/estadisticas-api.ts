@@ -3,7 +3,7 @@ import { apiClient } from '../../../lib/api-client'
 
 /* Contratos de la analítica (espejo del servidor). */
 
-export type TipoDeContenido = 'VIDEO' | 'POST' | 'SONG'
+export type TipoDeContenido = 'VIDEO' | 'POST' | 'SONG' | 'LECTURA' | 'ORACION'
 
 export interface ContenidoMasVisto {
   contentId: string

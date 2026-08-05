@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useOraciones, type OracionGuiada } from './lecturas-api'
 import { neonDeCategoria } from './neon-de-categoria'
 import { RezoEnMarcha } from './rezo-en-marcha'
-import { useRegistrarVisita } from '../../lib/analitica'
+import { registrarVista, useRegistrarVisita } from '../../lib/analitica'
 
 /** Lo que se muestra cuando no se ha filtrado nada. */
 const TODAS = 'Todas'
@@ -122,7 +122,10 @@ export function OracionesPage() {
           oraciones={visibles}
           indice={Math.min(indice, visibles.length - 1)}
           onIndice={setIndice}
-          onRezar={setRezando}
+          onRezar={(oracion) => {
+            registrarVista('ORACION', oracion.id)
+            setRezando(oracion)
+          }}
         />
       )}
     </section>

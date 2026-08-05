@@ -1,6 +1,11 @@
 /** Entidades de dominio. TypeScript puro: sin Nest, sin Drizzle. */
 
-export type TipoDeContenido = 'VIDEO' | 'POST' | 'SONG'
+/**
+ * Qué se abrió. `LECTURA` cubre devocionales y artículos de revista: los dos
+ * son filas de la misma tabla y es ella la que dice cuál es cuál; separarlos
+ * aquí obligaría a mantener la distinción en dos sitios.
+ */
+export type TipoDeContenido = 'VIDEO' | 'POST' | 'SONG' | 'LECTURA' | 'ORACION'
 
 /**
  * Cómo se ordena un ranking. «vistas» cuenta cada reproducción; «visitantes»

@@ -19,8 +19,8 @@ export function TarjetaDeDevocional({
   onAbrir: () => void
 }) {
   return (
-    <article className="group relative grid items-center gap-aire-m overflow-hidden md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:gap-0">
-      <div className="flex flex-col items-start gap-aire-s py-aire-m md:pr-aire-l">
+    <article className="group relative grid items-center gap-aire-m overflow-hidden rounded-[0.35rem] border border-linea transition-colors duration-fade ease-camino hover:border-oro-hondo md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:gap-0">
+      <div className="flex flex-col items-start gap-aire-s p-aire-m md:pr-aire-l">
         <p className="m-0 border border-oro-hondo px-[0.55rem] py-[0.2rem] font-mono text-[0.62rem] uppercase tracking-label text-acento">
           {lectura.seccion ?? 'Devocional'} · {lectura.minutos} min
         </p>
@@ -50,7 +50,7 @@ export function TarjetaDeDevocional({
       </div>
 
       {lectura.portadaUrl ? (
-        <div className="relative h-[14rem] md:h-[22rem]">
+        <div className="relative h-[14rem] overflow-hidden md:h-[22rem]">
           <img
             src={lectura.portadaUrl}
             alt=""
@@ -61,7 +61,7 @@ export function TarjetaDeDevocional({
               arriba cuando la tarjeta se apila, que es donde está el titular. */}
           <span
             aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-transparent from-45% to-fondo md:bg-gradient-to-l md:from-55%"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-transparent from-45% to-fondo md:bg-gradient-to-l md:from-55%"
           />
         </div>
       ) : (

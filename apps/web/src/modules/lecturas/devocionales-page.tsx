@@ -3,7 +3,7 @@ import { Eyebrow } from '@elcamino/ui'
 import { useDevocionales, type Lectura } from './lecturas-api'
 import { TarjetaDeDevocional } from './tarjeta-de-devocional'
 import { LectorDeDevocional } from './lector-de-devocional'
-import { useRegistrarVisita } from '../../lib/analitica'
+import { registrarVista, useRegistrarVisita } from '../../lib/analitica'
 
 /**
  * Devocionales: una lectura breve con su portada.
@@ -45,10 +45,16 @@ export function DevocionalesPage() {
       {/* Uno debajo de otro y a todo lo ancho: un devocional es una lectura,
           no una pieza de escaparate, y así cada uno cuenta de qué va antes de
           que haya que abrirlo. */}
-      <ul className="m-0 flex list-none flex-col divide-y divide-linea p-0">
+      <ul className="m-0 flex list-none flex-col gap-aire-m p-0">
         {(data ?? []).map((lectura) => (
           <li key={lectura.id}>
-            <TarjetaDeDevocional lectura={lectura} onAbrir={() => setAbierto(lectura)} />
+            <TarjetaDeDevocional
+              lectura={lectura}
+              onAbrir={() => {
+                registrarVista('LECTURA', lectura.id)
+                setAbierto(lectura)
+              }}
+            />
           </li>
         ))}
       </ul>

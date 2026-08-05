@@ -43,7 +43,7 @@ export const videoStatusEnum = pgEnum('video_status', ['PUBLISHED', 'HIDDEN'])
 /** Identidad visual de un álbum/canción en la pantalla de Alabanza. */
 export const alabanzaTonoEnum = pgEnum('alabanza_tono', ['vino', 'marfil', 'azul'])
 /** Qué se mira: un video, una Tarjeta de Fe o una canción. */
-export const contentKindEnum = pgEnum('content_kind', ['VIDEO', 'POST', 'SONG'])
+export const contentKindEnum = pgEnum('content_kind', ['VIDEO', 'POST', 'SONG', 'LECTURA', 'ORACION'])
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

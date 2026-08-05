@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Boton, Eyebrow, Field, Textarea } from '@elcamino/ui'
 import {
@@ -9,7 +9,7 @@ import {
 } from './lecturas-api'
 import { LectorEditorial } from './lector-editorial'
 import { TarjetaDeLectura } from './tarjeta-de-lectura'
-import { useRegistrarVisita } from '../../lib/analitica'
+import { registrarVista, useRegistrarVisita } from '../../lib/analitica'
 import type { Lectura } from './lecturas-api'
 
 const fechaCorta = new Intl.DateTimeFormat('es-PE', {
@@ -37,6 +37,13 @@ export function RevistaPage() {
   const abierto = useLectura(articuloId ?? null)
 
   const abrir = (id: string) => navegar(`/revista/${id}`)
+
+  // Se cuenta cuando el artículo llega, no al pulsar: a un artículo también se
+  // entra por su enlace, y esas visitas cuentan igual.
+  const abiertoId = abierto.data?.id ?? null
+  useEffect(() => {
+    if (abiertoId) registrarVista('LECTURA', abiertoId)
+  }, [abiertoId])
 
   if (articuloId) {
     if (abierto.isError) {

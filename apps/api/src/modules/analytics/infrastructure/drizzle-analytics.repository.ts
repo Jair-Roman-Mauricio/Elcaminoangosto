@@ -1,7 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { and, desc, eq, gte, ilike, isNull, sql, type SQL } from 'drizzle-orm'
 import { DRIZZLE, type Database } from '../../shared'
-import { albums, contentViews, posts, siteVisits, songs, videos } from '../../shared/database/schema'
+import {
+  albums,
+  contentViews,
+  lecturas,
+  oracionesGuiadas,
+  posts,
+  siteVisits,
+  songs,
+  videos,
+} from '../../shared/database/schema'
 import {
   AnalyticsRepository,
   type AlbumMasEscuchado,
@@ -152,6 +161,8 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
             exists (select 1 from ${videos} v where v.id = ${contentViews.contentId})
             or exists (select 1 from ${posts} p where p.id = ${contentViews.contentId})
             or exists (select 1 from ${songs} s where s.id = ${contentViews.contentId})
+            or exists (select 1 from ${lecturas} l where l.id = ${contentViews.contentId})
+            or exists (select 1 from ${oracionesGuiadas} o where o.id = ${contentViews.contentId})
           )`,
         ),
       )
@@ -191,6 +202,22 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
   private fuenteDe(kind: TipoDeContenido) {
     if (kind === 'VIDEO') return { titulo: videos.title, contexto: videos.series, tabla: videos }
     if (kind === 'SONG') return { titulo: songs.title, contexto: songs.subtitle, tabla: songs }
+    // El contexto de una lectura es su tipo: distingue un devocional de un
+    // artículo sin necesidad de partir el ranking en dos.
+    if (kind === 'LECTURA') {
+      return {
+        titulo: lecturas.titulo,
+        contexto: sql<string>`case when ${lecturas.tipo} = 'ARTICULO' then 'Revista' else 'Devocional' end`,
+        tabla: lecturas,
+      }
+    }
+    if (kind === 'ORACION') {
+      return {
+        titulo: oracionesGuiadas.titulo,
+        contexto: oracionesGuiadas.tema,
+        tabla: oracionesGuiadas,
+      }
+    }
     // Una tarjeta puede no tener título: se cae al texto breve.
     return { titulo: sql<string>`coalesce(${posts.title}, ${posts.caption})`, contexto: posts.manifesto, tabla: posts }
   }
