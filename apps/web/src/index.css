@@ -5496,3 +5496,28 @@ body[data-recorrido='activo'] [aria-label='Abrir el menú']::after {
   font: 0.8rem/1.5 var(--ui);
   text-align: center;
 }
+
+/* ── Portada de una lectura, a sangre ──
+   La imagen ocupa el hueco entero del área de contenido: se come el margen
+   lateral, el aire de arriba y el sitio de las migas. Los valores son los que
+   pone el layout (`px-gutter`, `pt-[5.5rem] cine:pt-8` y la barra de migas);
+   si allí cambian, aquí también.
+   En móvil sube solo hasta el borde del encabezado fijo, que si no la taparía. */
+.lectura-portada {
+  margin-inline: calc(var(--gutter, clamp(1.5rem, 5vw, 5rem)) * -1);
+  width: auto;
+  margin-top: -25px; /* 88px de aire menos los 63px del encabezado fijo */
+}
+
+@media (min-width: 820px) {
+  .lectura-portada {
+    margin-top: -2rem;
+  }
+}
+
+@media (min-width: 991px) {
+  .lectura-portada {
+    /* Aire del layout más la barra de migas y su separación. */
+    margin-top: calc(-2rem - 40px - 12px);
+  }
+}

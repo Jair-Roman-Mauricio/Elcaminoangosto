@@ -81,25 +81,31 @@ export function LectorEditorial({
 
   return (
     <article className="flex flex-col gap-aire-l pb-aire-l">
-      <div className="mx-auto w-full max-w-5xl">
+      {/* La portada ocupa el hueco entero: se come el margen de la página y el
+          aire de arriba, y el botón de volver flota encima de ella. Media
+          pantalla de imagen antes de la primera palabra. */}
+      <div className={lectura.portadaUrl ? 'lectura-portada relative' : 'mx-auto w-full max-w-5xl'}>
+        {lectura.portadaUrl && (
+          <img
+            src={lectura.portadaUrl}
+            alt=""
+            className="animate-[mensaje-entra_900ms_var(--ease)_both] block h-[min(82vh,46rem)] w-full object-cover"
+          />
+        )}
         <button
           type="button"
           onClick={onVolver}
-          className="self-start border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-acento"
+          className={
+            lectura.portadaUrl
+              ? // Sobre la foto: con sombra propia, porque la imagen de abajo
+                // puede ser clara y el texto se perdería.
+                'absolute left-gutter top-aire-m z-10 border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-hueso [text-shadow:0_1px_6px_rgba(0,0,0,0.85)] transition-colors duration-fade ease-camino hover:text-oro-claro'
+              : 'border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-acento'
+          }
         >
           ← Volver
         </button>
       </div>
-
-      {/* La portada rompe el margen de la página y llega a los bordes del área
-          de lectura: media pantalla de imagen antes de la primera palabra. */}
-      {lectura.portadaUrl && (
-        <img
-          src={lectura.portadaUrl}
-          alt=""
-          className="animate-[mensaje-entra_900ms_var(--ease)_both] -mx-gutter h-[min(78vh,44rem)] w-[calc(100%+2*theme(spacing.gutter))] max-w-none object-cover"
-        />
-      )}
 
       {/* La columna de lectura va centrada y las redes flotan fuera, para que
           nada le robe ancho al texto. */}
