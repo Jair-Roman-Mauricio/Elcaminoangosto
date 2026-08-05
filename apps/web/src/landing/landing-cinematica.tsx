@@ -174,7 +174,10 @@ export function LandingCinematica() {
    */
   useEffect(() => {
     if (!terminado) return
-    const paso = window.setTimeout(() => navegar('/tarjetas'), 1200)
+    // Quien ha visto la historia entera llega con el recorrido pedido. Quien
+    // pulsó «Entrar» para saltársela no: si tuvo prisa para la historia, la
+    // tendrá para el tutorial.
+    const paso = window.setTimeout(() => navegar('/tarjetas', { state: { recorrido: true } }), 1200)
     return () => window.clearTimeout(paso)
   }, [terminado, navegar])
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AppLayout } from './app-layout'
 import { VistaComoProvider } from '../components/vista-como'
+import { RecorridoGuiado } from '../components/recorrido-guiado'
 import { useSession } from '../auth/session'
 
 /**
@@ -39,6 +40,9 @@ export function PublicContentShell() {
   return (
     <VistaComoProvider>
       <AppLayout />
+      {/* Vive aquí y no en una pantalla: el recorrido cambia de sección y tiene
+          que sobrevivir a esos cambios sin reiniciarse. */}
+      <RecorridoGuiado />
       {needsAccess && (
         <div className="public-access-modal" role="dialog" aria-modal="true" aria-labelledby="public-access-title">
           <button className="public-access-modal__backdrop" type="button" aria-label="Cerrar" onClick={closeModal} />
