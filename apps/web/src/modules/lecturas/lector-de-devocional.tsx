@@ -50,7 +50,7 @@ export function LectorDeDevocional({
           </>
         )}
 
-        <div className="relative grid items-center gap-aire-m px-gutter py-aire-l md:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
+        <div className="relative grid min-h-[34rem] items-center gap-aire-m px-gutter py-aire-l md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:py-0">
           <div className="flex flex-col items-start gap-aire-s">
             <button
               type="button"
@@ -64,7 +64,9 @@ export function LectorDeDevocional({
               {lectura.seccion ?? 'Devocional'} · {lectura.minutos} min
             </p>
 
-            <h1 className="m-0 font-ui text-[clamp(2.2rem,5.5vw,4.2rem)] font-bold uppercase leading-[0.9] tracking-[-0.02em] text-contenido">
+            {/* En crema y no en blanco: sobre un fondo de color el blanco puro
+                se despega, y el titular tiene que verse dentro de la escena. */}
+            <h1 className="m-0 font-ui text-[clamp(2.2rem,5.5vw,4.2rem)] font-bold uppercase leading-[0.9] tracking-[-0.02em] text-oro-claro">
               {lectura.titulo}
             </h1>
 
@@ -82,11 +84,14 @@ export function LectorDeDevocional({
             <RedesDeLaLectura redes={lectura.redes} orientacion="fila" />
           </div>
 
+          {/* La ilustración manda en su mitad y se sale de la banda por arriba
+              y por abajo: contenida con margen parecía una foto pegada, no la
+              imagen de lo que se está leyendo. */}
           {lectura.ilustracionUrl && (
             <img
               src={lectura.ilustracionUrl}
               alt=""
-              className="animate-[mensaje-entra_900ms_var(--ease)_both] mx-auto max-h-[40rem] w-full scale-[1.08] object-contain drop-shadow-[0_1.5rem_3rem_rgba(0,0,0,0.55)]"
+              className="animate-[mensaje-entra_900ms_var(--ease)_both] mx-auto h-full w-full self-stretch object-contain drop-shadow-[0_1.5rem_3rem_rgba(0,0,0,0.6)] md:my-[-3rem] md:h-[calc(100%+6rem)] md:scale-[1.12]"
             />
           )}
         </div>

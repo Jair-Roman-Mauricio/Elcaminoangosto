@@ -1,12 +1,14 @@
 /**
  * Telones para la página de un devocional.
  *
- * Son dibujos, no fotos: una foto de fondo compite con la ilustración que va
- * al lado y con el texto que hay que leer. Los cuatro usan el oro de la marca
- * sobre el negro y se quedan por debajo del contenido, insinuados.
+ * Son dibujos, no fotos: una foto de fondo compite con la ilustración que va al
+ * lado y con el texto que hay que leer. Formas grandes y planas, del tamaño del
+ * bloque entero, en los oros de la marca sobre el negro — lo bastante presentes
+ * para que la página tenga color y lo bastante planas para que el titular siga
+ * mandando.
  *
- * Se guardan por su clave, así que se pueden retocar sin tocar lo publicado.
- * Si se añade uno nuevo, hay que añadirlo también a la lista permitida de la
+ * Se guardan por su clave, así que se pueden retocar sin tocar lo publicado. Si
+ * se añade uno nuevo, hay que añadirlo también a la lista permitida de la
  * migración `20260805000500` y al esquema del controlador.
  */
 export type ClaveDeFondo = 'brasas' | 'vitral' | 'ondas' | 'polvo'
@@ -24,8 +26,11 @@ export function FondoDeDevocional({ clave }: { clave: ClaveDeFondo }) {
       aria-hidden
       className="pointer-events-none absolute inset-0 h-full w-full"
       preserveAspectRatio="xMidYMid slice"
-      viewBox="0 0 1200 800"
+      viewBox="0 0 1200 700"
     >
+      {/* El campo base: el negro de la marca, no el fondo del tema, para que la
+          banda se lea como una pieza y no como un trozo de página. */}
+      <rect width="1200" height="700" fill="var(--negro)" />
       {clave === 'brasas' && <Brasas />}
       {clave === 'vitral' && <Vitral />}
       {clave === 'ondas' && <Ondas />}
@@ -34,82 +39,103 @@ export function FondoDeDevocional({ clave }: { clave: ClaveDeFondo }) {
   )
 }
 
-/** Un rescoldo que se apaga hacia los bordes: calor sin encender la página. */
+/** Manchas grandes de brasa, como carbón encendido visto de cerca. */
 function Brasas() {
   return (
     <>
       <defs>
-        <radialGradient id="fondo-brasas" cx="78%" cy="28%" r="72%">
-          <stop offset="0%" stopColor="var(--oro)" stopOpacity="0.28" />
-          <stop offset="45%" stopColor="var(--oro-hondo)" stopOpacity="0.14" />
-          <stop offset="100%" stopColor="var(--negro)" stopOpacity="0" />
+        <radialGradient id="fondo-brasas" cx="72%" cy="35%" r="78%">
+          <stop offset="0%" stopColor="#5a3f0c" />
+          <stop offset="55%" stopColor="#2a1e08" />
+          <stop offset="100%" stopColor="var(--negro)" />
         </radialGradient>
       </defs>
-      <rect width="1200" height="800" fill="url(#fondo-brasas)" />
-      <circle cx="905" cy="215" r="250" fill="var(--oro-hondo)" opacity="0.1" />
-      <circle cx="1050" cy="520" r="150" fill="var(--oro)" opacity="0.06" />
-      <circle cx="720" cy="640" r="200" fill="var(--oro-hondo)" opacity="0.07" />
+      <rect width="1200" height="700" fill="url(#fondo-brasas)" />
+      <g fill="var(--oro-hondo)" opacity="0.34">
+        <ellipse cx="245" cy="120" rx="230" ry="185" />
+        <ellipse cx="880" cy="600" rx="300" ry="210" />
+        <circle cx="1090" cy="180" r="150" />
+      </g>
+      <g fill="var(--oro)" opacity="0.16">
+        <ellipse cx="600" cy="360" rx="210" ry="290" />
+        <circle cx="330" cy="560" r="120" />
+      </g>
     </>
   )
 }
 
-/** Rayos rectos, como la luz que entra por una vidriera alta. */
+/** Cuñas de luz alta, como la que entra por una vidriera. */
 function Vitral() {
   return (
     <>
       <defs>
-        <linearGradient id="fondo-vitral" x1="0" y1="0" x2="0.4" y2="1">
-          <stop offset="0%" stopColor="var(--oro-claro)" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="var(--oro-hondo)" stopOpacity="0" />
+        <linearGradient id="fondo-vitral" x1="0" y1="0" x2="0.35" y2="1">
+          <stop offset="0%" stopColor="#4a350a" />
+          <stop offset="100%" stopColor="var(--negro)" />
         </linearGradient>
       </defs>
-      <g fill="url(#fondo-vitral)">
-        <polygon points="620,-40 760,-40 470,840 300,840" />
-        <polygon points="820,-40 900,-40 660,840 555,840" />
-        <polygon points="960,-40 1090,-40 890,840 730,840" />
+      <rect width="1200" height="700" fill="url(#fondo-vitral)" />
+      <g fill="var(--oro-hondo)" opacity="0.4">
+        <polygon points="480,-40 700,-40 400,740 210,740" />
+        <polygon points="880,-40 1000,-40 720,740 585,740" />
       </g>
-      <rect width="1200" height="800" fill="var(--negro)" opacity="0.12" />
+      <g fill="var(--oro-claro)" opacity="0.1">
+        <polygon points="760,-40 830,-40 590,740 500,740" />
+        <polygon points="1080,-40 1240,-40 1010,740 830,740" />
+      </g>
     </>
   )
 }
 
-/** Curvas largas: el camino visto desde arriba, sin dibujarlo del todo. */
+/** Curvas anchas: el camino visto desde arriba, sin dibujarlo del todo. */
 function Ondas() {
   return (
     <>
-      <g fill="none" stroke="var(--oro)" strokeOpacity="0.16" strokeWidth="1.5">
-        <path d="M-50 640 C 260 520, 420 700, 700 540 S 1080 300, 1260 360" />
-        <path d="M-50 700 C 280 580, 460 760, 740 600 S 1100 360, 1260 420" />
-        <path d="M-50 560 C 240 460, 380 640, 660 480 S 1060 240, 1260 300" />
+      <defs>
+        <linearGradient id="fondo-ondas" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--negro)" />
+          <stop offset="100%" stopColor="#3b2a08" />
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="700" fill="url(#fondo-ondas)" />
+      <g fill="var(--oro-hondo)" opacity="0.32">
+        <path d="M-60 520 C 240 380, 470 600, 760 420 S 1120 160, 1280 220 L1280 760 L-60 760 Z" />
       </g>
-      <g fill="none" stroke="var(--oro-claro)" strokeOpacity="0.1" strokeWidth="1">
-        <path d="M-50 480 C 220 400, 340 580, 620 420 S 1040 180, 1260 240" />
-        <path d="M-50 760 C 300 660, 500 820, 780 660 S 1120 420, 1260 480" />
+      <g fill="var(--oro)" opacity="0.12">
+        <path d="M-60 640 C 280 520, 520 720, 820 540 S 1140 320, 1280 380 L1280 760 L-60 760 Z" />
+      </g>
+      <g fill="none" stroke="var(--oro-claro)" strokeOpacity="0.22" strokeWidth="2">
+        <path d="M-60 400 C 260 280, 430 480, 700 320 S 1080 90, 1280 150" />
+        <path d="M-60 300 C 220 200, 360 400, 640 240 S 1040 20, 1280 80" />
       </g>
     </>
   )
 }
 
-/** Partículas suspendidas, como polvo en un haz de luz. */
+/** Un haz de luz con polvo suspendido dentro. */
 function Polvo() {
   // Sembradas con una progresión fija: siempre el mismo dibujo, sin azar que
   // cambie de una carga a otra.
-  const motas = Array.from({ length: 90 }, (_, i) => ({
+  const motas = Array.from({ length: 120 }, (_, i) => ({
     x: (i * 137.5) % 1200,
-    y: (i * 241.7) % 800,
-    r: 1 + ((i * 7) % 5) * 0.5,
-    o: 0.05 + ((i * 3) % 7) * 0.025,
+    y: (i * 241.7) % 700,
+    r: 1 + ((i * 7) % 5) * 0.7,
+    o: 0.08 + ((i * 3) % 7) * 0.045,
   }))
 
   return (
     <>
       <defs>
-        <radialGradient id="fondo-polvo" cx="70%" cy="20%" r="80%">
-          <stop offset="0%" stopColor="var(--oro-hondo)" stopOpacity="0.18" />
-          <stop offset="100%" stopColor="var(--negro)" stopOpacity="0" />
+        <radialGradient id="fondo-polvo" cx="68%" cy="25%" r="85%">
+          <stop offset="0%" stopColor="#4d3708" />
+          <stop offset="60%" stopColor="#241a06" />
+          <stop offset="100%" stopColor="var(--negro)" />
         </radialGradient>
       </defs>
-      <rect width="1200" height="800" fill="url(#fondo-polvo)" />
+      <rect width="1200" height="700" fill="url(#fondo-polvo)" />
+      <g fill="var(--oro-hondo)" opacity="0.28">
+        <polygon points="700,-40 980,-40 620,740 330,740" />
+      </g>
       {motas.map((mota, i) => (
         <circle
           key={i}
