@@ -63,6 +63,10 @@ export interface OracionEntity {
   /** Segundo en que empieza cada línea, si se conoce. */
   marcas: number[] | null
   audioAssetId: string
+  /** Recorte sin fondo con el que se presenta en el carrusel. */
+  imagenAssetId: string | null
+  /** Video o imagen a pantalla completa mientras se reza. */
+  fondoAssetId: string | null
   estado: EstadoDePublicacion
   publishedAt: Date | null
   createdAt: Date

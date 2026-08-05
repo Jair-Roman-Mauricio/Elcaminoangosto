@@ -403,6 +403,8 @@ export function usePublicarOracion() {
       lineas: string[]
       marcas: number[] | null
       audioAssetId: string
+      imagenAssetId: string | null
+      fondoAssetId: string | null
     }) => apiClient.post('/oraciones', input),
     onSuccess: invalidar,
   })
@@ -422,6 +424,8 @@ export function useEditarOracion() {
       lineas?: string[] | undefined
       marcas?: number[] | null | undefined
       audioAssetId?: string | undefined
+      imagenAssetId?: string | null | undefined
+      fondoAssetId?: string | null | undefined
     }) => apiClient.patch(`/oraciones/${id}`, cambios),
     onSuccess: invalidar,
   })

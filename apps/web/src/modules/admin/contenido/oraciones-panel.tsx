@@ -9,6 +9,7 @@ import {
   usePublicarOracion,
 } from './contenido-api'
 import type { OracionGuiada } from '../../lecturas/lecturas-api'
+import { parsearSrt } from '../../music/song-subtitles'
 
 /**
  * Oraciones guiadas en el módulo Contenido.
@@ -174,6 +175,10 @@ function ModalSubirOracion({
   const [texto, setTexto] = useState('')
   const [marcasCrudas, setMarcasCrudas] = useState('')
   const [audio, setAudio] = useState<File | null>(null)
+  // La estampa del carrusel y lo que se ve detrás mientras se reza.
+  const [imagen, setImagen] = useState<File | null>(null)
+  const [fondo, setFondo] = useState<File | null>(null)
+  const [avisoSrt, setAvisoSrt] = useState<string | null>(null)
   const [fase, setFase] = useState<'elegir' | 'subiendo' | 'publicando'>('elegir')
   const [pct, setPct] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -196,12 +201,43 @@ function ModalSubirOracion({
   // Una lista a medias desincroniza el texto, así que se avisa antes de enviar.
   const marcasDesparejas = marcas !== null && marcas.length !== lineas.length
 
+  /**
+   * Vuelca un `.srt` en la letra y las marcas.
+   *
+   * Cada bloque del archivo es una línea de la oración y su inicio es su marca,
+   * así que el reparto por longitud deja de hacer falta: la letra va donde va
+   * la voz. Se vuelca en los campos en vez de guardarse a ciegas, para poder
+   * repasarlo antes de publicar.
+   */
+  const volcarSrt = async (archivo: File | null) => {
+    if (!archivo) return
+    setError(null)
+    try {
+      const cues = parsearSrt(await archivo.text())
+      if (cues.length === 0) {
+        setAvisoSrt(null)
+        setError('Ese archivo no trae subtítulos que se puedan leer.')
+        return
+      }
+      // Un bloque puede traer varias líneas; se juntan en una, que es como se
+      // dice de corrido y como se va a iluminar.
+      setTexto(cues.map((cue) => cue.texto.replace(/\n+/g, ' ')).join('\n'))
+      setMarcasCrudas(cues.map((cue) => cue.inicio.toFixed(2)).join('\n'))
+      setAvisoSrt(`${cues.length} línea(s) tomadas del archivo, con sus tiempos.`)
+    } catch {
+      setError('No se pudo leer el archivo.')
+    }
+  }
+
   const limpiar = () => {
     setTitulo('')
     setTema('')
     setTexto('')
     setMarcasCrudas('')
     setAudio(null)
+    setImagen(null)
+    setFondo(null)
+    setAvisoSrt(null)
     setError(null)
     setPct(0)
   }
@@ -226,12 +262,34 @@ function ModalSubirOracion({
         })
       }
 
+      // Al corregir, lo que no se toca no se manda: `null` habría borrado la
+      // estampa de una oración solo por no elegir otra.
+      let imagenAssetId: string | null | undefined = esCorreccion ? undefined : null
+      if (imagen) {
+        setFase('subiendo')
+        imagenAssetId = await subirMedioReanudable(imagen, 'IMAGE', 'feed-media', setPct)
+      }
+
+      let fondoAssetId: string | null | undefined = esCorreccion ? undefined : null
+      if (fondo) {
+        setFase('subiendo')
+        const esVideo = fondo.type.startsWith('video/')
+        fondoAssetId = await subirMedioReanudable(
+          fondo,
+          esVideo ? 'VIDEO' : 'IMAGE',
+          'feed-media',
+          setPct,
+        )
+      }
+
       setFase('publicando')
       const cuerpo = {
         titulo: titulo.trim(),
         tema: tema.trim() || null,
         lineas,
         marcas,
+        imagenAssetId,
+        fondoAssetId,
       }
       if (esCorreccion) {
         await editar.mutateAsync({
@@ -240,7 +298,12 @@ function ModalSubirOracion({
           ...(audioAssetId ? { audioAssetId } : {}),
         })
       } else {
-        await publicar.mutateAsync({ ...cuerpo, audioAssetId: audioAssetId! })
+        await publicar.mutateAsync({
+          ...cuerpo,
+          audioAssetId: audioAssetId!,
+          imagenAssetId: imagenAssetId ?? null,
+          fondoAssetId: fondoAssetId ?? null,
+        })
       }
       setFase('elegir')
       limpiar()
@@ -311,6 +374,67 @@ function ModalSubirOracion({
               value={tema}
               disabled={ocupado}
               onChange={(e) => setTema(e.target.value)}
+            />
+          </Field>
+
+          {/* El `.srt` es la vía corta: trae la letra y sus tiempos ya medidos,
+              que es justo lo que cuesta acertar a mano. */}
+          <Field
+            label="Subtítulos .srt (opcional)"
+            htmlFor="oracion-srt"
+            hint="Rellena la letra y las marcas de tiempo de una vez."
+          >
+            <input
+              id="oracion-srt"
+              type="file"
+              accept=".srt,text/plain"
+              disabled={ocupado}
+              onChange={(e) => void volcarSrt(e.target.files?.[0] ?? null)}
+              className={CLASE_ARCHIVO}
+            />
+          </Field>
+
+          {avisoSrt && (
+            <p className="m-0 font-mono text-body-s text-acento" role="status">
+              {avisoSrt}
+            </p>
+          )}
+
+          <Field
+            label="Estampa (opcional)"
+            htmlFor="oracion-imagen"
+            hint={
+              esCorreccion
+                ? 'Elige otra solo si quieres cambiarla.'
+                : 'Recorte sin fondo (PNG). Es lo que se ve en el carrusel.'
+            }
+          >
+            <input
+              id="oracion-imagen"
+              type="file"
+              accept="image/png,image/webp"
+              disabled={ocupado}
+              onChange={(e) => setImagen(e.target.files?.[0] ?? null)}
+              className={CLASE_ARCHIVO}
+            />
+          </Field>
+
+          <Field
+            label="Fondo al rezar (opcional)"
+            htmlFor="oracion-fondo"
+            hint={
+              esCorreccion
+                ? 'Elige otro solo si quieres cambiarlo.'
+                : 'Video o imagen a pantalla completa, detrás de la letra.'
+            }
+          >
+            <input
+              id="oracion-fondo"
+              type="file"
+              accept="video/mp4,video/quicktime,image/jpeg,image/png,image/webp"
+              disabled={ocupado}
+              onChange={(e) => setFondo(e.target.files?.[0] ?? null)}
+              className={CLASE_ARCHIVO}
             />
           </Field>
 

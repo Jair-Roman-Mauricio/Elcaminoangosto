@@ -351,6 +351,10 @@ export const oracionesGuiadas = pgTable('oraciones_guiadas', {
   tema: text('tema'),
   lineas: text('lineas').array().notNull(),
   marcas: doublePrecision('marcas').array(),
+  imagenAssetId: uuid('imagen_asset_id').references(() => mediaAssets.id, {
+    onDelete: 'set null',
+  }),
+  fondoAssetId: uuid('fondo_asset_id').references(() => mediaAssets.id, { onDelete: 'set null' }),
   audioAssetId: uuid('audio_asset_id')
     .notNull()
     .references(() => mediaAssets.id, { onDelete: 'restrict' }),

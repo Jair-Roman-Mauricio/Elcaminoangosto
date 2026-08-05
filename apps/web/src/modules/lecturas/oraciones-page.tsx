@@ -1,25 +1,80 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Eyebrow } from '@elcamino/ui'
 import { useOraciones, type OracionGuiada } from './lecturas-api'
+import { neonDeCategoria } from './neon-de-categoria'
+import { RezoEnMarcha } from './rezo-en-marcha'
 import { useRegistrarVisita } from '../../lib/analitica'
 
+/** Lo que se muestra cuando no se ha filtrado nada. */
+const TODAS = 'Todas'
+
 /**
- * Oraciones guiadas: una voz y su texto.
+ * Oraciones guiadas: un carrusel de estampas, no un listado.
  *
- * El texto está en gris y se enciende línea a línea al ritmo de la locución.
- * No es adorno: quien reza acompañando necesita saber dónde va, y quien no
- * puede poner sonido lo lee igual porque la letra está toda a la vista.
+ * Cada oración se presenta con un recorte sin fondo flotando sobre el negro,
+ * con el brillo de su categoría alrededor. La forma dice a qué se entra: una
+ * lista de filas se hojea, y una estampa a pantalla se mira y se reza.
+ *
+ * El color no se elige al publicar, se deduce de la categoría, así que el
+ * filtro de arriba también cambia el ambiente de la página: al pasar de
+ * «Descanso» a «Miedo» cambia el brillo del fondo, no solo lo que se lista.
  */
 export function OracionesPage() {
   useRegistrarVisita('oraciones')
   const { data, isPending, isError } = useOraciones()
-  const [abierta, setAbierta] = useState<OracionGuiada | null>(null)
+  const [categoria, setCategoria] = useState(TODAS)
+  const [indice, setIndice] = useState(0)
+  const [rezando, setRezando] = useState<OracionGuiada | null>(null)
 
-  if (abierta) return <Rezo oracion={abierta} onVolver={() => setAbierta(null)} />
+  const todas = useMemo(() => data ?? [], [data])
+
+  const categorias = useMemo(() => {
+    const vistas = new Set<string>()
+    for (const oracion of todas) if (oracion.tema) vistas.add(oracion.tema)
+    return [TODAS, ...[...vistas].sort((a, b) => a.localeCompare(b, 'es'))]
+  }, [todas])
+
+  const visibles = useMemo(
+    () => (categoria === TODAS ? todas : todas.filter((o) => o.tema === categoria)),
+    [categoria, todas],
+  )
+
+  // Al cambiar de categoría se vuelve al principio: quedarse en la cuarta de la
+  // lista anterior deja mirando algo que no se pidió.
+  useEffect(() => setIndice(0), [categoria])
+
+  const actual = visibles[indice] ?? visibles[0]
+  const neon = neonDeCategoria(actual?.tema ?? null)
+
+  // El carrusel es una pantalla, no una página que se recorre: mientras está
+  // delante, el resto del documento no se desplaza. Se restaura al salir para
+  // no dejar el navegador trabado en otras secciones.
+  useEffect(() => {
+    const antes = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = antes
+    }
+  }, [])
+
+  if (rezando) return <RezoEnMarcha oracion={rezando} onSalir={() => setRezando(null)} />
 
   return (
-    <section className="mx-auto flex w-full max-w-4xl flex-col gap-aire-m">
-      <header className="flex flex-col gap-aire-xs">
+    <section
+      className="pantalla-de-oraciones relative mx-auto flex w-full max-w-5xl flex-col items-center justify-center gap-aire-s"
+      style={{ ['--neon' as string]: neon }}
+    >
+      {/* El brillo de la categoría, detrás de todo y fundido con el negro. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[38rem] w-[min(90vw,52rem)] -translate-x-1/2 transition-[background] duration-[900ms] ease-camino"
+        style={{
+          background:
+            'radial-gradient(60% 55% at 50% 42%, rgba(var(--neon), 0.22) 0%, transparent 70%)',
+        }}
+      />
+
+      <header className="flex flex-col items-center gap-aire-xs text-center">
         <Eyebrow>Oraciones guiadas</Eyebrow>
         <h1 className="m-0 font-ui text-h-l font-medium tracking-titulo text-contenido">
           Cuando no sabes qué decir
@@ -33,152 +88,180 @@ export function OracionesPage() {
         <p className="m-0 font-ui text-body text-peligro">No se pudieron cargar las oraciones.</p>
       )}
       {isPending && <p className="m-0 font-ui text-body text-texto-tenue">Cargando…</p>}
-      {!isPending && !isError && data?.length === 0 && (
+      {!isPending && !isError && todas.length === 0 && (
         <p className="m-0 font-ui text-body text-texto-tenue">Todavía no hay oraciones.</p>
       )}
 
-      <ul className="m-0 flex list-none flex-col gap-aire-xs p-0">
-        {(data ?? []).map((oracion) => (
-          <li key={oracion.id}>
-            <button
-              type="button"
-              onClick={() => setAbierta(oracion)}
-              className="flex w-full flex-col gap-aire-xs border border-linea bg-superficie-1 px-aire-m py-aire-s text-left transition-colors duration-fade ease-camino hover:border-acento"
-            >
-              {oracion.tema && (
-                <span className="font-mono text-body-s uppercase tracking-label text-acento">
-                  {oracion.tema}
-                </span>
-              )}
-              <span className="font-serif text-h-m font-light text-contenido">{oracion.titulo}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {categorias.length > 1 && (
+        <nav aria-label="Categorías" className="flex flex-wrap justify-center gap-aire-xs">
+          {categorias.map((nombre) => {
+            const activa = nombre === categoria
+            return (
+              <button
+                key={nombre}
+                type="button"
+                onClick={() => setCategoria(nombre)}
+                aria-pressed={activa}
+                className="rounded-full border px-[1.1rem] py-[0.4rem] font-mono text-body-s uppercase tracking-label transition-colors duration-fade ease-camino"
+                style={
+                  activa
+                    ? {
+                        borderColor: `rgba(${neonDeCategoria(nombre === TODAS ? null : nombre)}, 0.7)`,
+                        color: `rgb(${neonDeCategoria(nombre === TODAS ? null : nombre)})`,
+                        background: `rgba(${neonDeCategoria(nombre === TODAS ? null : nombre)}, 0.12)`,
+                      }
+                    : { borderColor: 'var(--linea)', color: 'var(--contenido-tenue)' }
+                }
+              >
+                {nombre}
+              </button>
+            )
+          })}
+        </nav>
+      )}
+
+      {actual && (
+        <Carrusel
+          oraciones={visibles}
+          indice={Math.min(indice, visibles.length - 1)}
+          onIndice={setIndice}
+          onRezar={setRezando}
+        />
+      )}
     </section>
   )
 }
 
 /**
- * Reparte las líneas en el tiempo cuando no vienen marcadas.
+ * El carrusel: la estampa del centro manda y las de al lado se insinúan.
  *
- * Por longitud del texto: una línea con el doble de letras se tarda
- * aproximadamente el doble en decir. No es exacto, pero para una locución
- * pausada cae lo bastante cerca, y es infinitamente mejor que repartir a partes
- * iguales, que desincroniza a la tercera línea.
+ * Se mueve con las flechas y con el teclado. No hay desplazamiento libre: una
+ * oración se elige, no se hojea, y detenerse en cada una es parte de la cosa.
  */
-function repartirPorLongitud(lineas: string[], duracion: number): number[] {
-  const total = lineas.reduce((suma, linea) => suma + Math.max(1, linea.length), 0)
-  let acumulado = 0
-  return lineas.map((linea) => {
-    const inicio = (acumulado / total) * duracion
-    acumulado += Math.max(1, linea.length)
-    return inicio
-  })
-}
-
-function Rezo({ oracion, onVolver }: { oracion: OracionGuiada; onVolver: () => void }) {
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const [duracion, setDuracion] = useState(0)
-  const [tiempo, setTiempo] = useState(0)
-  const [sonando, setSonando] = useState(false)
-
-  const marcas = useMemo(() => {
-    if (oracion.marcas && oracion.marcas.length === oracion.lineas.length) return oracion.marcas
-    if (!duracion) return null
-    return repartirPorLongitud(oracion.lineas, duracion)
-  }, [duracion, oracion.lineas, oracion.marcas])
-
-  // Qué línea se está diciendo ahora mismo.
-  const activa = useMemo(() => {
-    if (!marcas) return -1
-    let actual = -1
-    for (let i = 0; i < marcas.length; i += 1) if (tiempo >= marcas[i]!) actual = i
-    return actual
-  }, [marcas, tiempo])
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    const alSonar = () => setTiempo(audio.currentTime)
-    const alCargar = () => setDuracion(audio.duration || 0)
-    audio.addEventListener('timeupdate', alSonar)
-    audio.addEventListener('loadedmetadata', alCargar)
-    return () => {
-      audio.removeEventListener('timeupdate', alSonar)
-      audio.removeEventListener('loadedmetadata', alCargar)
-    }
-  }, [])
-
-  const alternar = () => {
-    const audio = audioRef.current
-    if (!audio) return
-    if (audio.paused) void audio.play().then(() => setSonando(true)).catch(() => undefined)
-    else {
-      audio.pause()
-      setSonando(false)
-    }
-  }
+function Carrusel({
+  oraciones,
+  indice,
+  onIndice,
+  onRezar,
+}: {
+  oraciones: OracionGuiada[]
+  indice: number
+  onIndice: (i: number) => void
+  onRezar: (oracion: OracionGuiada) => void
+}) {
+  const actual = oraciones[indice]!
+  const mover = (paso: number) =>
+    onIndice((indice + paso + oraciones.length) % oraciones.length)
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-aire-l pb-aire-l">
-      <button
-        type="button"
-        onClick={onVolver}
-        className="self-start border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-texto-tenue transition-colors duration-fade ease-camino hover:text-acento"
-      >
-        ← Volver
-      </button>
-
-      <header className="flex flex-col gap-aire-xs text-center">
-        {oracion.tema && (
-          <p className="m-0 font-mono text-body-s uppercase tracking-label text-acento">
-            {oracion.tema}
-          </p>
+    <div className="flex w-full flex-col items-center gap-aire-s">
+      <div className="flex w-full items-center justify-center gap-aire-s">
+        {oraciones.length > 1 && (
+          <FlechaDelCarrusel hacia="anterior" onClick={() => mover(-1)} />
         )}
-        <h1 className="m-0 font-serif text-[clamp(2rem,5vw,3.4rem)] font-light text-contenido">
-          {oracion.titulo}
-        </h1>
-      </header>
 
-      {/* El texto entero, apagado. Solo se enciende lo que se está diciendo:
-          la línea anterior se queda tenue y la siguiente espera en gris, así
-          que siempre se sabe de dónde se viene y hacia dónde va. */}
-      <ol className="m-0 flex list-none flex-col gap-aire-s p-0 text-center">
-        {oracion.lineas.map((linea, i) => (
-          <li
-            key={`${oracion.id}-${i}`}
-            className={`font-serif text-[clamp(1.2rem,2.6vw,1.9rem)] leading-relaxed transition-all duration-[600ms] ease-camino motion-reduce:transition-none ${
-              // La opacidad va aparte del color: los tokens son `var(--x)` y
-              // Tailwind no sabe atenuarlos con la sintaxis `text-color/40`.
-              i === activa
-                ? 'scale-[1.02] text-acento opacity-100'
-                : i < activa
-                  ? 'text-contenido opacity-45'
-                  : 'text-contenido opacity-20'
-            }`}
-          >
-            {linea}
-          </li>
-        ))}
-      </ol>
-
-      <div className="flex flex-col items-center gap-aire-s">
-        <button
-          type="button"
-          onClick={alternar}
-          className="rounded-full border border-acento bg-oro brillo-oro px-[2.4rem] py-[0.9rem] font-mono text-body-s uppercase tracking-boton text-sobreoro"
+        <article
+          key={actual.id}
+          className="flex min-w-0 flex-1 animate-[mensaje-entra_600ms_var(--ease)_both] flex-col items-center gap-aire-s"
         >
-          {sonando ? 'Pausar' : 'Orar conmigo'}
-        </button>
-        {!oracion.marcas && (
-          <p className="m-0 font-mono text-body-s uppercase tracking-label text-texto-debil">
-            El texto se ilumina siguiendo la voz
-          </p>
-        )}
+          {actual.tema && (
+            // Pegada a la imagen, no flotando: la categoría es de la estampa.
+            <p
+              className="m-0 rounded-full border px-[0.8rem] py-[0.2rem] font-mono text-[0.62rem] uppercase tracking-label"
+              style={{
+                borderColor: `rgba(${neonDeCategoria(actual.tema)}, 0.55)`,
+                color: `rgb(${neonDeCategoria(actual.tema)})`,
+              }}
+            >
+              {actual.tema}
+            </p>
+          )}
+
+          {actual.imagenUrl ? (
+            <img
+              src={actual.imagenUrl}
+              alt=""
+              className="max-h-[min(38vh,22rem)] w-auto max-w-full object-contain"
+              // El brillo va en el borde del dibujo, no en una caja: por eso es
+              // `drop-shadow` y no `box-shadow`, que dibujaría un rectángulo.
+              style={{
+                filter: `drop-shadow(0 0 1.6rem rgba(${neonDeCategoria(actual.tema)}, 0.55)) drop-shadow(0 0 4rem rgba(${neonDeCategoria(actual.tema)}, 0.3))`,
+              }}
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="grid h-[min(38vh,22rem)] w-full max-w-sm place-items-center rounded-full"
+              style={{
+                background: `radial-gradient(closest-side, rgba(${neonDeCategoria(actual.tema)}, 0.18), transparent)`,
+              }}
+            />
+          )}
+
+          <h2 className="m-0 text-center font-serif text-[clamp(1.5rem,3.4vw,2.4rem)] font-light text-contenido">
+            {actual.titulo}
+          </h2>
+
+          <button
+            type="button"
+            onClick={() => onRezar(actual)}
+            className="rounded-full border px-[2rem] py-[0.8rem] font-mono text-body-s uppercase tracking-boton text-hueso transition-colors duration-fade ease-camino"
+            style={{
+              borderColor: `rgba(${neonDeCategoria(actual.tema)}, 0.6)`,
+              background: `rgba(${neonDeCategoria(actual.tema)}, 0.14)`,
+              boxShadow: `0 0 2rem rgba(${neonDeCategoria(actual.tema)}, 0.3)`,
+            }}
+          >
+            Orar conmigo
+          </button>
+        </article>
+
+        {oraciones.length > 1 && <FlechaDelCarrusel hacia="siguiente" onClick={() => mover(1)} />}
       </div>
 
-      <audio ref={audioRef} src={oracion.audioUrl} preload="auto" onEnded={() => setSonando(false)} />
-    </section>
+      {oraciones.length > 1 && (
+        <div className="flex items-center gap-aire-xs">
+          {oraciones.map((oracion, i) => (
+            <button
+              key={oracion.id}
+              type="button"
+              onClick={() => onIndice(i)}
+              aria-label={`Ir a ${oracion.titulo}`}
+              aria-current={i === indice ? 'true' : undefined}
+              className="size-2 rounded-full transition-colors duration-fade"
+              style={{
+                background:
+                  i === indice ? `rgb(${neonDeCategoria(oracion.tema)})` : 'var(--linea)',
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FlechaDelCarrusel({
+  hacia,
+  onClick,
+}: {
+  hacia: 'anterior' | 'siguiente'
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={hacia === 'anterior' ? 'Oración anterior' : 'Oración siguiente'}
+      className="grid size-11 shrink-0 place-items-center rounded-full border border-linea text-texto-tenue transition-colors duration-fade ease-camino hover:border-acento hover:text-acento"
+    >
+      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <path
+          d={hacia === 'anterior' ? 'M15 5 8 12l7 7' : 'M9 5l7 7-7 7'}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
   )
 }

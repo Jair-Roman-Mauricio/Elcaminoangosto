@@ -52,6 +52,8 @@ const OracionSchema = z.object({
   lineas: z.array(z.string()).min(1).max(200),
   marcas: z.array(z.number().nonnegative()).nullable().default(null),
   audioAssetId: z.string().uuid(),
+  imagenAssetId: z.string().uuid().nullable().default(null),
+  fondoAssetId: z.string().uuid().nullable().default(null),
 })
 
 const EditarLecturaSchema = LecturaSchema.partial().extend({ oculto: z.boolean().optional() })

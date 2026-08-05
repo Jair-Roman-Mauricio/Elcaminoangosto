@@ -56,6 +56,11 @@ export interface OracionCard {
   /** Segundo en que empieza cada línea. Nulo: la interfaz las reparte. */
   marcas: number[] | null
   audioUrl: string
+  /** Recorte sin fondo del carrusel. */
+  imagenUrl: string | null
+  /** Fondo de la reproducción, con su tipo para saber si va en un `<video>`. */
+  fondoUrl: string | null
+  fondoEsVideo: boolean
   publishedAt: string | null
   oculto: boolean
 }
@@ -260,6 +265,8 @@ export class LecturasService {
       lineas: string[]
       marcas: number[] | null
       audioAssetId: string
+      imagenAssetId: string | null
+      fondoAssetId: string | null
     },
   ): Promise<{ id: string }> {
     this.exigirAdmin(actor)
@@ -282,6 +289,8 @@ export class LecturasService {
       lineas?: string[] | undefined
       marcas?: number[] | null | undefined
       audioAssetId?: string | undefined
+      imagenAssetId?: string | null | undefined
+      fondoAssetId?: string | null | undefined
       oculto?: boolean | undefined
     },
   ): Promise<void> {
@@ -340,6 +349,19 @@ export class LecturasService {
   }
 
   private async aOracion(fila: OracionEntity): Promise<OracionCard> {
+    // El fondo puede ser video o imagen y la pantalla necesita saber cuál para
+    // elegir la etiqueta: un `<img>` con un mp4 dentro no falla, se queda en
+    // blanco, que es la peor forma de fallar.
+    const fondo = fila.fondoAssetId
+      ? await this.media
+          .estado(fila.fondoAssetId)
+          .then(async (asset) => ({
+            url: await this.media.urlDeLectura(fila.fondoAssetId!, true),
+            esVideo: asset.kind === 'VIDEO',
+          }))
+          .catch(() => null)
+      : null
+
     return {
       id: fila.id,
       titulo: fila.titulo,
@@ -347,6 +369,11 @@ export class LecturasService {
       lineas: fila.lineas,
       marcas: fila.marcas,
       audioUrl: await this.media.urlDeLectura(fila.audioAssetId, true),
+      imagenUrl: fila.imagenAssetId
+        ? await this.media.urlDeLectura(fila.imagenAssetId, true).catch(() => null)
+        : null,
+      fondoUrl: fondo?.url ?? null,
+      fondoEsVideo: fondo?.esVideo ?? false,
       publishedAt: fila.publishedAt?.toISOString() ?? null,
       oculto: fila.estado === 'OCULTO',
     }

@@ -46,6 +46,11 @@ export interface OracionGuiada {
   /** Segundo en que empieza cada línea; si falta, se reparten por longitud. */
   marcas: number[] | null
   audioUrl: string
+  /** Recorte sin fondo con el que se presenta en el carrusel. */
+  imagenUrl: string | null
+  /** Fondo de la reproducción, con su tipo para elegir `<video>` o `<img>`. */
+  fondoUrl: string | null
+  fondoEsVideo: boolean
   publishedAt: string | null
   oculto: boolean
 }

@@ -5521,3 +5521,29 @@ body[data-recorrido='activo'] [aria-label='Abrir el menú']::after {
     margin-top: calc(-2rem - 40px - 12px);
   }
 }
+
+/* ── Carrusel de oraciones: una pantalla, sin scroll ──
+   La sección ocupa exactamente el hueco que deja el layout y nada se sale, así
+   que la estampa, su categoría y el botón se ven de una vez. Los descuentos son
+   los del layout (`pt-[5.5rem] cine:pt-8`, la barra de migas y el `pb-32` del
+   pie); si allí cambian, aquí también.
+   El margen inferior negativo se come ese `pb-32`: sin él la página seguía
+   siendo más alta que la ventana aunque no se pudiera desplazar. */
+.pantalla-de-oraciones {
+  height: calc(100dvh - 88px);
+  min-height: 30rem;
+  margin-bottom: -8rem;
+  overflow: hidden;
+}
+
+@media (min-width: 820px) {
+  .pantalla-de-oraciones {
+    height: calc(100dvh - 2rem);
+  }
+}
+
+@media (min-width: 991px) {
+  .pantalla-de-oraciones {
+    height: calc(100dvh - 2rem - 52px);
+  }
+}

@@ -128,9 +128,14 @@ class FakeLecturasRepo extends LecturasRepository {
 /** El medio firma cualquier cosa salvo los assets que se declaren rotos. */
 class FakeMedia {
   rotos = new Set<string>()
+  videos = new Set<string>()
   async urlDeLectura(assetId: string) {
     if (this.rotos.has(assetId)) throw new NotFoundException('El medio aún no está listo')
     return `https://media.test/${assetId}`
+  }
+  async estado(assetId: string) {
+    if (this.rotos.has(assetId)) throw new NotFoundException('Ese medio no existe')
+    return { kind: this.videos.has(assetId) ? 'VIDEO' : 'IMAGE' }
   }
 }
 
@@ -311,6 +316,8 @@ describe('LecturasService', () => {
         lineas,
         marcas,
         audioAssetId: 'audio-1',
+        imagenAssetId: null,
+        fondoAssetId: null,
       })
 
     it('sin marcas se publica: la pantalla sabe repartir por longitud', async () => {
@@ -325,6 +332,24 @@ describe('LecturasService', () => {
       await expect(publicar([10, 4])).rejects.toBeInstanceOf(BadRequestException)
     })
 
+    it('el fondo dice si es video, para no meter un mp4 en un <img>', async () => {
+      media.videos.add('fondo-video')
+      await servicio.publicarOracion(ADMIN, {
+        titulo: 'Con video',
+        tema: null,
+        lineas: ['Una.'],
+        marcas: null,
+        audioAssetId: 'audio-1',
+        imagenAssetId: null,
+        fondoAssetId: 'fondo-video',
+      })
+
+      const [oracion] = await servicio.oraciones(null)
+
+      expect(oracion!.fondoEsVideo).toBe(true)
+      expect(oracion!.fondoUrl).toContain('fondo-video')
+    })
+
     it('una oración sin su voz se queda fuera, pero no se lleva a las demás', async () => {
       media.rotos.add('audio-roto')
       await publicar(null)
@@ -334,6 +359,8 @@ describe('LecturasService', () => {
         lineas: ['Una.'],
         marcas: null,
         audioAssetId: 'audio-roto',
+        imagenAssetId: null,
+        fondoAssetId: null,
       })
 
       const lista = await servicio.oraciones(null)
