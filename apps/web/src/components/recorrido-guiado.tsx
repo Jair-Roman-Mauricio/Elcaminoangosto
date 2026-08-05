@@ -26,7 +26,7 @@ const PARADAS: Parada[] = [
     detalleMovil: 'Con el botón de arriba se abren las secciones. Mira',
   },
   {
-    desde: 11.4,
+    desde: 11.04,
     ruta: '/tarjetas',
     titulo: 'Tarjetas de Fe',
     detalle: 'Una palabra para hoy, cuando no hay fuerzas para un capítulo entero',
@@ -35,43 +35,49 @@ const PARADAS: Parada[] = [
     // La voz encadena «con una basta para empezar» con la presentación de los
     // videos dentro de la misma frase, así que el corte va por palabra y no
     // por el final del bloque anterior.
-    desde: 19.52,
+    desde: 19.96,
     ruta: '/videos',
     titulo: 'Videos cristianos',
     detalle: 'Historias cortas: fe en los minutos que ya tienes',
   },
   {
-    desde: 31.96,
+    desde: 31.22,
     ruta: '/alabanza',
     titulo: 'Alabanza',
     detalle: 'Música para los días en que las palabras no salen',
   },
   {
-    desde: 42.68,
+    desde: 41.24,
     ruta: '/devocionales',
     titulo: 'Devocionales',
     detalle: 'Historias breves para leer de una sentada. No enseñan: acompañan',
   },
   {
-    desde: 53.3,
+    desde: 51.18,
     ruta: '/oraciones',
     titulo: 'Oraciones guiadas',
     detalle: 'Eliges una, la voz empieza y tú solo la sigues',
   },
   {
-    desde: 67.16,
+    desde: 64.42,
     ruta: '/revista',
     titulo: 'Revista',
     detalle: 'Temas que no caben en un párrafo, y tu opinión al final',
   },
   {
-    desde: 77.86,
+    desde: 74.78,
     ruta: '/comunidad',
     titulo: 'Comunidad',
     detalle: 'Pregunta sin dar tu nombre; responde quien ya pasó por ahí',
   },
   {
-    desde: 87.18,
+    desde: 83.78,
+    ruta: '/consejeria',
+    titulo: 'Consejería',
+    detalle: 'Personas reales a las que escribir hoy mismo, urgente o no',
+  },
+  {
+    desde: 108.58,
     ruta: '/tarjetas',
     titulo: 'Empieza por donde quieras',
     detalle: 'No hace falta recorrerlo todo hoy',
@@ -80,7 +86,7 @@ const PARADAS: Parada[] = [
 
 const AUDIO = '/videos-lading/recorrido-plataforma.mp3'
 /** Dónde acaba de hablar. Con o sin voz, el recorrido dura lo mismo. */
-const FIN = 94.04
+const FIN = 115.75
 
 /**
  * Recorrido guiado de la plataforma.
