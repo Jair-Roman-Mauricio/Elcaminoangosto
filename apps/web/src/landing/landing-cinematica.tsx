@@ -3,20 +3,25 @@ import { Link, useNavigate } from 'react-router-dom'
 import { BrandLogo } from '@elcamino/ui/static'
 import { useRegistrarVisita } from '../lib/analitica'
 
-/** Un plano de la historia: su video, su voz y lo que se lee encima. */
+/** Un plano de la historia: su video, cuándo entra y lo que se lee encima. */
 interface Escena {
   video: string
-  /** Voz de este plano. Manda ella: el plano dura lo que dura la frase. */
-  voz: string
+  /** Segundo de la narración en el que empieza su frase. */
+  desde: number
   /** Frase que aparece sobre el plano. El primero entra en silencio. */
   mensaje: string | null
   /** Referencia bíblica, cuando la frase la tiene. */
   referencia?: string
 }
 
-const plano = (n: number, mensaje: string | null, referencia?: string): Escena => ({
+const plano = (
+  n: number,
+  desde: number,
+  mensaje: string | null,
+  referencia?: string,
+): Escena => ({
   video: `/videos-lading/plano-${String(n).padStart(2, '0')}.mp4`,
-  voz: `/videos-lading/voz-${String(n).padStart(2, '0')}.mp3`,
+  desde,
   mensaje,
   ...(referencia ? { referencia } : {}),
 })
@@ -29,40 +34,43 @@ const plano = (n: number, mensaje: string | null, referencia?: string): Escena =
  * a plena luz. Quien llega hasta el final ha dado la vuelta entera.
  */
 const ESCENAS: Escena[] = [
-  plano(1, null),
-  plano(2, 'Por sus heridas, fuimos sanados', 'Isaías 53:5'),
-  plano(3, 'Vino a caminar donde tú caminas'),
-  plano(4, 'Se detuvo por uno'),
-  plano(5, 'Aun la tormenta lo obedece', 'Marcos 4:39'),
-  plano(6, 'Cargó lo que no le tocaba'),
-  plano(7, 'Pero el domingo llegó'),
-  plano(8, 'El camino se recorre juntos', 'Mateo 7:14'),
-  plano(9, 'Su mano sigue abierta'),
+  plano(1, 0, null),
+  plano(2, 9.92, 'Por sus heridas, fuimos sanados', 'Isaías 53:5'),
+  plano(3, 20.27, 'Vino a caminar donde tú caminas'),
+  plano(4, 29.36, 'Se detuvo por uno'),
+  plano(5, 38.83, 'Aun la tormenta lo obedece', 'Marcos 4:39'),
+  plano(6, 48.6, 'Cargó lo que no le tocaba'),
+  plano(7, 55.63, 'Pero el domingo llegó'),
+  plano(8, 65.24, 'El camino se recorre juntos', 'Mateo 7:14'),
+  plano(9, 73.4, 'Su mano sigue abierta'),
 ]
 
 const ULTIMA = ESCENAS.length - 1
 
-/** Si una voz no puede sonar, el plano no puede quedarse clavado para siempre. */
-const RESPALDO_MS = 15_000
+/** Dónde termina de hablar. Lo que sigue es el paso a la plataforma. */
+const FIN_NARRACION = 82.28
+/** Todos los planos duran lo mismo de origen. */
+const DURACION_PLANO = 10
+/**
+ * Hasta dónde se puede acelerar un plano sin que se note.
+ *
+ * La frase de la cruz dura siete segundos sobre un plano de diez: encajarlo
+ * exigiría un x1.42 y unos pies arrastrando un madero a esa velocidad dejan de
+ * pesar. Pasado el tope, en vez de correr más se entra al plano más tarde: lo
+ * que no puede perderse es el final, donde está lo que el plano venía a decir.
+ */
+const RITMO_MAXIMO = 1.25
 
 /**
- * Sube o baja el volumen de una pista poco a poco.
+ * Cómo se reproduce un plano para que su final caiga justo con su frase.
  *
- * Cortar una voz en seco se oye como un error de montaje. Trescientos
- * milisegundos bastan para que el oído lo lea como un final y no como un tajo.
+ * Se ajusta el ritmo, y si hiciera falta correr demasiado se recorta por el
+ * principio. Nunca por el final: ahí está la piedra que se mueve y la mano que
+ * se abre, que es lo que el plano vino a contar.
  */
-function desvanecer(pista: HTMLAudioElement, destino: number, ms: number): Promise<void> {
-  return new Promise((listo) => {
-    const desde = pista.volume
-    const inicio = performance.now()
-    const paso = (ahora: number) => {
-      const avance = Math.min(1, (ahora - inicio) / ms)
-      pista.volume = Math.max(0, Math.min(1, desde + (destino - desde) * avance))
-      if (avance < 1) requestAnimationFrame(paso)
-      else listo()
-    }
-    requestAnimationFrame(paso)
-  })
+function encaje(segundos: number): { ritmo: number; desde: number } {
+  const ritmo = Math.min(RITMO_MAXIMO, DURACION_PLANO / segundos)
+  return { ritmo, desde: Math.max(0, DURACION_PLANO - segundos * ritmo) }
 }
 
 /**
@@ -82,73 +90,79 @@ export function LandingCinematica() {
   const [escena, setEscena] = useState(0)
   const [terminado, setTerminado] = useState(false)
   const navegar = useNavigate()
-  const vocesRef = useRef<HTMLAudioElement[]>([])
+  const vozRef = useRef<HTMLAudioElement | null>(null)
   const videosRef = useRef<(HTMLVideoElement | null)[]>([])
 
   const irA = useCallback((indice: number) => {
     const destino = Math.max(0, Math.min(ULTIMA, indice))
+    // Saltar de plano mueve la narración con él: si no, la voz seguiría
+    // contando otra cosa sobre la imagen nueva.
+    const voz = vozRef.current
+    if (voz) voz.currentTime = ESCENAS[destino]!.desde
     setEscena(destino)
-    if (destino >= ULTIMA) setTerminado(true)
-  }, [])
-
-  // Las pistas se crean una sola vez y se precargan: si se pidieran al entrar
-  // en cada plano, la voz llegaría tarde y el silencio inicial se notaría.
-  useEffect(() => {
-    vocesRef.current = ESCENAS.map((e) => {
-      const pista = new Audio(e.voz)
-      pista.preload = 'auto'
-      return pista
-    })
-    const pistas = vocesRef.current
-    return () => {
-      for (const pista of pistas) {
-        pista.pause()
-        pista.src = ''
-      }
-    }
   }, [])
 
   /**
-   * Entrar en un plano: arranca su video, desvanece la voz anterior, levanta la
-   * suya y espera a que termine para pasar al siguiente.
+   * Una sola narración para los nueve planos.
+   *
+   * Antes había una pista por plano y cada empalme era una costura que había
+   * que disimular con desvanecidos. Con una sola toma no hay nada que empalmar:
+   * la voz no se entera de que la imagen cambia.
+   *
+   * Y pasa a ser el reloj. El tiempo lo lleva ella —`timeupdate` contra los
+   * cortes que Whisper encontró en la propia grabación—, así que la imagen no
+   * puede desfasarse de lo que se está diciendo.
+   */
+  useEffect(() => {
+    const voz = new Audio('/videos-lading/audio-completo.mp3')
+    voz.preload = 'auto'
+    vozRef.current = voz
+    return () => {
+      voz.pause()
+      voz.src = ''
+    }
+  }, [])
+
+  /** La narración manda: el plano es el que corresponde al segundo en curso. */
+  useEffect(() => {
+    const voz = vozRef.current
+    if (!iniciado || !voz) return
+
+    const alAvanzar = () => {
+      const t = voz.currentTime
+      let corresponde = 0
+      for (let i = ESCENAS.length - 1; i >= 0; i -= 1) {
+        if (t >= ESCENAS[i]!.desde) {
+          corresponde = i
+          break
+        }
+      }
+      setEscena((actual) => (actual === corresponde ? actual : corresponde))
+    }
+
+    voz.addEventListener('timeupdate', alAvanzar)
+    voz.addEventListener('ended', () => setTerminado(true))
+    void voz.play().catch(() => undefined)
+    return () => voz.removeEventListener('timeupdate', alAvanzar)
+  }, [iniciado])
+
+  /**
+   * Cada plano se ajusta para que su final caiga con el final de su frase.
+   *
+   * Sin bucle: el de la tumba volvería a cerrar la piedra y el del camino
+   * saltaría hacia atrás en la subida. Un plano que se repite deshace lo que
+   * acaba de contar.
    */
   useEffect(() => {
     if (!iniciado) return
-
     const video = videosRef.current[escena]
-    if (video) {
-      video.currentTime = 0
-      void video.play().catch(() => undefined)
-    }
-
-    for (const [i, pista] of vocesRef.current.entries()) {
-      if (i === escena || pista.paused) continue
-      void desvanecer(pista, 0, 300).then(() => {
-        pista.pause()
-        pista.currentTime = 0
-        pista.volume = 1
-      })
-    }
-
-    const voz = vocesRef.current[escena]
-    if (!voz) return
-
-    voz.currentTime = 0
-    voz.volume = 0
-    void voz
-      .play()
-      .then(() => desvanecer(voz, 1, 400))
-      .catch(() => undefined)
-
-    const alTerminar = () => (escena < ULTIMA ? irA(escena + 1) : setTerminado(true))
-    voz.addEventListener('ended', alTerminar)
-    const respaldo = window.setTimeout(alTerminar, RESPALDO_MS)
-
-    return () => {
-      voz.removeEventListener('ended', alTerminar)
-      window.clearTimeout(respaldo)
-    }
-  }, [escena, iniciado, irA])
+    if (!video) return
+    const hasta = escena < ULTIMA ? ESCENAS[escena + 1]!.desde : FIN_NARRACION
+    const { ritmo, desde } = encaje(hasta - ESCENAS[escena]!.desde)
+    video.playbackRate = ritmo
+    video.currentTime = desde
+    void video.play().catch(() => undefined)
+  }, [escena, iniciado])
 
   /**
    * Terminada la historia, se pasa a la plataforma sin preguntar.
@@ -178,7 +192,8 @@ export function LandingCinematica() {
     const avanzar = (direccion: number) =>
       setEscena((actual) => {
         const siguiente = Math.max(0, Math.min(ULTIMA, actual + direccion))
-        if (siguiente >= ULTIMA) setTerminado(true)
+        const voz = vozRef.current
+        if (voz && siguiente !== actual) voz.currentTime = ESCENAS[siguiente]!.desde
         return siguiente
       })
 
@@ -220,9 +235,8 @@ export function LandingCinematica() {
           vecinos: con los nueve a la vez, la primera pantalla arrastraba 18 MB
           que casi nadie llega a ver.
 
-          Van en bucle porque la voz puede durar más que el video —hay frases de
-          doce segundos sobre planos de diez— y una imagen congelada delataría
-          la costura. */}
+          No van en bucle: repetir el de la tumba volvería a cerrar la piedra.
+          En su lugar cada uno se ajusta al tiempo de su frase. */}
       {ESCENAS.map((e, i) => {
         const cerca = Math.abs(i - escena) <= 1
         return (
@@ -233,7 +247,6 @@ export function LandingCinematica() {
             }}
             {...(cerca ? { src: e.video } : {})}
             muted
-            loop
             playsInline
             preload={cerca ? 'auto' : 'none'}
             aria-hidden="true"
