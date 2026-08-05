@@ -27,6 +27,9 @@ const PLATAFORMA: EnlaceDeNav[] = [
   { to: '/oraciones', label: 'Oraciones guiadas' },
   { to: '/revista', label: 'Revista' },
   { to: '/comunidad', label: 'Comunidad' },
+  // Al final y aparte: no compite con lo demás, pero está donde se busca
+  // cuando hace falta.
+  { to: '/consejeria', label: 'Consejería' },
 ]
 
 /**

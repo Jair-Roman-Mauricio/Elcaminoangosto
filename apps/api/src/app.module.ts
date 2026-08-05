@@ -13,6 +13,7 @@ import { UsersModule } from './modules/users'
 import { MusicModule } from './modules/music'
 import { FeedModule } from './modules/feed'
 import { VideosModule } from './modules/videos'
+import { ConsejeriaModule } from './modules/consejeria'
 import { LecturasModule } from './modules/lecturas'
 import { AnalyticsModule } from './modules/analytics'
 import { CommunityModule } from './modules/community'
@@ -54,6 +55,7 @@ import { AdminModule } from './modules/admin'
     FeedModule,
     VideosModule,
     LecturasModule,
+    ConsejeriaModule,
     AnalyticsModule,
     CommunityModule,
     AdminModule,

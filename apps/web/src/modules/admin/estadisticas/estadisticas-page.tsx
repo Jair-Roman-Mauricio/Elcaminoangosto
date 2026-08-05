@@ -46,6 +46,7 @@ function CabeceraDeSeccion({
   filtro,
   onFiltro,
   sinOrden = false,
+  estrecha = false,
 }: {
   titulo: string
   id: string
@@ -53,15 +54,32 @@ function CabeceraDeSeccion({
   filtro: Filtro
   onFiltro: (filtro: Filtro) => void
   sinOrden?: boolean
+  /**
+   * La sección vive en media columna. El corte `sm` mira el ancho de la
+   * VENTANA, no el del bloque, así que en una rejilla de dos columnas creía
+   * tener sitio de sobra y ponía el título y las herramientas en una fila:
+   * el título se salía por la izquierda y los controles se le montaban encima.
+   */
+  estrecha?: boolean
 }) {
   return (
-    <header className="flex flex-col gap-aire-xs border-b border-linea pb-aire-xs sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-      <h2 className="m-0 font-mono text-h-s font-normal text-contenido">{titulo}</h2>
+    <header
+      className={`flex flex-col gap-aire-xs border-b border-linea pb-aire-xs ${
+        estrecha ? '' : 'sm:flex-row sm:flex-wrap sm:items-center sm:justify-between'
+      }`}
+    >
+      <h2 className="m-0 min-w-0 break-words font-mono text-h-s font-normal text-contenido">
+        {titulo}
+      </h2>
 
       {/* En móvil las herramientas ocupan el ancho bajo el título; a partir de
           `sm` acompañan al título en la misma línea. `min-w-0` es lo que les
           permite encoger dentro del flex en vez de desbordar la tarjeta. */}
-      <div className="flex w-full min-w-0 flex-wrap items-center gap-aire-xs sm:w-auto sm:flex-1 sm:justify-end">
+      <div
+        className={`flex w-full min-w-0 flex-wrap items-center gap-aire-xs ${
+          estrecha ? '' : 'sm:w-auto sm:flex-1 sm:justify-end'
+        }`}
+      >
         <Input
           id={`buscar-${id}`}
           type="search"
@@ -69,7 +87,7 @@ function CabeceraDeSeccion({
           value={filtro.busqueda}
           onChange={(e) => onFiltro({ ...filtro, busqueda: e.target.value })}
           placeholder={placeholder}
-          className="w-full min-w-0 sm:max-w-[16rem]"
+          className={`w-full min-w-0 ${estrecha ? '' : 'sm:max-w-[16rem]'}`}
         />
         {!sinOrden && (
           <Select
@@ -77,7 +95,7 @@ function CabeceraDeSeccion({
             aria-label={`Ordenar ${titulo.toLowerCase()}`}
             value={filtro.orden}
             onChange={(e) => onFiltro({ ...filtro, orden: e.target.value as OrdenDeRanking })}
-            className="w-full sm:w-auto"
+            className={`w-full ${estrecha ? '' : 'sm:w-auto'}`}
           >
             <option value="vistas">Reproducciones</option>
             <option value="visitantes">Sesiones</option>
@@ -267,6 +285,7 @@ export function EstadisticasPage() {
           <CabeceraDeSeccion
             titulo="Canciones más escuchadas"
             id="canciones"
+            estrecha
             placeholder="Buscar por título"
             filtro={cancionesFiltro}
             onFiltro={setCancionesFiltro}
@@ -278,6 +297,7 @@ export function EstadisticasPage() {
           <CabeceraDeSeccion
             titulo="Álbumes más escuchados"
             id="albumes"
+            estrecha
             placeholder="Buscar por álbum"
             filtro={{ busqueda: albumesBusqueda, orden: 'vistas' }}
             onFiltro={(f) => setAlbumesBusqueda(f.busqueda)}

@@ -5,8 +5,16 @@ import { VideosPanel } from './videos-panel'
 import { CancionesPanel } from './canciones-panel'
 import { LecturasPanel } from './lecturas-panel'
 import { OracionesPanel } from './oraciones-panel'
+import { ConsejerosPanel } from './consejeros-panel'
 
-type Seccion = 'TARJETAS' | 'CANCIONES' | 'VIDEOS' | 'DEVOCIONALES' | 'REVISTA' | 'ORACIONES'
+type Seccion =
+  | 'TARJETAS'
+  | 'CANCIONES'
+  | 'VIDEOS'
+  | 'DEVOCIONALES'
+  | 'REVISTA'
+  | 'ORACIONES'
+  | 'CONSEJERIA'
 
 const SECCIONES: { valor: Seccion; label: string }[] = [
   { valor: 'TARJETAS', label: 'Tarjetas' },
@@ -15,6 +23,7 @@ const SECCIONES: { valor: Seccion; label: string }[] = [
   { valor: 'DEVOCIONALES', label: 'Devocionales' },
   { valor: 'REVISTA', label: 'Revista' },
   { valor: 'ORACIONES', label: 'Oraciones' },
+  { valor: 'CONSEJERIA', label: 'Consejería' },
 ]
 
 /**
@@ -49,7 +58,8 @@ export function ContenidoPage() {
         <h1 className="m-0 font-mono text-h-l font-normal text-contenido">Contenido</h1>
         <p className="m-0 font-mono text-body-s text-texto-tenue">
           Publica y administra lo que se ve fuera de los cursos: tarjetas, canciones, videos,
-          devocionales, revista y oraciones guiadas.
+          devocionales, revista, oraciones
+          guiadas y consejería.
         </p>
       </header>
 
@@ -82,6 +92,7 @@ export function ContenidoPage() {
       {seccion === 'DEVOCIONALES' && <LecturasPanel tipo="DEVOCIONAL" />}
       {seccion === 'REVISTA' && <LecturasPanel tipo="ARTICULO" />}
       {seccion === 'ORACIONES' && <OracionesPanel />}
+      {seccion === 'CONSEJERIA' && <ConsejerosPanel />}
     </div>
   )
 }

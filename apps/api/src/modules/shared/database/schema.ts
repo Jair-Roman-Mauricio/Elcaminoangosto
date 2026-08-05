@@ -407,3 +407,29 @@ export const hiloRespuestas = pgTable('hilo_respuestas', {
   estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
   ...timestamps,
 })
+
+/**
+ * Consejeros: a quién escribir cuando lo que pasa no puede esperar.
+ *
+ * Los contactos van en `jsonb` porque cada uno deja los suyos —teléfono,
+ * WhatsApp, correo, las redes que use— y solo se muestran esos.
+ */
+export const consejeros = pgTable(
+  'consejeros',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    nombre: text('nombre').notNull(),
+    presentacion: text('presentacion'),
+    rol: text('rol'),
+    fotoAssetId: uuid('foto_asset_id').references(() => mediaAssets.id, { onDelete: 'set null' }),
+    contactos: jsonb('contactos').$type<Record<string, string>>().notNull().default({}),
+    atiendeUrgencias: boolean('atiende_urgencias').notNull().default(false),
+    orden: integer('orden').notNull().default(0),
+    estado: estadoPublicacionEnum('estado').notNull().default('VISIBLE'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // Los de urgencias primero; dentro de cada grupo, el orden del admin.
+    porOrden: index('consejeros_orden_idx').on(t.atiendeUrgencias, t.orden, t.createdAt),
+  }),
+)

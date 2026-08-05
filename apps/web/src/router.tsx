@@ -45,6 +45,9 @@ const DevocionalesPage = lazy(() =>
 const RevistaPage = lazy(() =>
   import('./modules/lecturas/revista-page').then((m) => ({ default: m.RevistaPage })),
 )
+const ConsejeriaPage = lazy(() =>
+  import('./modules/consejeria/consejeria-page').then((m) => ({ default: m.ConsejeriaPage })),
+)
 const OracionesPage = lazy(() =>
   import('./modules/lecturas/oraciones-page').then((m) => ({ default: m.OracionesPage })),
 )
@@ -90,6 +93,7 @@ export const router = createBrowserRouter([
       // Cada artículo con su propia dirección: se comparte y se recarga.
       { path: '/revista/:articuloId', element: conCarga(<RevistaPage />) },
       { path: '/oraciones', element: conCarga(<OracionesPage />) },
+      { path: '/consejeria', element: conCarga(<ConsejeriaPage />) },
       { path: '/comunidad', element: conCarga(<ComunidadPage />) },
       { path: '/comunidad/:id', element: conCarga(<HiloPage />) },
     ],
