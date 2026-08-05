@@ -10,10 +10,21 @@ interface Parada {
   /** Lo que se está diciendo, escrito. Sin sonido el recorrido se sigue igual. */
   titulo: string
   detalle: string
+  /** En móvil, cuando hay algo distinto que explicar. */
+  detalleMovil?: string
 }
 
 const PARADAS: Parada[] = [
-  { desde: 0, ruta: '/tarjetas', titulo: 'Bienvenido', detalle: 'Un lugar al que volver cuando lo necesites' },
+  {
+    desde: 0,
+    ruta: '/tarjetas',
+    titulo: 'Bienvenido',
+    detalle: 'Un lugar al que volver cuando lo necesites',
+    // En móvil las secciones viven detrás del botón de arriba a la izquierda.
+    // Quien no lo sepa creerá que la plataforma es solo esta pantalla, así que
+    // el recorrido lo abre para que se vea de dónde salen.
+    detalleMovil: 'Estas son las secciones. En el móvil se abren con el botón de arriba',
+  },
   {
     desde: 13.98,
     ruta: '/tarjetas',
@@ -78,7 +89,17 @@ export function RecorridoGuiado() {
   const pedido = Boolean((location.state as { recorrido?: boolean } | null)?.recorrido)
   const [activo, setActivo] = useState(() => pedido && !recorridoYaVisto())
   const [parada, setParada] = useState(0)
+  const [esMovil, setEsMovil] = useState(false)
   const vozRef = useRef<HTMLAudioElement | null>(null)
+
+  // El mismo corte que usa el layout para cambiar el sidebar por un cajón.
+  useEffect(() => {
+    const consulta = window.matchMedia('(max-width: 819px)')
+    const mirar = () => setEsMovil(consulta.matches)
+    mirar()
+    consulta.addEventListener('change', mirar)
+    return () => consulta.removeEventListener('change', mirar)
+  }, [])
 
   /**
    * `dalo POR VISTO` distingue haberlo hecho de no haber podido.
@@ -142,6 +163,47 @@ export function RecorridoGuiado() {
     if (location.pathname !== destino) navegar(destino, { replace: true })
   }, [activo, parada, location.pathname, navegar])
 
+  /**
+   * En móvil, el menú se abre solo durante la bienvenida.
+   *
+   * Es la única parte de la plataforma que en una pantalla pequeña está
+   * escondida: quien no descubra ese botón creerá que esto es una sola
+   * pantalla. Verlo abrirse mientras la voz dice «déjame mostrarte lo que hay»
+   * enseña dónde vive todo sin gastar una parada en explicarlo.
+   *
+   * Se acciona pulsando el botón real y no levantando el estado hasta aquí: el
+   * cajón pertenece al layout, y atarlo al recorrido dejaría un cable tendido
+   * entre dos cosas que no tienen por qué conocerse.
+   */
+  useEffect(() => {
+    if (!activo || !esMovil) return
+    const abrir = parada === 0
+    const boton = document.querySelector<HTMLElement>(
+      abrir ? '[aria-label="Abrir el menú"]' : '[aria-label="Cerrar el menú"]',
+    )
+    // Solo se pulsa si hace falta: el botón de abrir desaparece con el cajón
+    // abierto, y al revés.
+    boton?.click()
+  }, [activo, esMovil, parada])
+
+  /**
+   * El botón del menú late durante todo el recorrido en móvil.
+   *
+   * Enseñarlo abriendo el cajón no basta: el cajón lo tapa, y el aviso acaba
+   * señalando algo que no está a la vista. Con el cajón ya cerrado, el latido
+   * dice dónde estaba lo que se acaba de ver.
+   *
+   * Va por un atributo en el `body` y una regla de CSS, no tocando clases del
+   * botón: el botón es del layout y el recorrido no tiene por qué manosearlo.
+   */
+  useEffect(() => {
+    if (!activo || !esMovil) return
+    document.body.dataset.recorrido = 'activo'
+    return () => {
+      delete document.body.dataset.recorrido
+    }
+  }, [activo, esMovil])
+
   // Escapar es lo primero que intenta quien quiere salir de algo.
   useEffect(() => {
     if (!activo) return
@@ -160,22 +222,27 @@ export function RecorridoGuiado() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-gutter pb-aire-m"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-aire-s pb-aire-s cine:px-gutter cine:pb-aire-m"
     >
-      <div className="pointer-events-auto flex w-full max-w-3xl flex-col gap-aire-xs border border-acento bg-negro/85 px-aire-m py-aire-s backdrop-blur-md">
-        <div className="flex flex-wrap items-center justify-between gap-aire-s">
-          <p className="m-0 font-mono text-body-s uppercase tracking-label text-acento">
+      <div className="pointer-events-auto flex w-full max-w-3xl flex-col gap-aire-xs border border-acento bg-negro/90 px-aire-s py-aire-s backdrop-blur-md cine:px-aire-m">
+        <div className="flex items-center justify-between gap-aire-s">
+          <p className="m-0 min-w-0 truncate font-mono text-body-s uppercase tracking-label text-acento">
             {actual.titulo}
           </p>
           <button
             type="button"
             onClick={() => terminar()}
-            className="border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-hueso/60 transition-colors duration-fade ease-camino hover:text-hueso"
+            className="shrink-0 border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-hueso/60 transition-colors duration-fade ease-camino hover:text-hueso"
           >
-            Saltar recorrido
+            {/* En una pantalla estrecha el rótulo entero empujaba la salida a
+                otra línea, y la salida no puede quedar en segundo plano. */}
+            <span className="cine:hidden">Saltar</span>
+            <span className="hidden cine:inline">Saltar recorrido</span>
           </button>
         </div>
-        <p className="m-0 font-ui text-body text-hueso">{actual.detalle}</p>
+        <p className="m-0 font-ui text-body-s leading-snug text-hueso cine:text-body">
+          {(esMovil && actual.detalleMovil) || actual.detalle}
+        </p>
 
         {/* Cuánto queda. Saber que esto acaba es parte de poder quedarse. */}
         <div aria-hidden className="flex gap-[0.3rem]">

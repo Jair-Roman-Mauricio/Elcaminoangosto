@@ -5448,3 +5448,28 @@
     transform: scale(1.35);
   }
 }
+
+/* Durante el recorrido guiado en móvil, el botón del menú late en oro. El
+   cajón se abre solo para enseñar qué hay dentro, pero al cerrarse hay que
+   decir de dónde salió: sin esto, el aviso señala un botón que estuvo tapado. */
+body[data-recorrido='activo'] [aria-label='Abrir el menú'] {
+  position: relative;
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+body[data-recorrido='activo'] [aria-label='Abrir el menú']::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 1px solid var(--acento);
+  border-radius: inherit;
+  animation: latido 2000ms var(--ease) infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-recorrido='activo'] [aria-label='Abrir el menú']::after {
+    animation: none;
+  }
+}
