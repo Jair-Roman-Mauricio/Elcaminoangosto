@@ -23,7 +23,7 @@ const PARADAS: Parada[] = [
     // En móvil las secciones viven detrás del botón de arriba a la izquierda.
     // Quien no lo sepa creerá que la plataforma es solo esta pantalla, así que
     // el recorrido lo abre para que se vea de dónde salen.
-    detalleMovil: 'Estas son las secciones. En el móvil se abren con el botón de arriba',
+    detalleMovil: 'Con el botón de arriba se abren las secciones. Mira',
   },
   {
     desde: 13.98,
@@ -60,18 +60,6 @@ const PARADAS: Parada[] = [
 const AUDIO = '/videos-lading/recorrido-plataforma.mp3'
 /** Dónde acaba de hablar. Con o sin voz, el recorrido dura lo mismo. */
 const FIN = 65.4
-/** Marca de que ya se hizo. Un recorrido que se repite es un peaje. */
-const CLAVE = 'ec-recorrido-visto'
-
-/** Si ya se hizo el recorrido en este navegador. */
-export function recorridoYaVisto(): boolean {
-  try {
-    return window.localStorage.getItem(CLAVE) === 'si'
-  } catch {
-    // Sin almacenamiento se repite. Es preferible a no poder entrar.
-    return false
-  }
-}
 
 /**
  * Recorrido guiado de la plataforma.
@@ -80,24 +68,18 @@ export function recorridoYaVisto(): boolean {
  * mueve sola hasta él: se ve el sitio del que se está hablando, no una captura
  * ni una flecha señalando.
  *
- * Tres reglas que lo mantienen del lado de la bienvenida y no del secuestro:
- * se puede cortar en cualquier momento, ocurre una sola vez por navegador, y
- * solo se dispara viniendo de la historia. Quien entra por un enlace directo a
- * Comunidad va a Comunidad.
+ * Es el último tramo de la presentación, no un tutorial que la plataforma
+ * ofrezca por su cuenta: empieza donde termina la mano abierta. Por eso el
+ * único disparador es haber visto la historia hasta el final, y por eso no se
+ * recuerda si ya se hizo — quien quiera repetirlo vuelve a la portada, que es
+ * de donde nace. Se corta con el botón o con Escape.
  */
 export function RecorridoGuiado() {
   const location = useLocation()
   const navegar = useNavigate()
-  const pedido = Boolean((location.state as { recorrido?: boolean } | null)?.recorrido)
-  /**
-   * `?recorrido=1` lo fuerza aunque ya se haya visto.
-   *
-   * Sin esto, probarlo una vez lo dejaba enterrado hasta borrar el
-   * almacenamiento del navegador: quien lo construye no puede volver a verlo, y
-   * un enlace a la bienvenida no se le puede enseñar a nadie.
-   */
-  const forzado = new URLSearchParams(location.search).get('recorrido') === '1'
-  const [activo, setActivo] = useState(() => forzado || (pedido && !recorridoYaVisto()))
+  const [activo, setActivo] = useState(() =>
+    Boolean((location.state as { recorrido?: boolean } | null)?.recorrido),
+  )
   const [parada, setParada] = useState(0)
   const [esMovil, setEsMovil] = useState(false)
   const [conVoz, setConVoz] = useState(true)
@@ -112,22 +94,8 @@ export function RecorridoGuiado() {
     return () => consulta.removeEventListener('change', mirar)
   }, [])
 
-  /**
-   * `dalo POR VISTO` distingue haberlo hecho de no haber podido.
-   *
-   * Si el navegador no deja sonar el audio, el recorrido se cierra pero NO se
-   * marca: la persona no lo ha visto, y consumirlo en silencio le quitaría la
-   * bienvenida sin dársela nunca.
-   */
-  const terminar = useCallback((daloPorVisto = true) => {
+  const terminar = useCallback(() => {
     vozRef.current?.pause()
-    if (daloPorVisto) {
-      try {
-        window.localStorage.setItem(CLAVE, 'si')
-      } catch {
-        // Sin almacenamiento no se recuerda; sigue siendo saltable.
-      }
-    }
     setActivo(false)
   }, [])
 
@@ -206,15 +174,46 @@ export function RecorridoGuiado() {
    * cajón pertenece al layout, y atarlo al recorrido dejaría un cable tendido
    * entre dos cosas que no tienen por qué conocerse.
    */
+  /**
+   * En móvil, cada parada abre el menú a la vista y lo vuelve a cerrar.
+   *
+   * Es la única forma de aprender un botón que está escondido: verlo pulsarse.
+   * Y se hace en CADA sección, no solo al principio, porque un gesto se aprende
+   * repitiéndolo — a la tercera vez ya se sabe de dónde salen las secciones.
+   *
+   * La coreografía tiene tres tiempos: el botón se ilumina como si lo pulsaran,
+   * el cajón se abre con la sección de turno marcada, y se cierra para dejar
+   * ver el contenido del que habla la voz.
+   */
   useEffect(() => {
     if (!activo || !esMovil) return
-    const abrir = parada === 0
-    const boton = document.querySelector<HTMLElement>(
-      abrir ? '[aria-label="Abrir el menú"]' : '[aria-label="Cerrar el menú"]',
+    let cancelado = false
+    const relojes: number[] = []
+    const cuerpo = document.body
+
+    cuerpo.dataset.recorridoPulsando = 'si'
+    relojes.push(
+      window.setTimeout(() => {
+        if (cancelado) return
+        delete cuerpo.dataset.recorridoPulsando
+        document.querySelector<HTMLElement>('[aria-label="Abrir el menú"]')?.click()
+        relojes.push(
+          window.setTimeout(() => {
+            if (cancelado) return
+            document.querySelector<HTMLElement>('[aria-label="Cerrar el menú"]')?.click()
+          }, 1900),
+        )
+      }, 450),
     )
-    // Solo se pulsa si hace falta: el botón de abrir desaparece con el cajón
-    // abierto, y al revés.
-    boton?.click()
+
+    return () => {
+      cancelado = true
+      for (const reloj of relojes) window.clearTimeout(reloj)
+      delete cuerpo.dataset.recorridoPulsando
+      // Si el recorrido se corta con el cajón abierto, se cierra: nadie pidió
+      // quedarse con el menú encima.
+      document.querySelector<HTMLElement>('[aria-label="Cerrar el menú"]')?.click()
+    }
   }, [activo, esMovil, parada])
 
   /**
@@ -271,7 +270,7 @@ export function RecorridoGuiado() {
           )}
           <button
             type="button"
-            onClick={() => terminar()}
+            onClick={terminar}
             className="shrink-0 border-0 bg-transparent p-0 font-mono text-body-s uppercase tracking-label text-hueso/60 transition-colors duration-fade ease-camino hover:text-hueso"
           >
             {/* En una pantalla estrecha el rótulo entero empujaba la salida a

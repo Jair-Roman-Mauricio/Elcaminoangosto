@@ -5456,6 +5456,20 @@ body[data-recorrido='activo'] [aria-label='Abrir el menú'] {
   position: relative;
   border-color: var(--acento);
   color: var(--acento);
+  transition:
+    transform 200ms var(--ease),
+    background-color 200ms var(--ease),
+    color 200ms var(--ease);
+}
+
+/* El instante del toque: el botón se rellena de oro como si un dedo lo
+   estuviera pulsando. Sin esto el cajón se abriría solo, y ver abrirse algo no
+   enseña qué hay que hacer para abrirlo. */
+body[data-recorrido-pulsando] [aria-label='Abrir el menú'] {
+  background: var(--oro);
+  background-image: var(--oro-brillo);
+  color: var(--sobre-oro);
+  transform: scale(0.92);
 }
 
 body[data-recorrido='activo'] [aria-label='Abrir el menú']::after {
