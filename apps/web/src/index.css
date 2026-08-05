@@ -5435,3 +5435,16 @@
     filter: blur(0);
   }
 }
+
+/* Latido del botón de entrada de la landing. El anillo se expande y se apaga:
+   dice «pulsa aquí» sin tener que escribirlo. */
+@keyframes latido {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}

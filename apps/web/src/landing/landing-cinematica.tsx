@@ -3,16 +3,23 @@ import { Link } from 'react-router-dom'
 import { BrandLogo } from '@elcamino/ui/static'
 import { useRegistrarVisita } from '../lib/analitica'
 
-/** Un plano de la historia: su video y lo que se lee encima. */
+/** Un plano de la historia: su video, su voz y lo que se lee encima. */
 interface Escena {
   video: string
-  /** Voz de este plano. Suena cuando el plano entra, y con él termina. */
+  /** Voz de este plano. Manda ella: el plano dura lo que dura la frase. */
   voz: string
   /** Frase que aparece sobre el plano. El primero entra en silencio. */
   mensaje: string | null
   /** Referencia bíblica, cuando la frase la tiene. */
   referencia?: string
 }
+
+const plano = (n: number, mensaje: string | null, referencia?: string): Escena => ({
+  video: `/videos-lading/plano-${String(n).padStart(2, '0')}.mp4`,
+  voz: `/videos-lading/voz-${String(n).padStart(2, '0')}.mp3`,
+  mensaje,
+  ...(referencia ? { referencia } : {}),
+})
 
 /**
  * Nueve planos, de las manos a las manos.
@@ -22,70 +29,69 @@ interface Escena {
  * a plena luz. Quien llega hasta el final ha dado la vuelta entera.
  */
 const ESCENAS: Escena[] = [
-  { video: '/videos-lading/plano-01.mp4',
-    voz: '/videos-lading/voz-01.mp3', mensaje: null },
-  {
-    video: '/videos-lading/plano-02.mp4',
-    voz: '/videos-lading/voz-02.mp3',
-    mensaje: 'Por sus heridas, fuimos sanados',
-    referencia: 'Isaías 53:5',
-  },
-  { video: '/videos-lading/plano-03.mp4',
-    voz: '/videos-lading/voz-03.mp3', mensaje: 'Vino a caminar donde tú caminas' },
-  { video: '/videos-lading/plano-04.mp4',
-    voz: '/videos-lading/voz-04.mp3', mensaje: 'Se detuvo por uno' },
-  {
-    video: '/videos-lading/plano-05.mp4',
-    voz: '/videos-lading/voz-05.mp3',
-    mensaje: 'Aun la tormenta lo obedece',
-    referencia: 'Marcos 4:39',
-  },
-  { video: '/videos-lading/plano-06.mp4',
-    voz: '/videos-lading/voz-06.mp3', mensaje: 'Cargó lo que no le tocaba' },
-  { video: '/videos-lading/plano-07.mp4',
-    voz: '/videos-lading/voz-07.mp3', mensaje: 'Pero el domingo llegó' },
-  {
-    video: '/videos-lading/plano-08.mp4',
-    voz: '/videos-lading/voz-08.mp3',
-    mensaje: 'El camino se recorre juntos',
-    referencia: 'Mateo 7:14',
-  },
-  { video: '/videos-lading/plano-09.mp4',
-    voz: '/videos-lading/voz-09.mp3', mensaje: 'Su mano sigue abierta' },
+  plano(1, null),
+  plano(2, 'Por sus heridas, fuimos sanados', 'Isaías 53:5'),
+  plano(3, 'Vino a caminar donde tú caminas'),
+  plano(4, 'Se detuvo por uno'),
+  plano(5, 'Aun la tormenta lo obedece', 'Marcos 4:39'),
+  plano(6, 'Cargó lo que no le tocaba'),
+  plano(7, 'Pero el domingo llegó'),
+  plano(8, 'El camino se recorre juntos', 'Mateo 7:14'),
+  plano(9, 'Su mano sigue abierta'),
 ]
 
 const ULTIMA = ESCENAS.length - 1
 
+/** Si una voz no puede sonar, el plano no puede quedarse clavado para siempre. */
+const RESPALDO_MS = 15_000
+
+/**
+ * Sube o baja el volumen de una pista poco a poco.
+ *
+ * Cortar una voz en seco se oye como un error de montaje. Trescientos
+ * milisegundos bastan para que el oído lo lea como un final y no como un tajo.
+ */
+function desvanecer(pista: HTMLAudioElement, destino: number, ms: number): Promise<void> {
+  return new Promise((listo) => {
+    const desde = pista.volume
+    const inicio = performance.now()
+    const paso = (ahora: number) => {
+      const avance = Math.min(1, (ahora - inicio) / ms)
+      pista.volume = Math.max(0, Math.min(1, desde + (destino - desde) * avance))
+      if (avance < 1) requestAnimationFrame(paso)
+      else listo()
+    }
+    requestAnimationFrame(paso)
+  })
+}
+
 /**
  * Landing: la historia se cuenta sola.
  *
- * No hay secciones que recorrer ni nada que buscar. Entra, mira y, si algo de
- * lo que ve le mueve, pasa. Por eso el avance es automático —cada plano dura lo
- * que dura— y lo único que se le pide a quien llega es quedarse.
+ * No hay secciones que recorrer ni nada que buscar. Se entra, se mira y, si
+ * algo de lo que se ve mueve, se pasa.
  *
- * Aun así nada está encerrado: la rueda, las flechas y un clic adelantan, y la
- * puerta a la plataforma está siempre visible. Una pieza que no deja salir no
- * transmite esperanza, transmite encierro.
+ * **La voz gobierna el tiempo.** Cada plano dura lo que dura su frase, y el
+ * video se repite debajo hasta que termina. Al revés —el video mandando— las
+ * frases largas se cortaban a media palabra, que es justo donde una promesa
+ * deja de sonar a promesa.
  */
 export function LandingCinematica() {
   useRegistrarVisita('landing')
+  const [iniciado, setIniciado] = useState(false)
   const [escena, setEscena] = useState(0)
-  const [conVoz, setConVoz] = useState(false)
-  /** Si se silenció a mano. Entonces no se vuelve a intentar por su cuenta. */
-  const silenciadoRef = useRef(false)
   const [terminado, setTerminado] = useState(false)
-  /**
-   * Una pista por plano, creadas una sola vez y precargadas.
-   *
-   * Se descartó el audio único de 90 s: tenía que casar con nueve videos que
-   * cada navegador arranca con milisegundos distintos, y acababa desfasado
-   * siempre. Con una pista por plano no hay nada que sincronizar — la voz
-   * empieza cuando su plano empieza, y si sobra silencio al final, mejor.
-   */
   const vocesRef = useRef<HTMLAudioElement[]>([])
-  const escenaRef = useRef(0)
   const videosRef = useRef<(HTMLVideoElement | null)[]>([])
 
+  const irA = useCallback((indice: number) => {
+    const destino = Math.max(0, Math.min(ULTIMA, indice))
+    setEscena(destino)
+    if (destino >= ULTIMA) setTerminado(true)
+  }, [])
+
+  // Las pistas se crean una sola vez y se precargan: si se pidieran al entrar
+  // en cada plano, la voz llegaría tarde y el silencio inicial se notaría.
   useEffect(() => {
     vocesRef.current = ESCENAS.map((e) => {
       const pista = new Audio(e.voz)
@@ -101,52 +107,65 @@ export function LandingCinematica() {
     }
   }, [])
 
-  const irA = useCallback((indice: number) => {
-    setEscena(Math.max(0, Math.min(ULTIMA, indice)))
-    if (indice >= ULTIMA) setTerminado(true)
-  }, [])
-
-  // El plano activo empieza desde su primer fotograma. Sin esto, al volver
-  // atrás se retomaba a mitad y el corte no cuadraba con el texto.
+  /**
+   * Entrar en un plano: arranca su video, desvanece la voz anterior, levanta la
+   * suya y espera a que termine para pasar al siguiente.
+   */
   useEffect(() => {
-    escenaRef.current = escena
+    if (!iniciado) return
+
     const video = videosRef.current[escena]
     if (video) {
       video.currentTime = 0
       void video.play().catch(() => undefined)
     }
 
-    // La voz del plano anterior calla en seco: dos voces solapadas no se
-    // entienden, y aquí cada frase pertenece a una imagen concreta.
-    vocesRef.current.forEach((pista, i) => {
-      if (i === escena) return
-      pista.pause()
-      pista.currentTime = 0
-    })
+    for (const [i, pista] of vocesRef.current.entries()) {
+      if (i === escena || pista.paused) continue
+      void desvanecer(pista, 0, 300).then(() => {
+        pista.pause()
+        pista.currentTime = 0
+        pista.volume = 1
+      })
+    }
 
     const voz = vocesRef.current[escena]
-    if (!voz || silenciadoRef.current) return
+    if (!voz) return
+
     voz.currentTime = 0
-    void voz.play().then(() => setConVoz(true)).catch(() => undefined)
-  }, [escena])
+    voz.volume = 0
+    void voz
+      .play()
+      .then(() => desvanecer(voz, 1, 400))
+      .catch(() => undefined)
+
+    const alTerminar = () => (escena < ULTIMA ? irA(escena + 1) : setTerminado(true))
+    voz.addEventListener('ended', alTerminar)
+    const respaldo = window.setTimeout(alTerminar, RESPALDO_MS)
+
+    return () => {
+      voz.removeEventListener('ended', alTerminar)
+      window.clearTimeout(respaldo)
+    }
+  }, [escena, iniciado, irA])
 
   /**
    * Un gesto adelanta un plano.
    *
-   * La rueda se atiende en `window` y por coordenadas no hace falta: la escena
-   * ocupa la pantalla entera. Lo que sí hace falta es el bloqueo por silencio,
-   * porque un trackpad manda decenas de eventos por gesto y su inercia sigue
-   * empujando después de levantar los dedos.
+   * El bloqueo por silencio es por el trackpad: un deslizamiento manda decenas
+   * de eventos y su inercia sigue empujando después de levantar los dedos.
    */
   useEffect(() => {
+    if (!iniciado) return
     let ultimoEvento = 0
     let bloqueado = false
 
-    const avanzar = (direccion: number) => setEscena((actual) => {
-      const siguiente = Math.max(0, Math.min(ULTIMA, actual + direccion))
-      if (siguiente >= ULTIMA) setTerminado(true)
-      return siguiente
-    })
+    const avanzar = (direccion: number) =>
+      setEscena((actual) => {
+        const siguiente = Math.max(0, Math.min(ULTIMA, actual + direccion))
+        if (siguiente >= ULTIMA) setTerminado(true)
+        return siguiente
+      })
 
     const alRodar = (evento: WheelEvent) => {
       if (Math.abs(evento.deltaY) <= Math.abs(evento.deltaX)) return
@@ -176,62 +195,19 @@ export function LandingCinematica() {
       window.removeEventListener('wheel', alRodar)
       window.removeEventListener('keydown', alTeclear)
     }
-  }, [])
-
-  /**
-   * La voz suena desde el principio.
-   *
-   * Ningún navegador deja arrancar audio audible sin un gesto previo, así que
-   * no basta con pedirlo al montar: se intenta, y si lo bloquean queda armado
-   * para el primer movimiento de quien entra —una rueda, una tecla, un toque—.
-   * No se le pide permiso a nadie; se le da la opción de callarla.
-   *
-   * Si la silencia a mano, no vuelve a intentarse: repetirlo sería discutir
-   * con quien ya decidió.
-   */
-  useEffect(() => {
-    const intentar = () => {
-      const voz = vocesRef.current[escenaRef.current]
-      if (!voz || silenciadoRef.current || !voz.paused) return
-      void voz
-        .play()
-        .then(() => {
-          setConVoz(true)
-          quitarEscuchas()
-        })
-        .catch(() => undefined)
-    }
-
-    const gestos = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const
-    const quitarEscuchas = () => {
-      for (const gesto of gestos) window.removeEventListener(gesto, intentar)
-    }
-
-    intentar()
-    for (const gesto of gestos) window.addEventListener(gesto, intentar, { passive: true })
-    return quitarEscuchas
-  }, [])
-
-  const alternarVoz = () => {
-    const voz = vocesRef.current[escena]
-    if (!voz) return
-    if (conVoz) {
-      voz.pause()
-      silenciadoRef.current = true
-      setConVoz(false)
-      return
-    }
-    silenciadoRef.current = false
-    void voz.play().then(() => setConVoz(true)).catch(() => undefined)
-  }
+  }, [iniciado])
 
   const actual = ESCENAS[escena]!
 
   return (
     <div data-theme="dark" className="relative h-[100svh] w-full overflow-hidden bg-negro">
       {/* Los planos se apilan y solo se ve el activo. Se carga el actual y sus
-          vecinos: con los nueve a la vez, la primera pantalla arrastraba 23 MB
-          que casi nadie llega a ver. */}
+          vecinos: con los nueve a la vez, la primera pantalla arrastraba 18 MB
+          que casi nadie llega a ver.
+
+          Van en bucle porque la voz puede durar más que el video —hay frases de
+          doce segundos sobre planos de diez— y una imagen congelada delataría
+          la costura. */}
       {ESCENAS.map((e, i) => {
         const cerca = Math.abs(i - escena) <= 1
         return (
@@ -242,15 +218,10 @@ export function LandingCinematica() {
             }}
             {...(cerca ? { src: e.video } : {})}
             muted
+            loop
             playsInline
             preload={cerca ? 'auto' : 'none'}
             aria-hidden="true"
-            onEnded={() => {
-              // Cada plano dura lo que dura: al acabar, pasa el siguiente. El
-              // último se queda quieto, con la mano abierta en pantalla.
-              if (i === escena && i < ULTIMA) irA(i + 1)
-              else if (i === ULTIMA) setTerminado(true)
-            }}
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-camino motion-reduce:transition-none ${
               i === escena ? 'opacity-100' : 'opacity-0'
             }`}
@@ -266,39 +237,58 @@ export function LandingCinematica() {
 
       <header className="absolute inset-x-0 top-0 flex items-center justify-between gap-aire-s px-gutter py-aire-m">
         <BrandLogo layout="horizontal" tone="light" size="md" decorative />
-        <div className="flex items-center gap-aire-s">
-          <button
-            type="button"
-            onClick={alternarVoz}
-            aria-pressed={conVoz}
-            className="rounded-full border border-hueso/40 px-aire-s py-[0.35rem] font-mono text-body-s uppercase tracking-label text-hueso transition-colors duration-fade ease-camino hover:border-acento hover:text-acento"
-          >
-            {conVoz ? 'Silenciar' : 'Con voz'}
-          </button>
-          <Link
-            to="/tarjetas"
-            className="rounded-full border border-acento bg-oro brillo-oro px-aire-s py-[0.35rem] font-mono text-body-s uppercase tracking-label text-sobreoro no-underline"
-          >
-            Entrar
-          </Link>
-        </div>
+        <Link
+          to="/tarjetas"
+          className="rounded-full border border-acento bg-oro brillo-oro px-aire-s py-[0.35rem] font-mono text-body-s uppercase tracking-label text-sobreoro no-underline"
+        >
+          Entrar
+        </Link>
       </header>
 
-      {/* El mensaje del plano. Va en serif, como los versículos: es la misma
-          voz del sistema y aquí todo lo que se lee es Palabra o eco de ella. */}
+      {/* El mensaje del plano. Va en serif, como los versículos: es la misma voz
+          del sistema y aquí todo lo que se lee es Palabra o eco de ella. */}
       <div className="pointer-events-none absolute inset-0 grid place-items-center px-gutter">
-        <p
-          key={escena}
-          className="m-0 max-w-[22ch] animate-[mensaje-entra_1400ms_var(--ease)_both] text-center font-serif text-[clamp(1.8rem,5vw,4rem)] font-light leading-[1.15] text-hueso [text-shadow:0_0.15em_0.9em_rgba(0,0,0,0.75)]"
-        >
-          {actual.mensaje}
-          {actual.referencia && (
-            <span className="mt-aire-s block font-mono text-body-s uppercase tracking-label text-hueso/70">
-              {actual.referencia}
-            </span>
-          )}
-        </p>
+        {iniciado && (
+          <p
+            key={escena}
+            className="m-0 max-w-[22ch] animate-[mensaje-entra_1400ms_var(--ease)_both] text-center font-serif text-[clamp(1.8rem,5vw,4rem)] font-light leading-[1.15] text-hueso [text-shadow:0_0.15em_0.9em_rgba(0,0,0,0.75)]"
+          >
+            {actual.mensaje}
+            {actual.referencia && (
+              <span className="mt-aire-s block font-mono text-body-s uppercase tracking-label text-hueso/70">
+                {actual.referencia}
+              </span>
+            )}
+          </p>
+        )}
       </div>
+
+      {/* La puerta de entrada.
+          Existe por una razón práctica —ningún navegador deja sonar audio sin
+          un gesto previo, y aquí la voz es la mitad de la pieza— y por una de
+          fondo: entrar es una decisión, y empezar pulsando ya es dar el primer
+          paso. */}
+      {!iniciado && (
+        <div className="absolute inset-0 grid place-items-center bg-negro/45 px-gutter backdrop-blur-[2px]">
+          <button
+            type="button"
+            onClick={() => setIniciado(true)}
+            className="group relative grid size-[clamp(11rem,22vw,15rem)] place-items-center rounded-full border border-acento bg-negro/40 font-mono text-body-s uppercase leading-[1.6] tracking-label text-hueso transition-colors duration-fade ease-camino hover:bg-oro hover:text-sobreoro"
+          >
+            {/* Dos anillos que laten hacia fuera: la señal de «pulsa aquí» sin
+                tener que escribir «pulsa aquí». */}
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full border border-acento/70 motion-safe:animate-[latido_2600ms_var(--ease)_infinite]"
+            />
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full border border-acento/40 motion-safe:animate-[latido_2600ms_var(--ease)_infinite_900ms]"
+            />
+            <span className="max-w-[8ch] text-center">Comienza el camino</span>
+          </button>
+        </div>
+      )}
 
       {/* Cierre: cuando la historia termina, la única salida es hacia dentro. */}
       {terminado && (
@@ -313,24 +303,25 @@ export function LandingCinematica() {
       )}
 
       {/* Dónde va la historia. Nueve trazos, el andado en oro. */}
-      <nav
-        aria-label="Planos"
-        className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-[0.4rem] px-gutter py-aire-m"
-      >
-        {ESCENAS.map((e, i) => (
-          <button
-            key={e.video}
-            type="button"
-            onClick={() => irA(i)}
-            aria-label={`Plano ${i + 1}`}
-            aria-current={i === escena}
-            className={`h-[2px] w-8 rounded-full transition-colors duration-fade ease-camino ${
-              i <= escena ? 'bg-acento' : 'bg-hueso/25 hover:bg-hueso/50'
-            }`}
-          />
-        ))}
-      </nav>
-
+      {iniciado && (
+        <nav
+          aria-label="Planos"
+          className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-[0.4rem] px-gutter py-aire-m"
+        >
+          {ESCENAS.map((e, i) => (
+            <button
+              key={e.video}
+              type="button"
+              onClick={() => irA(i)}
+              aria-label={`Plano ${i + 1}`}
+              aria-current={i === escena}
+              className={`h-[2px] w-8 rounded-full transition-colors duration-fade ease-camino ${
+                i <= escena ? 'bg-acento' : 'bg-hueso/25 hover:bg-hueso/50'
+              }`}
+            />
+          ))}
+        </nav>
+      )}
     </div>
   )
 }
