@@ -161,7 +161,7 @@ function Carrusel({
 
         <article
           key={actual.id}
-          className="flex h-full min-h-0 min-w-0 flex-1 animate-[mensaje-entra_600ms_var(--ease)_both] flex-col items-center justify-center gap-aire-s"
+          className="flex h-full min-h-0 min-w-0 flex-1 animate-[mensaje-entra_600ms_var(--ease)_both] flex-col items-center justify-center gap-aire-xs"
         >
           {actual.tema && (
             // Pegada a la imagen, no flotando: la categoría es de la estampa.
@@ -176,28 +176,39 @@ function Carrusel({
             </p>
           )}
 
-          {actual.imagenUrl ? (
-            <img
-              src={actual.imagenUrl}
-              alt=""
-              className="min-h-0 w-auto max-w-full flex-1 object-contain"
-              // El brillo va en el borde del dibujo, no en una caja: por eso es
-              // `drop-shadow` y no `box-shadow`, que dibujaría un rectángulo.
-              style={{
-                filter: `drop-shadow(0 0 1.6rem rgba(${neonDeCategoria(actual.tema)}, 0.55)) drop-shadow(0 0 4rem rgba(${neonDeCategoria(actual.tema)}, 0.3))`,
-              }}
-            />
-          ) : (
-            <span
-              aria-hidden
-              className="grid w-full max-w-sm flex-1 place-items-center rounded-full"
-              style={{
-                background: `radial-gradient(closest-side, rgba(${neonDeCategoria(actual.tema)}, 0.18), transparent)`,
-              }}
-            />
-          )}
+          {/* Todas las estampas ocupan el mismo cuadro, venga la imagen alta o
+              ancha: si cada una midiera lo suyo, el título y el botón bailarían
+              al pasar de una a otra. `object-contain` las mete dentro sin
+              recortarlas —un recorte sin fondo no admite que le corten un
+              brazo— y `max-h-full` cede cuando la ventana es más baja que el
+              cuadro.
+              El corte por ALTURA de ventana es el que de verdad manda: en un
+              portátil bajo, un cuadro pensado para el ancho no cabía y cedía de
+              tamaño, con lo que la estampa cambiaba al pasar de una a otra. */}
+          <div className="flex h-[12rem] max-h-full w-full items-center justify-center overflow-hidden [@media(min-height:700px)]:h-[16rem] [@media(min-height:860px)]:h-[20rem]">
+            {actual.imagenUrl ? (
+              <img
+                src={actual.imagenUrl}
+                alt=""
+                className="max-h-full max-w-full object-contain"
+                // El brillo va en el borde del dibujo, no en una caja: por eso
+                // es `drop-shadow` y no `box-shadow`, que haría un rectángulo.
+                style={{
+                  filter: `drop-shadow(0 0 1.6rem rgba(${neonDeCategoria(actual.tema)}, 0.55)) drop-shadow(0 0 4rem rgba(${neonDeCategoria(actual.tema)}, 0.3))`,
+                }}
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="h-full w-full max-w-sm rounded-full"
+                style={{
+                  background: `radial-gradient(closest-side, rgba(${neonDeCategoria(actual.tema)}, 0.18), transparent)`,
+                }}
+              />
+            )}
+          </div>
 
-          <h2 className="m-0 text-center font-serif text-[clamp(1.5rem,3.4vw,2.4rem)] font-light text-contenido">
+          <h2 className="m-0 mt-aire-xs flex min-h-[2.4em] items-center text-center font-serif text-[clamp(1.5rem,3.4vw,2.4rem)] font-light leading-[1.15] text-contenido">
             {actual.titulo}
           </h2>
 
