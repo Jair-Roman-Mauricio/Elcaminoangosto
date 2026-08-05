@@ -232,7 +232,7 @@ export function EstadisticasPage() {
       </section>
 
       {/* ── Canciones y álbumes ────────────────────────────────────────── */}
-      <div className="grid gap-aire-m lg:grid-cols-2">
+      <div className="grid gap-aire-m md:grid-cols-2">
         <section className={`flex flex-col gap-aire-s bg-superficie-1 p-aire-m ${SOMBRA}`}>
           <CabeceraDeSeccion
             titulo="Canciones más escuchadas"

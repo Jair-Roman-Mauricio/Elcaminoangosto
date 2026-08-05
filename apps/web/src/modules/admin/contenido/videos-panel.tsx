@@ -57,7 +57,7 @@ export function VideosPanel() {
       )}
 
       {lista.length > 0 && (
-        <ul className="m-0 grid list-none grid-cols-1 gap-aire-m p-0 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="m-0 grid list-none grid-cols-1 gap-aire-m p-0 sm:grid-cols-2 md:grid-cols-3">
           {lista.map((v) => (
             <li key={v.id}>
               <VideoEnLista

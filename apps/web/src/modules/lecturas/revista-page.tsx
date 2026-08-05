@@ -8,8 +8,9 @@ import {
   useRevista,
 } from './lecturas-api'
 import { LectorEditorial } from './lector-editorial'
-import { TarjetaDeLectura } from './devocionales-page'
+import { TarjetaDeLectura } from './tarjeta-de-lectura'
 import { useRegistrarVisita } from '../../lib/analitica'
+import type { Lectura } from './lecturas-api'
 
 const fechaCorta = new Intl.DateTimeFormat('es-PE', {
   day: '2-digit',
@@ -53,10 +54,15 @@ export function RevistaPage() {
     )
   }
 
-  const [principal, ...resto] = data ?? []
+  const lista = data ?? []
+  // La portada reparte por peso, no por fecha: una pieza de apertura, cuatro
+  // que la acompañan y el resto agrupado por sección.
+  const apertura = lista[0]
+  const acompanan = lista.slice(1, 5)
+  const resto = lista.slice(5)
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-aire-m">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-aire-l">
       <header className="flex flex-col gap-aire-xs">
         <Eyebrow>Revista</Eyebrow>
         <h1 className="m-0 font-ui text-h-l font-medium tracking-titulo text-contenido">
@@ -71,27 +77,91 @@ export function RevistaPage() {
         <p className="m-0 font-ui text-body text-peligro">No se pudo cargar la revista.</p>
       )}
       {isPending && <p className="m-0 font-ui text-body text-texto-tenue">Cargando…</p>}
-      {!isPending && !isError && (data?.length ?? 0) === 0 && (
+      {!isPending && !isError && lista.length === 0 && (
         <p className="m-0 font-ui text-body text-texto-tenue">
           Todavía no hay artículos publicados.
         </p>
       )}
 
-      {principal && (
-        <TarjetaDeLectura lectura={principal} onAbrir={() => abrir(principal.id)} destacada />
+      {/* El mosaico de apertura: la pieza grande a la izquierda y las que la
+          acompañan a la derecha, pegadas entre sí. La separación fina es lo que
+          hace que se lea como una portada y no como tarjetas sueltas. */}
+      {apertura && (
+        <section className="grid gap-[2px] md:grid-cols-2">
+          <TarjetaDeLectura lectura={apertura} onAbrir={() => abrir(apertura.id)} tamano="grande" />
+          {acompanan.length > 0 && (
+            <div className="grid gap-[2px] sm:grid-cols-2">
+              {acompanan.map((lectura) => (
+                <TarjetaDeLectura
+                  key={lectura.id}
+                  lectura={lectura}
+                  onAbrir={() => abrir(lectura.id)}
+                  tamano="media"
+                />
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
+      {/* Las secciones van en columnas, una al lado de otra. Apiladas en filas
+          de cuatro, una sección con un solo artículo dejaba tres huecos y la
+          portada se venía abajo. */}
       {resto.length > 0 && (
-        <ul className="m-0 grid list-none grid-cols-1 gap-aire-m p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {resto.map((lectura) => (
-            <li key={lectura.id}>
-              <TarjetaDeLectura lectura={lectura} onAbrir={() => abrir(lectura.id)} />
-            </li>
+        <div className="grid gap-aire-m sm:grid-cols-2 md:grid-cols-3">
+          {agruparPorSeccion(resto).map(([seccion, articulos]) => (
+            <section key={seccion} className="flex flex-col gap-aire-s">
+              <TituloDeSeccion>{seccion}</TituloDeSeccion>
+              <div className="flex flex-col gap-[2px]">
+                {articulos.map((lectura) => (
+                  <TarjetaDeLectura
+                    key={lectura.id}
+                    lectura={lectura}
+                    onAbrir={() => abrir(lectura.id)}
+                    tamano="media"
+                    // La sección ya la dice el encabezado de la columna.
+                    conEtiqueta={false}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
-    </section>
+    </div>
   )
+}
+
+/**
+ * Encabezado de sección: una línea que cruza y la etiqueta al final.
+ *
+ * Marca dónde empieza cada bloque sin robarle peso a los titulares, que es lo
+ * que tiene que llamar en una portada.
+ */
+function TituloDeSeccion({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-aire-xs">
+      <span aria-hidden className="h-px flex-1 bg-linea" />
+      <h2 className="m-0 bg-oro px-aire-xs py-[0.15rem] font-mono text-[0.62rem] uppercase tracking-label text-sobreoro">
+        {children}
+      </h2>
+    </div>
+  )
+}
+
+/**
+ * Reparte los artículos en bloques por sección, en el orden en que aparecen.
+ *
+ * Lo que no lleva sección va junto al final: es contenido bueno que todavía no
+ * tiene casa, y esconderlo sería peor que agruparlo.
+ */
+function agruparPorSeccion(articulos: Lectura[]): [string, Lectura[]][] {
+  const bloques = new Map<string, Lectura[]>()
+  for (const articulo of articulos) {
+    const clave = articulo.seccion ?? 'Más lecturas'
+    bloques.set(clave, [...(bloques.get(clave) ?? []), articulo])
+  }
+  return [...bloques.entries()]
 }
 
 /**
