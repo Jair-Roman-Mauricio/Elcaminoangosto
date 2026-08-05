@@ -58,6 +58,8 @@ const PARADAS: Parada[] = [
 ]
 
 const AUDIO = '/videos-lading/recorrido-plataforma.mp3'
+/** Dónde acaba de hablar. Con o sin voz, el recorrido dura lo mismo. */
+const FIN = 65.4
 /** Marca de que ya se hizo. Un recorrido que se repite es un peaje. */
 const CLAVE = 'ec-recorrido-visto'
 
@@ -87,9 +89,18 @@ export function RecorridoGuiado() {
   const location = useLocation()
   const navegar = useNavigate()
   const pedido = Boolean((location.state as { recorrido?: boolean } | null)?.recorrido)
-  const [activo, setActivo] = useState(() => pedido && !recorridoYaVisto())
+  /**
+   * `?recorrido=1` lo fuerza aunque ya se haya visto.
+   *
+   * Sin esto, probarlo una vez lo dejaba enterrado hasta borrar el
+   * almacenamiento del navegador: quien lo construye no puede volver a verlo, y
+   * un enlace a la bienvenida no se le puede enseñar a nadie.
+   */
+  const forzado = new URLSearchParams(location.search).get('recorrido') === '1'
+  const [activo, setActivo] = useState(() => forzado || (pedido && !recorridoYaVisto()))
   const [parada, setParada] = useState(0)
   const [esMovil, setEsMovil] = useState(false)
+  const [conVoz, setConVoz] = useState(true)
   const vozRef = useRef<HTMLAudioElement | null>(null)
 
   // El mismo corte que usa el layout para cambiar el sidebar por un cajón.
@@ -120,6 +131,18 @@ export function RecorridoGuiado() {
     setActivo(false)
   }, [])
 
+  /**
+   * El recorrido ocurre suene o no la voz.
+   *
+   * Antes, si el navegador bloqueaba el audio, se cerraba entero: la persona no
+   * veía ni el recorrido ni el motivo. Y algunos navegadores —Safari, sobre
+   * todo— son severos con un `Audio` creado por código aunque ya hubiera habido
+   * un gesto en la página.
+   *
+   * Ahora el reloj es la voz **si suena**, y si no, el tiempo de pared. Las
+   * paradas son las mismas y duran lo mismo; lo único que falta es el sonido, y
+   * para eso está el botón de activarla.
+   */
   useEffect(() => {
     if (!activo) return
 
@@ -127,8 +150,18 @@ export function RecorridoGuiado() {
     voz.preload = 'auto'
     vozRef.current = voz
 
-    const alAvanzar = () => {
-      const t = voz.currentTime
+    const arranque = performance.now()
+    void voz.play().then(
+      () => setConVoz(true),
+      () => setConVoz(false),
+    )
+
+    const reloj = window.setInterval(() => {
+      const t = !voz.paused ? voz.currentTime : (performance.now() - arranque) / 1000
+      if (t >= FIN) {
+        terminar()
+        return
+      }
       let corresponde = 0
       for (let i = PARADAS.length - 1; i >= 0; i -= 1) {
         if (t >= PARADAS[i]!.desde) {
@@ -137,23 +170,21 @@ export function RecorridoGuiado() {
         }
       }
       setParada((actual) => (actual === corresponde ? actual : corresponde))
-    }
-
-    voz.addEventListener('timeupdate', alAvanzar)
-    const alAcabar = () => terminar()
-    voz.addEventListener('ended', alAcabar)
-    void voz.play().catch(() => {
-      // Sin sonido no tiene sentido pasear a nadie: se cierra, pero queda
-      // pendiente para la próxima vez.
-      terminar(false)
-    })
+    }, 200)
 
     return () => {
-      voz.removeEventListener('timeupdate', alAvanzar)
-      voz.removeEventListener('ended', alAcabar)
+      window.clearInterval(reloj)
       voz.pause()
     }
   }, [activo, terminar])
+
+  /** Reintenta la voz desde el punto en que va el recorrido. */
+  const activarVoz = () => {
+    const voz = vozRef.current
+    if (!voz) return
+    voz.currentTime = PARADAS[parada]!.desde
+    void voz.play().then(() => setConVoz(true), () => undefined)
+  }
 
   // Cada parada abre su sección. `replace` para no dejar seis entradas en el
   // historial: volver atrás debe llevar a la historia, no a media visita.
@@ -229,6 +260,15 @@ export function RecorridoGuiado() {
           <p className="m-0 min-w-0 truncate font-mono text-body-s uppercase tracking-label text-acento">
             {actual.titulo}
           </p>
+          {!conVoz && (
+            <button
+              type="button"
+              onClick={activarVoz}
+              className="shrink-0 border border-acento px-aire-xs py-[0.15rem] font-mono text-body-s uppercase tracking-label text-acento transition-colors duration-fade ease-camino hover:bg-oro hover:text-sobreoro"
+            >
+              Con voz
+            </button>
+          )}
           <button
             type="button"
             onClick={() => terminar()}
