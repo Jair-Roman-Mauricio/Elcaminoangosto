@@ -292,7 +292,13 @@ export interface FichaLectura {
   autor: string
   seccion: string | null
   referencia: string | null
+  /** Redes que acompañan a la lectura: solo las que quien publica añada. */
+  redes: Record<string, string>
   portadaAssetId: string | null
+  /** Recorte sin fondo para la página del devocional. */
+  ilustracionAssetId: string | null
+  /** Telón de fondo del devocional, por su clave. */
+  fondo: string | null
 }
 
 /**

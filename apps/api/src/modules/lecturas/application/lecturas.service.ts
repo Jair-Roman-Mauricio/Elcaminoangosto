@@ -26,7 +26,12 @@ export interface LecturaCard {
   seccion: string | null
   autor: string
   referencia: string | null
+  /** Redes que acompañan al artículo, de «red» a dirección. */
+  redes: Record<string, string>
   portadaUrl: string | null
+  /** Recorte sin fondo para la página del devocional. */
+  ilustracionUrl: string | null
+  fondo: string | null
   /** Minutos de lectura, calculados del propio texto. */
   minutos: number
   publishedAt: string | null
@@ -114,7 +119,10 @@ export class LecturasService {
       seccion: string | null
       autor: string
       referencia: string | null
+      redes: Record<string, string>
       portadaAssetId: string | null
+      ilustracionAssetId: string | null
+      fondo: string | null
     },
   ): Promise<{ id: string }> {
     this.exigirAdmin(actor)
@@ -137,7 +145,10 @@ export class LecturasService {
       seccion?: string | null | undefined
       autor?: string | undefined
       referencia?: string | null | undefined
+      redes?: Record<string, string> | undefined
       portadaAssetId?: string | null | undefined
+      ilustracionAssetId?: string | null | undefined
+      fondo?: string | null | undefined
       oculto?: boolean | undefined
     },
   ): Promise<void> {
@@ -303,9 +314,14 @@ export class LecturasService {
       seccion: fila.seccion,
       autor: fila.autor,
       referencia: fila.referencia,
+      redes: fila.redes,
       portadaUrl: fila.portadaAssetId
         ? await this.media.urlDeLectura(fila.portadaAssetId, true).catch(() => null)
         : null,
+      ilustracionUrl: fila.ilustracionAssetId
+        ? await this.media.urlDeLectura(fila.ilustracionAssetId, true).catch(() => null)
+        : null,
+      fondo: fila.fondo,
       // Nunca cero: «menos de un minuto» se dice con un 1, no con un 0.
       minutos: Math.max(1, Math.round(palabras / PALABRAS_POR_MINUTO)),
       publishedAt: fila.publishedAt?.toISOString() ?? null,

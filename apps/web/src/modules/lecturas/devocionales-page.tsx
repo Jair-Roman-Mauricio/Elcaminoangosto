@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Eyebrow } from '@elcamino/ui'
 import { useDevocionales, type Lectura } from './lecturas-api'
-import { TarjetaDeLectura } from './tarjeta-de-lectura'
-import { LectorEditorial } from './lector-editorial'
+import { TarjetaDeDevocional } from './tarjeta-de-devocional'
+import { LectorDeDevocional } from './lector-de-devocional'
 import { useRegistrarVisita } from '../../lib/analitica'
 
 /**
@@ -23,7 +23,7 @@ export function DevocionalesPage() {
 
   if (abierto) {
     return (
-      <LectorEditorial
+      <LectorDeDevocional
         lectura={abierto}
         onVolver={() => setAbierto(null)}
         onAbrirOtra={abrirOtra}
@@ -51,10 +51,13 @@ export function DevocionalesPage() {
         <p className="m-0 font-ui text-body text-texto-tenue">Todavía no hay devocionales.</p>
       )}
 
-      <ul className="m-0 grid list-none grid-cols-1 gap-aire-m p-0 sm:grid-cols-2 md:grid-cols-3">
+      {/* Uno debajo de otro y a todo lo ancho: un devocional es una lectura,
+          no una pieza de escaparate, y así cada uno cuenta de qué va antes de
+          que haya que abrirlo. */}
+      <ul className="m-0 flex list-none flex-col divide-y divide-linea p-0">
         {(data ?? []).map((lectura) => (
           <li key={lectura.id}>
-            <TarjetaDeLectura lectura={lectura} onAbrir={() => setAbierto(lectura)} />
+            <TarjetaDeDevocional lectura={lectura} onAbrir={() => setAbierto(lectura)} />
           </li>
         ))}
       </ul>

@@ -16,7 +16,13 @@ export interface Lectura {
   seccion: string | null
   autor: string
   referencia: string | null
+  /** Redes que acompañan al artículo, de «red» a dirección. */
+  redes: Record<string, string>
   portadaUrl: string | null
+  /** Recorte sin fondo que acompaña al devocional dentro de su página. */
+  ilustracionUrl: string | null
+  /** Telón de fondo del devocional: la clave de uno de los de la interfaz. */
+  fondo: string | null
   /** Minutos de lectura, calculados del propio texto por el servidor. */
   minutos: number
   publishedAt: string | null

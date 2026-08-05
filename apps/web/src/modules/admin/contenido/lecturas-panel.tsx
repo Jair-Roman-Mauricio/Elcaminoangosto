@@ -11,6 +11,8 @@ import {
 } from './contenido-api'
 import type { Lectura } from '../../lecturas/lecturas-api'
 import { EditorLectura } from '../../../components/editor-lectura'
+import { REDES } from '../../lecturas/redes-de-la-lectura'
+import { FONDOS } from '../../lecturas/fondos-de-devocional'
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-PE', {
   day: 'numeric',
@@ -178,6 +180,12 @@ function ModalEscribirLectura({
   const publicar = usePublicarLectura(tipo)
   const [ficha, setFicha] = useState(FICHA_VACIA)
   const [portada, setPortada] = useState<File | null>(null)
+  // Qué redes acompañan a esta lectura y a dónde llevan. Se eligen una a una:
+  // ninguna es obligatoria y el orden es el que decida quien publica.
+  const [redes, setRedes] = useState<{ clave: string; url: string }[]>([])
+  // Solo para el devocional: el recorte que va a su derecha y el telón detrás.
+  const [ilustracion, setIlustracion] = useState<File | null>(null)
+  const [fondo, setFondo] = useState<string>('')
   const [fase, setFase] = useState<'elegir' | 'subiendo' | 'procesando' | 'publicando'>('elegir')
   const [pct, setPct] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -194,6 +202,9 @@ function ModalEscribirLectura({
   const limpiar = () => {
     setFicha(FICHA_VACIA)
     setPortada(null)
+    setRedes([])
+    setIlustracion(null)
+    setFondo('')
     setError(null)
     setPct(0)
   }
@@ -220,6 +231,17 @@ function ModalEscribirLectura({
         if (estado.status === 'FAILED') throw new Error('No se pudo procesar la portada')
       }
 
+      // La ilustración va por el mismo camino que la portada. Es opcional: sin
+      // ella el devocional se lee igual, solo que a una columna.
+      let ilustracionAssetId: string | null = null
+      if (ilustracion) {
+        setFase('subiendo')
+        ilustracionAssetId = await subirMedioReanudable(ilustracion, 'IMAGE', 'feed-media', setPct)
+        setFase('procesando')
+        const estado = await esperarProcesado(ilustracionAssetId)
+        if (estado.status === 'FAILED') throw new Error('No se pudo procesar la ilustración')
+      }
+
       setFase('publicando')
       const cuerpo: FichaLectura = {
         titulo: ficha.titulo.trim(),
@@ -228,7 +250,12 @@ function ModalEscribirLectura({
         autor: ficha.autor.trim(),
         seccion: esRevista ? oNulo(ficha.seccion) : null,
         referencia: oNulo(ficha.referencia),
+        redes: Object.fromEntries(
+          redes.filter((r) => r.url.trim()).map((r) => [r.clave, r.url.trim()]),
+        ),
         portadaAssetId,
+        ilustracionAssetId,
+        fondo: fondo || null,
       }
       await publicar.mutateAsync(cuerpo)
       setFase('elegir')
@@ -308,6 +335,44 @@ function ModalEscribirLectura({
               {...campo('referencia')}
             />
           </Field>
+
+          {!esRevista && (
+            <>
+              <Field
+                label="Ilustración (opcional)"
+                htmlFor="lectura-ilustracion"
+                hint="Recorte sin fondo (PNG). Va al lado del texto."
+              >
+                <input
+                  id="lectura-ilustracion"
+                  type="file"
+                  accept="image/png,image/webp"
+                  disabled={ocupado}
+                  onChange={(e) => setIlustracion(e.target.files?.[0] ?? null)}
+                  className={CLASE_ARCHIVO}
+                />
+              </Field>
+
+              <Field label="Fondo" htmlFor="lectura-fondo" hint="El telón que va detrás.">
+                <select
+                  id="lectura-fondo"
+                  value={fondo}
+                  disabled={ocupado}
+                  onChange={(e) => setFondo(e.target.value)}
+                  className="w-full rounded border border-linea bg-superficie-2 px-aire-s py-2 font-mono text-body-s text-contenido"
+                >
+                  <option value="">Sin fondo</option>
+                  {FONDOS.map((f) => (
+                    <option key={f.clave} value={f.clave}>
+                      {f.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </>
+          )}
+
+          <RedesDeLaLectura redes={redes} onCambiar={setRedes} deshabilitado={ocupado} />
         </div>
 
         <div className="flex flex-col gap-aire-s">
@@ -368,6 +433,83 @@ function ModalEscribirLectura({
         </div>
       </div>
     </Modal>
+  )
+}
+
+/**
+ * Las redes que acompañan a la lectura.
+ *
+ * No hay una casilla fija por red: se añaden las que hagan falta y solo esas
+ * salen publicadas. Un artículo firmado por alguien de fuera lleva las suyas,
+ * y uno de la casa puede llevar solo una.
+ */
+function RedesDeLaLectura({
+  redes,
+  onCambiar,
+  deshabilitado,
+}: {
+  redes: { clave: string; url: string }[]
+  onCambiar: (redes: { clave: string; url: string }[]) => void
+  deshabilitado: boolean
+}) {
+  const disponibles = REDES.filter((red) => !redes.some((r) => r.clave === red.clave))
+
+  const nombreDe = (clave: string) => REDES.find((r) => r.clave === clave)?.nombre ?? clave
+
+  return (
+    <fieldset className="m-0 flex flex-col gap-aire-xs border-0 p-0">
+      <legend className="mb-aire-xs p-0 font-mono text-eyebrow uppercase tracking-label text-texto-tenue">
+        Redes (opcional)
+      </legend>
+
+      {redes.map((red, i) => (
+        <div key={red.clave} className="flex items-center gap-aire-xs">
+          <span className="w-[5.5rem] shrink-0 font-mono text-body-s text-contenido">
+            {nombreDe(red.clave)}
+          </span>
+          <Input
+            aria-label={`Dirección de ${nombreDe(red.clave)}`}
+            value={red.url}
+            disabled={deshabilitado}
+            placeholder="https://…"
+            onChange={(e) =>
+              onCambiar(redes.map((r, j) => (i === j ? { ...r, url: e.target.value } : r)))
+            }
+          />
+          <Boton
+            variante="pastilla"
+            tamano="compacto"
+            disabled={deshabilitado}
+            onClick={() => onCambiar(redes.filter((_, j) => j !== i))}
+          >
+            Quitar
+          </Boton>
+        </div>
+      ))}
+
+      {disponibles.length > 0 && (
+        <select
+          aria-label="Añadir una red"
+          value=""
+          disabled={deshabilitado}
+          onChange={(e) => {
+            if (e.target.value) onCambiar([...redes, { clave: e.target.value, url: '' }])
+          }}
+          className="w-full rounded border border-linea bg-superficie-2 px-aire-s py-2 font-mono text-body-s text-contenido"
+        >
+          <option value="">Añadir una red…</option>
+          {disponibles.map((red) => (
+            <option key={red.clave} value={red.clave}>
+              {red.nombre}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <p className="m-0 font-mono text-eyebrow text-texto-tenue">
+        Solo se muestran las que añadas aquí, con su dirección completa.
+      </p>
+    </fieldset>
   )
 }
 

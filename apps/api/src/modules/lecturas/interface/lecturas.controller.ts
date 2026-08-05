@@ -20,6 +20,23 @@ const LecturaSchema = z.object({
   seccion: z.string().trim().max(80).nullable().default(null),
   referencia: z.string().trim().max(120).nullable().default(null),
   portadaAssetId: z.string().uuid().nullable().default(null),
+  ilustracionAssetId: z.string().uuid().nullable().default(null),
+  /** Los telones que trae la interfaz. La lista vive también en la migración. */
+  fondo: z.enum(['brasas', 'vitral', 'ondas', 'polvo']).nullable().default(null),
+  /**
+   * Redes del artículo. Una dirección en blanco no se guarda: un icono que no
+   * lleva a ninguna parte es peor que no tener el icono.
+   */
+  redes: z
+    .record(z.string(), z.string().trim())
+    .default({})
+    .transform((redes) =>
+      Object.fromEntries(Object.entries(redes).filter(([, url]) => url.length > 0)),
+    )
+    .refine(
+      (redes) => Object.values(redes).every((url) => /^https:\/\/\S+$/.test(url)),
+      'Las direcciones de las redes tienen que empezar por https://',
+    ),
 })
 
 const ComentarioSchema = z.object({

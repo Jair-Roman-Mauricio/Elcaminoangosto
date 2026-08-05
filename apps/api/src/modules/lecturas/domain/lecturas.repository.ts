@@ -28,7 +28,16 @@ export interface LecturaEntity {
   seccion: string | null
   autor: string
   referencia: string | null
+  /**
+   * Redes que acompañan al artículo, de «red» a dirección. Van por lectura
+   * porque un artículo firmado por alguien de fuera lleva las suyas.
+   */
+  redes: Record<string, string>
   portadaAssetId: string | null
+  /** Recorte sin fondo que acompaña al devocional dentro de su página. */
+  ilustracionAssetId: string | null
+  /** Telón de fondo: la clave de uno de los que trae la interfaz, o nada. */
+  fondo: string | null
   estado: EstadoDePublicacion
   publishedAt: Date | null
   createdAt: Date
