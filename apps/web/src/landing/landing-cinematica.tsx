@@ -321,6 +321,16 @@ export function LandingCinematica() {
             />
             <span className="max-w-[8ch] text-center">Comienza el camino</span>
           </button>
+
+          {/* La misma indicación que da la voz, escrita.
+              Ningún navegador deja sonar audio sin un gesto previo, así que si
+              esto dependiera solo de la locución, quien llegue con el sonido
+              bloqueado no sabría qué se espera de él. */}
+          <p className="pointer-events-none absolute inset-x-0 bottom-[12vh] m-0 px-gutter text-center font-mono text-body-s uppercase leading-relaxed tracking-label text-hueso/70">
+            ¿Primera vez? Pulsa el círculo y mira la historia.
+            <br />
+            ¿Ya conoces la plataforma? Entra directo arriba a la derecha.
+          </p>
         </div>
       )}
 
