@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BrandLogo } from '@elcamino/ui/static'
 import { useRegistrarVisita } from '../lib/analitica'
 
@@ -81,6 +81,7 @@ export function LandingCinematica() {
   const [iniciado, setIniciado] = useState(false)
   const [escena, setEscena] = useState(0)
   const [terminado, setTerminado] = useState(false)
+  const navegar = useNavigate()
   const vocesRef = useRef<HTMLAudioElement[]>([])
   const videosRef = useRef<(HTMLVideoElement | null)[]>([])
 
@@ -148,6 +149,20 @@ export function LandingCinematica() {
       window.clearTimeout(respaldo)
     }
   }, [escena, iniciado, irA])
+
+  /**
+   * Terminada la historia, se pasa a la plataforma sin preguntar.
+   *
+   * El botón de cierre sobraba: quien ha llegado hasta el último plano ya
+   * decidió. El segundo de espera es para que la última frase termine de caer
+   * y la mano abierta se quede un instante en pantalla; sin él, el corte pisa
+   * el final.
+   */
+  useEffect(() => {
+    if (!terminado) return
+    const paso = window.setTimeout(() => navegar('/tarjetas'), 1200)
+    return () => window.clearTimeout(paso)
+  }, [terminado, navegar])
 
   /**
    * Un gesto adelanta un plano.
@@ -235,7 +250,10 @@ export function LandingCinematica() {
         className="absolute inset-0 bg-gradient-to-b from-negro/70 via-negro/20 to-negro/80"
       />
 
-      <header className="absolute inset-x-0 top-0 flex items-center justify-between gap-aire-s px-gutter py-aire-m">
+      {/* La cabecera va POR ENCIMA de la puerta de entrada: quien ya conoce la
+          historia no tiene que verla otra vez para poder pasar. El velo cubre
+          la pantalla, pero nunca la salida. */}
+      <header className="absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-aire-s px-gutter py-aire-m">
         <BrandLogo layout="horizontal" tone="light" size="md" decorative />
         <Link
           to="/tarjetas"
@@ -269,7 +287,7 @@ export function LandingCinematica() {
           fondo: entrar es una decisión, y empezar pulsando ya es dar el primer
           paso. */}
       {!iniciado && (
-        <div className="absolute inset-0 grid place-items-center bg-negro/45 px-gutter backdrop-blur-[2px]">
+        <div className="absolute inset-0 z-20 grid place-items-center bg-negro/45 px-gutter backdrop-blur-[2px]">
           <button
             type="button"
             onClick={() => setIniciado(true)}
@@ -287,18 +305,6 @@ export function LandingCinematica() {
             />
             <span className="max-w-[8ch] text-center">Comienza el camino</span>
           </button>
-        </div>
-      )}
-
-      {/* Cierre: cuando la historia termina, la única salida es hacia dentro. */}
-      {terminado && (
-        <div className="absolute inset-x-0 bottom-0 grid place-items-center gap-aire-s px-gutter pb-[6rem] pt-aire-l">
-          <Link
-            to="/tarjetas"
-            className="animate-[mensaje-entra_900ms_var(--ease)_both] rounded-full border border-acento bg-oro brillo-oro px-[2.4rem] py-[0.9rem] font-mono text-body-s uppercase tracking-boton text-sobreoro no-underline"
-          >
-            Comienza a caminar
-          </Link>
         </div>
       )}
 
