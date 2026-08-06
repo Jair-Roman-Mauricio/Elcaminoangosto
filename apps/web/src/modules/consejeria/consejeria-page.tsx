@@ -55,7 +55,7 @@ export function ConsejeriaPage() {
           </h2>
           <ul className="m-0 grid list-none gap-aire-m p-0 sm:grid-cols-2">
             {urgencias.map((consejero) => (
-              <li key={consejero.id}>
+              <li key={consejero.id} className="min-w-0">
                 <FichaDeConsejero consejero={consejero} urgente />
               </li>
             ))}
@@ -72,7 +72,7 @@ export function ConsejeriaPage() {
           )}
           <ul className="m-0 grid list-none gap-aire-m p-0 sm:grid-cols-2">
             {resto.map((consejero) => (
-              <li key={consejero.id}>
+              <li key={consejero.id} className="min-w-0">
                 <FichaDeConsejero consejero={consejero} />
               </li>
             ))}
@@ -95,36 +95,37 @@ function FichaDeConsejero({
 
   return (
     <article
-      className={`relative flex h-full min-h-[22rem] flex-col justify-end overflow-hidden border ${
+      className={`relative flex flex-col justify-end overflow-hidden border ${
         urgente ? 'border-oro-hondo' : 'border-linea'
       }`}
     >
-      {/* La cara de quien va a responder, de fondo: es lo que hace que escribir
-          a un desconocido se parezca menos a rellenar un formulario. */}
+      {/* La cara de quien va a responder, entera y sin recortar: la tarjeta mide
+          lo que mide la foto. Recortada a una altura fija salían medias caras,
+          y aquí la cara es media presentación. */}
       {consejero.fotoUrl ? (
         <img
           src={consejero.fotoUrl}
           alt=""
           loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover object-top"
+          className="block h-auto w-full"
         />
       ) : (
         <span
           aria-hidden
-          className="absolute inset-0 grid place-items-start justify-center bg-superficie-2 pt-aire-m font-serif text-[7rem] leading-none text-acento/10"
+          className="grid aspect-[4/5] w-full place-items-start justify-center bg-superficie-2 pt-aire-m font-serif text-[7rem] leading-none text-acento/10"
         >
           {consejero.nombre.trim().charAt(0)}
         </span>
       )}
 
-      {/* El velo sube desde abajo, donde va el texto y los contactos. Sin él,
-          un número sobre una zona clara de la foto no se lee. */}
+      {/* El velo se concentra abajo, donde va el texto: arriba deja ver la foto
+          casi limpia. Sin nada, un número sobre una zona clara no se lee. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-negro via-negro/85 to-negro/25"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-negro from-15% via-negro/70 via-55% to-transparent"
       />
 
-      <div className="relative flex flex-col gap-aire-xs p-aire-m">
+      <div className="absolute inset-x-0 bottom-0 flex min-w-0 flex-col gap-aire-xs p-aire-m">
         {urgente && (
           <p className="m-0 self-start border border-oro-hondo bg-negro/60 px-[0.5rem] py-[0.15rem] font-mono text-[0.6rem] uppercase tracking-label text-acento">
             Atiende urgencias
@@ -148,16 +149,16 @@ function FichaDeConsejero({
 
         {/* Los contactos, a la vista y pulsables. Nada de desplegables: quien
             está mal no debería tener que buscar el teléfono. */}
-        <ul className="m-0 mt-aire-xs flex list-none flex-col gap-[0.35rem] p-0">
+        <ul className="m-0 mt-aire-xs flex min-w-0 list-none flex-col gap-[0.35rem] p-0">
           {contactos.map((canal) => {
             const dato = consejero.contactos[canal.clave]!
             const externo = canal.clave !== 'telefono' && canal.clave !== 'correo'
             return (
-              <li key={canal.clave}>
+              <li key={canal.clave} className="min-w-0">
                 <a
                   href={canal.enlace(dato)}
                   {...(externo ? { target: '_blank', rel: 'noreferrer' } : {})}
-                  className="flex items-center gap-aire-xs border border-hueso/25 bg-negro/50 px-aire-s py-2 font-mono text-body-s text-hueso no-underline backdrop-blur-sm transition-colors duration-fade ease-camino hover:border-acento hover:text-acento"
+                  className="flex min-w-0 items-center gap-aire-xs border border-hueso/25 bg-negro/50 px-aire-s py-2 font-mono text-body-s text-hueso no-underline backdrop-blur-sm transition-colors duration-fade ease-camino hover:border-acento hover:text-acento"
                 >
                   <svg viewBox="0 0 24 24" className="size-4 shrink-0" fill="currentColor" aria-hidden>
                     {canal.icono}
