@@ -16,6 +16,20 @@ import {
 import { SongSubtitles } from './song-subtitles'
 import { useSession } from '../../auth/session'
 
+/**
+ * Qué se ve en el sello del disco.
+ *
+ * La imagen del fondo de reproducción, que es la que acompaña a esa canción
+ * cuando suena: así el disco del listado y lo que se ve al escucharlo son la
+ * misma escena. Si el fondo es un video no hay fotograma que poner, y si no hay
+ * fondo tampoco, así que en ambos casos se cae a la portada de la canción y,
+ * como último recurso, a la del álbum.
+ */
+function selloDelDisco(cancion: Alabanza, portadaDelAlbum: string): string {
+  if (cancion.fondo?.tipo === 'imagen') return cancion.fondo.url
+  return cancion.coverUrl || portadaDelAlbum
+}
+
 type Vista = 'albumes' | 'discos' | 'reproductor'
 type Filtro = 'todo' | 'favoritos'
 type FaseDeApertura = 'centrando' | 'discos' | null
@@ -219,7 +233,7 @@ export function AlabanzaPage() {
       tono: albumDeLaCancion?.tono ?? 'vino',
       discColor: albumDeLaCancion?.discColor ?? '#8a6212',
     }
-  }), [albumesFavoritos])
+  }), [ALBUMES_DE_ALABANZA, CANCIONES_DE_ALABANZA, albumesFavoritos])
   const albumes = useMemo<AlbumDeCatalogo[]>(() => {
     if (categoriaAlbum === CATEGORIA_ALBUMES_FAVORITOS) {
       return albumesPersonales.filter((album) => coincide(`${album.titulo} ${album.descripcion}`))
@@ -228,13 +242,13 @@ export function AlabanzaPage() {
       const coincideCategoria = categoriaAlbum === 'todos' || album.albumId === categoriaAlbum
       return coincideCategoria && coincide(`${album.titulo} ${album.descripcion}`)
     })
-  }, [albumesPersonales, categoriaAlbum, termino])
+  }, [ALBUMES_DE_ALABANZA, albumesPersonales, categoriaAlbum, termino])
   const discos = useMemo(() => {
     const candidatos = coleccionActiva
       ? CANCIONES_DE_ALABANZA.filter((disc) => coleccionActiva.songIds.includes(disc.songId))
       : CANCIONES_DE_ALABANZA.filter((disc) => disc.albumId === albumId)
     return candidatos.filter((disc) => coincide(`${disc.titulo} ${disc.artista} ${disc.subtitulo}`) && (filtro === 'todo' || favoritos.includes(disc.songId)))
-  }, [albumId, coleccionActiva, favoritos, filtro, termino])
+  }, [CANCIONES_DE_ALABANZA, albumId, coleccionActiva, favoritos, filtro, termino])
   const cancionesDelEditor = cancionesEditadas
     .map((songId) => buscarCancion(CANCIONES_DE_ALABANZA, songId))
     .filter((cancion): cancion is Alabanza => cancion !== undefined)
@@ -518,7 +532,7 @@ export function AlabanzaPage() {
                   <button type="button" onClick={() => reproducirDisco(disco)} aria-label={`Escuchar ${disco.titulo}`}>
                     {/* El disco siempre muestra la portada de su álbum: es la
                         identidad de la colección, no de la canción suelta. */}
-                    <VinylDisc artwork={buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.coverUrl ?? albumActivo.coverUrl} color={buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.discColor ?? albumActivo.discColor} label={`Vinilo de ${disco.titulo}`} spinning={pista?.songId === disco.songId && reproduciendo} className="praise-disc-object__scene" />
+                    <VinylDisc artwork={selloDelDisco(disco, buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.coverUrl ?? albumActivo.coverUrl)} color={buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.discColor ?? albumActivo.discColor} label={`Vinilo de ${disco.titulo}`} spinning={pista?.songId === disco.songId && reproduciendo} className="praise-disc-object__scene" />
                     <strong>{disco.titulo}</strong>
                   </button>
                 </article>
