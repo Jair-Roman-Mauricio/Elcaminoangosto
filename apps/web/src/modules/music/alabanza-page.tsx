@@ -82,7 +82,7 @@ function convertirEnPortadaCuadrada(archivo: File) {
 export function AlabanzaPage() {
   const { session } = useSession()
   const navigate = useNavigate()
-  const { catalogo, cargando } = useCatalogoDeAlabanza()
+  const { catalogo, cargando, error: fallóElCatalogo } = useCatalogoDeAlabanza()
   useRegistrarVisita('alabanza')
   const ALBUMES_DE_ALABANZA = catalogo.albumes
   const CANCIONES_DE_ALABANZA = catalogo.canciones
@@ -371,15 +371,19 @@ export function AlabanzaPage() {
     cerrarEditorDeAlbum()
   }
 
-  // El catálogo llega vacío mientras carga y también cuando aún no se ha
-  // publicado ninguna canción: sin álbumes no hay nada que reproducir.
+  // El catálogo llega vacío mientras carga, cuando el servidor no responde y
+  // también cuando aún no se ha publicado ninguna canción. Los tres casos se
+  // veían igual: «todavía no hay canciones». Decirle eso a alguien cuando el
+  // problema es nuestro le hace creer que la plataforma está vacía y no vuelve.
   if (!albumActivo || !activa) {
     return (
       <section className="praise-empty" aria-live="polite">
         <p>
           {cargando
             ? 'Cargando el catálogo…'
-            : 'Todavía no hay canciones publicadas. El administrador las sube desde Contenido.'}
+            : fallóElCatalogo
+              ? 'No pudimos traer el catálogo. Revisa tu conexión y vuelve a intentarlo.'
+              : 'Todavía no hay canciones publicadas. El administrador las sube desde Contenido.'}
         </p>
       </section>
     )

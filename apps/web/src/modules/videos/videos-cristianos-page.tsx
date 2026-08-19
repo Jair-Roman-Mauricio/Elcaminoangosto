@@ -49,7 +49,7 @@ const fechaCorta = new Intl.DateTimeFormat('es-PE', {
 const cuando = (iso: string) => fechaCorta.format(new Date(iso))
 
 export function VideosCristianosPage() {
-  const { data: catalogo, isPending } = useVideos()
+  const { data: catalogo, isPending, isError } = useVideos()
   useRegistrarVisita('videos')
   const VIDEOS = useMemo(() => (catalogo ?? []).map(aVideoCristiano), [catalogo])
   const [videoActivoId, setVideoActivoId] = useState('')
@@ -188,12 +188,16 @@ export function VideosCristianosPage() {
           aria-label="Videos cristianos. Usa las flechas o desliza para cambiar de video."
         >
           {/* Sin catálogo no hay nada que desplazar: se explica en vez de
-              dejar una pantalla negra vacía. */}
+              dejar una pantalla negra vacía. Que el servidor no conteste no es
+              lo mismo que no haber publicado nada, y decirlo mal manda a quien
+              mira a buscar un fallo suyo que no existe. */}
           {VIDEOS.length === 0 && (
             <p className="short-video__empty">
               {isPending
                 ? 'Cargando videos…'
-                : 'Todavía no hay videos publicados. El administrador los sube desde Contenido.'}
+                : isError
+                  ? 'No pudimos traer los videos. Revisa tu conexión y vuelve a intentarlo.'
+                  : 'Todavía no hay videos publicados. El administrador los sube desde Contenido.'}
             </p>
           )}
 
