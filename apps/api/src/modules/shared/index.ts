@@ -15,4 +15,5 @@ export { CurrentUser, type CurrentUserContext } from './decorators/current-user.
 export { UsuarioOpcional } from './decorators/usuario-opcional.decorator'
 export { ZodValidationPipe } from './pipes/zod-validation.pipe'
 export { HttpExceptionFilter } from './filters/http-exception.filter'
+export { TimeoutInterceptor } from './interface/timeout.interceptor'
 export { DRIZZLE, DatabaseModule, type Database } from './database/database.module'

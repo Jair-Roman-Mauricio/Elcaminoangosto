@@ -162,10 +162,18 @@ jobs:
       - name: Smoke test del API
         if: github.ref == 'refs/heads/main'
         run: |
+          # `/health` consulta la base de datos: un 200 aquí significa que el
+          # API puede servir catálogo, no solo que el proceso arrancó. Se pide
+          # además una ruta real de contenido, porque una prueba de humo que
+          # nunca puede fallar no es una prueba.
+          api=https://api-production-f113.up.railway.app/api
           for i in $(seq 1 20); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' \
-              https://api-production-f113.up.railway.app/api/health || true)
-            [ "$code" = "200" ] && { echo "✓ API viva"; exit 0; }
+            salud=$(curl -s -m 20 -o /dev/null -w '%{http_code}' "$api/health" || true)
+            if [ "$salud" = "200" ]; then
+              catalogo=$(curl -s -m 20 -o /dev/null -w '%{http_code}' "$api/videos" || true)
+              [ "$catalogo" = "200" ] && { echo "✓ API viva y sirviendo contenido"; exit 0; }
+              echo "· salud OK pero /videos devolvió $catalogo; se reintenta"
+            fi
             sleep 15
           done
-          echo "✗ El API no respondió 200 tras el despliegue"; exit 1
+          echo "✗ El API no sirvió contenido tras el despliegue"; exit 1

@@ -7,12 +7,14 @@ import helmet from 'helmet'
 
 import { AppModule } from './app.module'
 import { HttpExceptionFilter } from './modules/shared/filters/http-exception.filter'
+import { TimeoutInterceptor } from './modules/shared/interface/timeout.interceptor'
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true })
 
   app.useLogger(app.get(PinoLogger))
   app.useGlobalFilters(new HttpExceptionFilter())
+  app.useGlobalInterceptors(new TimeoutInterceptor())
   app.enableShutdownHooks()
 
   const config = app.get(ConfigService)
