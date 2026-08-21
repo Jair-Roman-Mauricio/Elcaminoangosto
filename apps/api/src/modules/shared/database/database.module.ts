@@ -1,94 +1,83 @@
 import { Global, Logger, Module, Inject, type OnApplicationShutdown } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
 import * as schema from './schema'
 
 export const DRIZZLE = Symbol('DRIZZLE')
-export const PG_CLIENT = Symbol('PG_CLIENT')
+export const PG_POOL = Symbol('PG_POOL')
 
-export type Database = PostgresJsDatabase<typeof schema>
-
-/**
- * Techo de duración de UNA consulta. Lo aplica el servidor: pasado el plazo
- * mata la consulta y devuelve el error, así la conexión vuelve al pool.
- */
-const STATEMENT_TIMEOUT_MS = 15_000
+export type Database = NodePgDatabase<typeof schema>
 
 /**
- * Opciones comunes del pool.
+ * Techo de duración de UNA consulta, por los dos lados.
  *
- * Sin caducidades, una conexión que deja de responder —el pooler la cerró por
- * su lado, un cortafuegos la comió— se queda en el pool para siempre y sigue
- * recibiendo consultas que nadie contestará. Con `max: 10`, diez conexiones
- * así dejan el API entero esperando: es lo que ocurrió el 16/08/2026, cuando
- * el catálogo, los videos y los devocionales dejaron de cargar en producción
- * mientras el proceso seguía vivo y `/health` seguía en verde.
+ * `statement_timeout` lo aplica Postgres: mata la consulta y contesta. Pero
+ * eso solo sirve si la respuesta llega. `query_timeout` lo aplica el cliente:
+ * pasado el plazo da la consulta por perdida, DESTRUYE la conexión y la saca
+ * del pool. Es el único de los dos que salva al API de una conexión que se
+ * quedó muda, y es la razón de haber cambiado de driver.
  */
-const OPCIONES_BASE = {
-  // Obligatorio con el pooler de Supabase (pgbouncer en modo transacción no
-  // soporta prepared statements con nombre).
-  prepare: false,
-  max: 10,
-  /** Una conexión ociosa se cierra: si estaba muerta, no vuelve a usarse. */
-  idle_timeout: 30,
-  /** Y ninguna vive más de media hora, ocupada o no. */
-  max_lifetime: 60 * 30,
-  /** Si la BD no acepta la conexión, fallar y decirlo. Colgarse es peor. */
-  connect_timeout: 10,
-} satisfies postgres.Options<Record<string, never>>
-
-/**
- * Abre el pool con `statement_timeout` y, si el pooler rechaza ese parámetro
- * de arranque, reabre sin él.
- *
- * Supavisor no acepta cualquier parámetro en el saludo inicial, y eso varía
- * entre versiones. Sin esta comprobación, un parámetro no admitido no degrada
- * el servicio: lo apaga entero, porque ninguna conexión llegaría a abrirse.
- */
-async function abrirPool(url: string, logger: Logger): Promise<postgres.Sql> {
-  const conLimite = postgres(url, {
-    ...OPCIONES_BASE,
-    connection: { statement_timeout: STATEMENT_TIMEOUT_MS },
-  })
-  try {
-    await conLimite`select 1`
-    return conLimite
-  } catch (error) {
-    await conLimite.end({ timeout: 5 }).catch(() => undefined)
-    logger.warn(
-      `El pooler no admitió statement_timeout (${(error as Error).message}). ` +
-        'Se abre el pool sin límite por consulta; considera fijarlo en el rol de la BD.',
-    )
-    return postgres(url, OPCIONES_BASE)
-  }
-}
+const TIMEOUT_MS = 15_000
 
 /**
  * Único punto donde se abre la conexión a Postgres. Los repositorios de cada
  * módulo inyectan `DRIZZLE` y solo tocan las tablas de su propio contexto.
+ *
+ * Se usa `node-postgres` y no `postgres.js` por una razón concreta y cara: con
+ * el pooler de Supabase (Supavisor, modo transacción) postgres.js se queda con
+ * conexiones que envían la consulta y no reciben respuesta jamás —está
+ * reportado en porsager/postgres#970— y no ofrece ningún plazo del lado del
+ * cliente. Esas conexiones cuentan como ocupadas, así que ni `idle_timeout` ni
+ * `max_lifetime` las tocan: se quedan en el pool para siempre. Con `max: 10`,
+ * diez así dejan el API entero esperando. Producción se cayó dos veces por
+ * esto (16 y 21 de agosto de 2026): el proceso vivo, sin un solo error en el
+ * registro, y ni catálogo, ni videos, ni tarjetas, ni devocionales.
+ *
+ * `pg` sí corta del lado del cliente y tira la conexión enferma, que es lo
+ * único que devuelve el pool a la vida sin reiniciar el servicio.
  */
 @Global()
 @Module({
   providers: [
     {
-      provide: PG_CLIENT,
+      provide: PG_POOL,
       inject: [ConfigService],
       useFactory: (config: ConfigService) =>
-        abrirPool(config.getOrThrow<string>('DATABASE_URL'), new Logger('DatabaseModule')),
+        new Pool({
+          connectionString: config.getOrThrow<string>('DATABASE_URL'),
+          max: 10,
+          /** El cliente se rinde y descarta la conexión. Ver arriba. */
+          query_timeout: TIMEOUT_MS,
+          /** Y el servidor mata su lado, para no dejar la consulta corriendo. */
+          statement_timeout: TIMEOUT_MS,
+          /** Esperar sitio en el pool tampoco puede ser eterno. */
+          connectionTimeoutMillis: 10_000,
+          /** Una conexión ociosa se cierra: si estaba muerta, no vuelve a usarse. */
+          idleTimeoutMillis: 30_000,
+          keepAlive: true,
+        }),
     },
     {
       provide: DRIZZLE,
-      inject: [PG_CLIENT],
-      useFactory: (client: postgres.Sql) => drizzle(client, { schema }),
+      inject: [PG_POOL],
+      useFactory: (pool: Pool) => drizzle(pool, { schema }),
     },
   ],
-  exports: [DRIZZLE, PG_CLIENT],
+  exports: [DRIZZLE, PG_POOL],
 })
 export class DatabaseModule implements OnApplicationShutdown {
-  constructor(@Inject(PG_CLIENT) private readonly client: postgres.Sql) {}
+  private readonly logger = new Logger(DatabaseModule.name)
+
+  constructor(@Inject(PG_POOL) private readonly pool: Pool) {
+    // Sin este oyente, un error en una conexión OCIOSA es un `error` sin
+    // escuchar en un EventEmitter: Node tumba el proceso entero.
+    this.pool.on('error', (error) => {
+      this.logger.warn(`Conexión descartada del pool: ${error.message}`)
+    })
+  }
 
   async onApplicationShutdown(): Promise<void> {
-    await this.client.end({ timeout: 5 })
+    await this.pool.end()
   }
 }

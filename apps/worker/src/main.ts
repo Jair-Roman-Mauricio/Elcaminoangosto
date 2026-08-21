@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis'
 import { createClient } from '@supabase/supabase-js'
-import postgres from 'postgres'
+import { Pool } from 'pg'
 import pino from 'pino'
 import { cargarConfig } from './config'
 import { SupabaseMediaProvider } from './media/supabase-media-provider'
@@ -28,7 +28,22 @@ async function main(): Promise<void> {
   // El worker escribe el resultado directamente en `media_assets`. No comparte
   // el EventEmitter del API (proceso aparte): la BD es la fuente de verdad, y
   // el feed muestra un post solo cuando su media_asset está READY.
-  const sql = postgres(config.DATABASE_URL, { prepare: false, max: 4 })
+  // `pg` y no `postgres.js` por lo mismo que el API: con el pooler de Supabase
+  // aquel se queda con conexiones que envían la consulta y no reciben respuesta
+  // jamás, y no ofrece ningún plazo del lado del cliente. Aquí el precio de esa
+  // avería es callado y peor: el video se transcodifica bien, el resultado no
+  // se puede escribir, y el medio se queda en «procesando» para siempre.
+  const pool = new Pool({
+    connectionString: config.DATABASE_URL,
+    max: 4,
+    query_timeout: 15_000,
+    statement_timeout: 15_000,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
+    keepAlive: true,
+  })
+  // Un error en una conexión ociosa es un `error` sin escuchar: tumba el proceso.
+  pool.on('error', (error) => logger.warn({ err: error }, 'Conexión descartada del pool'))
 
   const provider = new SupabaseMediaProvider(supabase)
 
@@ -39,20 +54,24 @@ async function main(): Promise<void> {
     concurrency: config.MEDIA_CONCURRENCY,
     alTerminar: async (assetId, resultado) => {
       if (resultado.ok) {
-        await sql`
-          update public.media_assets
-          set status = 'READY',
-              poster_path = ${resultado.posterPath},
-              hls_path = ${resultado.hlsPath},
-              duration_seconds = ${resultado.durationSeconds},
-              updated_at = now()
-          where id = ${assetId}`
+        await pool.query(
+          `update public.media_assets
+             set status = 'READY',
+                 poster_path = $1,
+                 hls_path = $2,
+                 duration_seconds = $3,
+                 updated_at = now()
+           where id = $4`,
+          [resultado.posterPath, resultado.hlsPath, resultado.durationSeconds, assetId],
+        )
         logger.info({ assetId }, 'media_assets → READY')
       } else {
-        await sql`
-          update public.media_assets
-          set status = 'FAILED', updated_at = now()
-          where id = ${assetId}`
+        await pool.query(
+          `update public.media_assets
+             set status = 'FAILED', updated_at = now()
+           where id = $1`,
+          [assetId],
+        )
         logger.error({ assetId, reason: resultado.reason }, 'media_assets → FAILED')
       }
     },
@@ -63,7 +82,7 @@ async function main(): Promise<void> {
   const apagar = async (senal: string): Promise<void> => {
     logger.info({ senal }, 'Apagando worker')
     await worker.close()
-    await sql.end({ timeout: 5 })
+    await pool.end()
     await connection.quit()
     process.exit(0)
   }

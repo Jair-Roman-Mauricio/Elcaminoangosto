@@ -89,7 +89,13 @@ export class DrizzleAnalyticsRepository extends AnalyticsRepository {
         contexto: sql<string | null>`${contexto}`,
         vistas: sql<number>`count(*)`.mapWith(Number),
         visitantes: sql<number>`count(distinct ${contentViews.sessionId})`.mapWith(Number),
-        ultimaVista: sql<Date | null>`max(${contentViews.createdAt})`,
+        // `mapWith` no es adorno: sin él, una expresión cruda devuelve lo que
+        // el driver quiera —`pg` entrega la marca de tiempo como texto— y este
+        // campo dejaría de ser la fecha que promete el tipo. Se reutiliza el
+        // mapeo de la propia columna, que sí sabe convertirla.
+        ultimaVista: sql<Date | null>`max(${contentViews.createdAt})`.mapWith(
+          contentViews.createdAt,
+        ),
       })
       .from(contentViews)
       .innerJoin(tabla, eq(tabla.id, contentViews.contentId))

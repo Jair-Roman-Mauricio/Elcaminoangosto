@@ -79,7 +79,7 @@ export const modularMonolith = [
             'Las dependencias apuntan hacia adentro: el dominio no conoce application/infrastructure/interface. Define un puerto (interfaz) aquí.',
         },
         {
-          group: ['@nestjs/*', 'drizzle-orm', 'drizzle-orm/*', '@supabase/*', 'postgres'],
+          group: ['@nestjs/*', 'drizzle-orm', 'drizzle-orm/*', '@supabase/*', 'pg'],
           message:
             'El dominio debe ser TypeScript puro, sin framework ni SDKs. Muévelo a application/ o infrastructure/.',
         },
