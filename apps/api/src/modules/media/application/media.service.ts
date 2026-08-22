@@ -13,7 +13,11 @@ import {
   type MediaKind,
 } from '@elcamino/shared-types'
 import { MediaRepository, type MediaAssetEntity } from '../domain/media.repository'
-import { MediaStoragePort, MediaQueuePort } from '../domain/media-storage.port'
+import {
+  MediaStoragePort,
+  MediaQueuePort,
+  type TransformacionDeImagen,
+} from '../domain/media-storage.port'
 import type { Actor } from '../../shared'
 
 /** Extensiones aceptadas por tipo. La ruta la construye el API, no el cliente. */
@@ -35,6 +39,17 @@ const ENTRADAS_ANTES_DE_BARRER = 500
 
 /** Calidad del redimensionado. Ver `TransformacionDeImagen`. */
 const CALIDAD_DE_IMAGEN = 75
+
+/**
+ * El alto se pide al doble del ancho: más de lo que mide cualquier imagen que
+ * se suba aquí, así que quien manda es el ancho y la proporción se conserva.
+ */
+const transformacionDe = (ancho: number): TransformacionDeImagen => ({
+  width: ancho,
+  height: ancho * 2,
+  resize: 'contain',
+  quality: CALIDAD_DE_IMAGEN,
+})
 
 /**
  * API pública del bounded context `media`. Ingesta (subida reanudable),
@@ -198,9 +213,9 @@ export class MediaService {
   private transformacionPara(
     asset: MediaAssetEntity,
     ancho: number | undefined,
-  ): { width: number; quality: number } | undefined {
+  ): TransformacionDeImagen | undefined {
     if (!ancho || asset.kind !== 'IMAGE') return undefined
-    return { width: ancho, quality: CALIDAD_DE_IMAGEN }
+    return transformacionDe(ancho)
   }
 
   /**
@@ -238,7 +253,7 @@ export class MediaService {
         asset.bucket,
         asset.posterPath,
         SIGNED_URL_TTL_SECONDS,
-        ancho ? { width: ancho, quality: CALIDAD_DE_IMAGEN } : undefined,
+        ancho ? transformacionDe(ancho) : undefined,
       )
     })
   }

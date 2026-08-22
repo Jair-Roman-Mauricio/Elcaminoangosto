@@ -34,5 +34,14 @@ export function imagenOptimizada(
   if (!SUPABASE_URL || !url.startsWith(SUPABASE_URL) || !url.includes(ORIGEN_PUBLICO)) return url
 
   const [ruta] = url.split('?')
-  return `${ruta!.replace(ORIGEN_PUBLICO, TRANSFORMADOR)}?width=${Math.round(ancho * 2)}&quality=${calidad}`
+  const w = Math.round(ancho * 2)
+  // `height` y `resize=contain` no sobran: con solo `width`, Supabase entrega
+  // el ancho pedido y CONSERVA el alto original, o sea que deforma. En una
+  // carátula cuadrada eso se ve como una imagen estirada y recortada por el
+  // `object-fit` de la maqueta: caras a medias y títulos cortados.
+  //
+  // Con `contain` y un alto holgado —el doble del ancho, más de lo que mide
+  // cualquier portada— manda el ancho y la proporción se respeta. No rellena
+  // los bordes: una imagen apaisada sale más baja, no con franjas.
+  return `${ruta!.replace(ORIGEN_PUBLICO, TRANSFORMADOR)}?width=${w}&height=${w * 2}&resize=contain&quality=${calidad}`
 }

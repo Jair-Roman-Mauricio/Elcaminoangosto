@@ -9,6 +9,14 @@
 export interface TransformacionDeImagen {
   /** Ancho en píxeles del archivo servido. */
   width: number
+  /**
+   * Alto máximo. Va siempre acompañado de `resize: 'contain'` y se pide
+   * holgado, porque su papel es no estorbar: con solo `width`, Supabase
+   * entrega el ancho pedido y CONSERVA el alto original, es decir, deforma.
+   */
+  height: number
+  /** `contain` respeta la proporción y no recorta ni rellena los bordes. */
+  resize: 'contain'
   /** 1-100. Por debajo de 70 empiezan a verse los bloques. */
   quality: number
 }
