@@ -23,16 +23,73 @@ const EXT: Record<MediaKind, string> = { VIDEO: 'mp4', AUDIO: 'mp3', IMAGE: 'jpg
 const ENQUEUE_TIMEOUT_MS = 5_000
 
 /**
+ * Cuánto se reutiliza una URL firmada antes de volver a pedirla.
+ *
+ * Diez minutos por debajo de su caducidad real, para que a nadie se le venza
+ * el enlace con el archivo a medio descargar.
+ */
+const VIDA_UTIL_MS = (SIGNED_URL_TTL_SECONDS - 10 * 60) * 1000
+
+/** A partir de aquí se barren las entradas ya vencidas. */
+const ENTRADAS_ANTES_DE_BARRER = 500
+
+/** Calidad del redimensionado. Ver `TransformacionDeImagen`. */
+const CALIDAD_DE_IMAGEN = 75
+
+/**
  * API pública del bounded context `media`. Ingesta (subida reanudable),
  * transcodificación asíncrona y entrega por URL firmada (arquitectura.md §6).
  */
 @Injectable()
 export class MediaService {
+  /**
+   * URLs firmadas ya emitidas, por asset.
+   *
+   * Firmar es una llamada de red a Supabase y una consulta más a la BD, y el
+   * catálogo de Alabanza lo hacía 43 veces por visita. Pero lo caro de verdad
+   * era otra cosa: cada firma nueva cambia el enlace, y un enlace que cambia
+   * es un objeto nuevo para la CDN y para el navegador. Nadie reutilizaba
+   * nada; cada visita se traía todos los audios desde el origen.
+   *
+   * Reutilizar la misma URL mientras siga siendo válida convierte esa segunda
+   * visita en un acierto de caché.
+   */
+  private readonly firmadas = new Map<string, { url: string; expiraEn: number }>()
+
   constructor(
     private readonly assets: MediaRepository,
     private readonly storage: MediaStoragePort,
     private readonly queue: MediaQueuePort,
   ) {}
+
+  /** Devuelve la URL guardada si aún sirve; si no, la pide y la guarda. */
+  private async firmadaConCache(
+    clave: string,
+    construir: () => Promise<string | null>,
+  ): Promise<string | null> {
+    const ahora = Date.now()
+    const guardada = this.firmadas.get(clave)
+    if (guardada && guardada.expiraEn > ahora) return guardada.url
+
+    const url = await construir()
+    if (url) {
+      if (this.firmadas.size >= ENTRADAS_ANTES_DE_BARRER) {
+        for (const [k, v] of this.firmadas) if (v.expiraEn <= ahora) this.firmadas.delete(k)
+      }
+      this.firmadas.set(clave, { url, expiraEn: ahora + VIDA_UTIL_MS })
+    }
+    return url
+  }
+
+  /** Olvida lo firmado de un asset: lo que ya no existe no se sirve de caché. */
+  private olvidarFirmas(assetId: string): void {
+    // La clave lleva el ancho pedido, así que puede haber varias por asset.
+    for (const clave of this.firmadas.keys()) {
+      if (clave.includes(`:${assetId}:`) || clave.endsWith(`:${assetId}`)) {
+        this.firmadas.delete(clave)
+      }
+    }
+  }
 
   /**
    * HU-8.1 — reserva un asset para una subida reanudable. Devuelve el destino
@@ -112,14 +169,38 @@ export class MediaService {
    * validar que el actor puede verlo. La autorización fina (inscripción, feed
    * publicado) la resuelve quien llama, pasando un `puedeVer` ya evaluado.
    */
-  async urlDeLectura(assetId: string, autorizado: boolean): Promise<string> {
+  async urlDeLectura(assetId: string, autorizado: boolean, ancho?: number): Promise<string> {
     if (!autorizado) throw new ForbiddenException('No tienes acceso a este medio')
-    const asset = await this.assets.findById(assetId)
-    if (!asset) throw new NotFoundException('Medio no encontrado')
-    if (asset.status !== 'READY') throw new NotFoundException('El medio aún no está listo')
 
-    // Preferir el póster/derivado listo; el MP4 normalizado vive en `path`.
-    return this.storage.signedUrl(asset.bucket, asset.path, SIGNED_URL_TTL_SECONDS)
+    // Solo se guarda lo que ya estaba listo, así que un medio que aún se
+    // procesa nunca se queda cacheado como «no disponible».
+    const url = await this.firmadaConCache(`lectura:${assetId}:${ancho ?? 0}`, async () => {
+      const asset = await this.assets.findById(assetId)
+      if (!asset) throw new NotFoundException('Medio no encontrado')
+      if (asset.status !== 'READY') throw new NotFoundException('El medio aún no está listo')
+
+      // Preferir el póster/derivado listo; el MP4 normalizado vive en `path`.
+      return this.storage.signedUrl(
+        asset.bucket,
+        asset.path,
+        SIGNED_URL_TTL_SECONDS,
+        this.transformacionPara(asset, ancho),
+      )
+    })
+    if (!url) throw new NotFoundException('Medio no encontrado')
+    return url
+  }
+
+  /**
+   * El ancho solo manda si el medio es una imagen. Pedirle un `width` a un MP3
+   * no lo encoge: lo rompe.
+   */
+  private transformacionPara(
+    asset: MediaAssetEntity,
+    ancho: number | undefined,
+  ): { width: number; quality: number } | undefined {
+    if (!ancho || asset.kind !== 'IMAGE') return undefined
+    return { width: ancho, quality: CALIDAD_DE_IMAGEN }
   }
 
   /**
@@ -129,9 +210,11 @@ export class MediaService {
    */
   async urlDeOrigen(assetId: string, autorizado: boolean): Promise<string | null> {
     if (!autorizado) throw new ForbiddenException('No tienes acceso a este medio')
-    const asset = await this.assets.findById(assetId)
-    if (!asset) return null
-    return this.storage.signedUrl(asset.bucket, asset.path, SIGNED_URL_TTL_SECONDS)
+    return this.firmadaConCache(`origen:${assetId}`, async () => {
+      const asset = await this.assets.findById(assetId)
+      if (!asset) return null
+      return this.storage.signedUrl(asset.bucket, asset.path, SIGNED_URL_TTL_SECONDS)
+    })
   }
 
   /** Borra un medio: el objeto (y su póster) del storage y su registro. */
@@ -141,14 +224,23 @@ export class MediaService {
     const rutas = [asset.path, ...(asset.posterPath ? [asset.posterPath] : [])]
     await this.storage.remove(asset.bucket, rutas)
     await this.assets.delete(assetId)
+    this.olvidarFirmas(assetId)
   }
 
   /** URL firmada del póster (imagen de portada del video). */
-  async urlDePoster(assetId: string, autorizado: boolean): Promise<string | null> {
+  async urlDePoster(assetId: string, autorizado: boolean, ancho?: number): Promise<string | null> {
     if (!autorizado) throw new ForbiddenException('No tienes acceso a este medio')
-    const asset = await this.assets.findById(assetId)
-    if (!asset?.posterPath) return null
-    return this.storage.signedUrl(asset.bucket, asset.posterPath, SIGNED_URL_TTL_SECONDS)
+    return this.firmadaConCache(`poster:${assetId}:${ancho ?? 0}`, async () => {
+      const asset = await this.assets.findById(assetId)
+      if (!asset?.posterPath) return null
+      // El póster SIEMPRE es una imagen, aunque el asset sea un video.
+      return this.storage.signedUrl(
+        asset.bucket,
+        asset.posterPath,
+        SIGNED_URL_TTL_SECONDS,
+        ancho ? { width: ancho, quality: CALIDAD_DE_IMAGEN } : undefined,
+      )
+    })
   }
 
   /** Estado de un asset (para que el front sepa cuándo dejar de esperar). */

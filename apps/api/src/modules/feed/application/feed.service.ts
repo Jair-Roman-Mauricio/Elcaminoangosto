@@ -64,6 +64,9 @@ export interface AdminCard {
  * la BD es la fuente de verdad, sin evento entre procesos. Al servir, se firman
  * URLs de corta vida para el medio privado (HU-8.3).
  */
+/** Ancho al que se pinta la imagen de una tarjeta, en píxeles de archivo. */
+const ANCHO_DE_TARJETA = 1200
+
 @Injectable()
 export class FeedService {
   private readonly logger = new Logger(FeedService.name)
@@ -215,7 +218,11 @@ export class FeedService {
         // Una tarjeta cuyo medio no se puede firmar —el archivo desapareció del
         // almacenamiento— se omite en vez de tumbar la página entera. Antes un
         // solo objeto perdido devolvía 500 y dejaba el feed en blanco.
-        const mediaUrl = await this.media.urlDeLectura(f.mediaAssetId, true).catch(() => null)
+        // Ancho de pintado de la tarjeta en pantalla grande, al doble para
+        // pantallas densas. Si el medio es un video, el ancho se ignora.
+        const mediaUrl = await this.media
+          .urlDeLectura(f.mediaAssetId, true, ANCHO_DE_TARJETA)
+          .catch(() => null)
         if (!mediaUrl) {
           this.logger.warn(
             { postId: f.id, mediaAssetId: f.mediaAssetId },
@@ -237,7 +244,9 @@ export class FeedService {
           audioUrl: f.audioAssetId
             ? await this.media.urlDeOrigen(f.audioAssetId, true).catch(() => null)
             : null,
-          posterUrl: await this.media.urlDePoster(f.mediaAssetId, true).catch(() => null),
+          posterUrl: await this.media
+            .urlDePoster(f.mediaAssetId, true, ANCHO_DE_TARJETA)
+            .catch(() => null),
           publishedAt: f.publishedAt?.toISOString() ?? null,
           mediaUrl,
         }

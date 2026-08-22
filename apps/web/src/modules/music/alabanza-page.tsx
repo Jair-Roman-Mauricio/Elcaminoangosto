@@ -5,6 +5,7 @@ import { VinylDisc } from '../../components/vinyl-disc'
 import { RestaurarConCodigo } from './codigo-de-coleccion'
 import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
 import { useRegistrarVisita } from '../../lib/analitica'
+import { imagenOptimizada } from '../../lib/imagen'
 import { usePlayerStore } from '../../stores/player.store'
 import {
   useCatalogoDeAlabanza,
@@ -29,6 +30,12 @@ function selloDelDisco(cancion: Alabanza, portadaDelAlbum: string): string {
   if (cancion.fondo?.tipo === 'imagen') return cancion.fondo.url
   return cancion.coverUrl || portadaDelAlbum
 }
+
+/**
+ * Ancho real al que se pinta cada imagen. No es el del archivo: `imagenOptimizada`
+ * pide el doble, para que en pantallas de densidad alta no se vea borrosa.
+ */
+const ANCHO = { fondo: 900, caratula: 320, vinilo: 300, miniatura: 64 } as const
 
 type Vista = 'albumes' | 'discos' | 'reproductor'
 type Filtro = 'todo' | 'favoritos'
@@ -394,9 +401,11 @@ export function AlabanzaPage() {
       <section className={`praise-player-view praise-player-view--${activa.tono}`} aria-label={`Reproductor: ${activa.titulo}`}>
         <div className="praise-player-view__background" aria-hidden="true">
           {activa.fondo?.tipo === 'video' && (
-            <video src={activa.fondo.url} autoPlay muted loop playsInline preload="metadata" poster={activa.coverUrl ?? undefined} />
+            <video src={activa.fondo.url} autoPlay muted loop playsInline preload="metadata" poster={imagenOptimizada(activa.coverUrl, ANCHO.fondo) || undefined} />
           )}
-          {activa.fondo?.tipo === 'imagen' && <img src={activa.fondo.url} alt="" />}
+          {activa.fondo?.tipo === 'imagen' && (
+            <img src={imagenOptimizada(activa.fondo.url, ANCHO.fondo)} alt="" />
+          )}
         </div>
         <div className="praise-player-view__veil" />
         <div className="praise-player-view__body">
@@ -491,7 +500,7 @@ export function AlabanzaPage() {
                     className={`praise-album-item${isSelected ? ' is-selected' : ''}`}
                     style={isSelected ? { '--album-center-x': `${desplazamientoAlbum.x}px`, '--album-center-y': `${desplazamientoAlbum.y}px` } as CSSProperties : undefined}
                   >
-                    <AlbumSleeve artwork={album.coverUrl} discArtwork={primerDisco?.coverUrl ?? album.coverUrl} discColor={album.discColor} title={album.titulo} opening={isEjecting} disabled={albumAbriendo !== null} onOpen={() => abrirAlbum(album)} />
+                    <AlbumSleeve artwork={imagenOptimizada(album.coverUrl, ANCHO.caratula)} discArtwork={imagenOptimizada(primerDisco?.coverUrl ?? album.coverUrl, ANCHO.caratula)} discColor={album.discColor} title={album.titulo} opening={isEjecting} disabled={albumAbriendo !== null} onOpen={() => abrirAlbum(album)} />
                     <div className="praise-album-item__caption">
                       <p>{album.titulo}</p>
                       {album.collectionId && (
@@ -536,7 +545,7 @@ export function AlabanzaPage() {
                   <button type="button" onClick={() => reproducirDisco(disco)} aria-label={`Escuchar ${disco.titulo}`}>
                     {/* El disco siempre muestra la portada de su álbum: es la
                         identidad de la colección, no de la canción suelta. */}
-                    <VinylDisc artwork={selloDelDisco(disco, buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.coverUrl ?? albumActivo.coverUrl)} color={buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.discColor ?? albumActivo.discColor} label={`Vinilo de ${disco.titulo}`} spinning={pista?.songId === disco.songId && reproduciendo} className="praise-disc-object__scene" />
+                    <VinylDisc artwork={imagenOptimizada(selloDelDisco(disco, buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.coverUrl ?? albumActivo.coverUrl), ANCHO.vinilo)} color={buscarAlbum(ALBUMES_DE_ALABANZA, disco.albumId)?.discColor ?? albumActivo.discColor} label={`Vinilo de ${disco.titulo}`} spinning={pista?.songId === disco.songId && reproduciendo} className="praise-disc-object__scene" />
                     <strong>{disco.titulo}</strong>
                   </button>
                 </article>
@@ -645,7 +654,7 @@ export function AlabanzaPage() {
                     <ul>
                       {cancionesDelEditor.map((cancion) => (
                         <li key={cancion.songId}>
-                          <img src={cancion.coverUrl ?? PORTADA_PREDETERMINADA_FAVORITOS} alt="" />
+                          <img src={imagenOptimizada(cancion.coverUrl ?? PORTADA_PREDETERMINADA_FAVORITOS, ANCHO.miniatura)} alt="" />
                           <span>
                             <strong>{cancion.titulo}</strong>
                             <small>{cancion.artista}</small>

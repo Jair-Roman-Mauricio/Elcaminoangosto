@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { MediaStoragePort } from '../domain/media-storage.port'
+import { MediaStoragePort, type TransformacionDeImagen } from '../domain/media-storage.port'
 
 /**
  * Adaptador de Supabase Storage. Usa la `service_role` (solo en el servidor)
@@ -20,8 +20,17 @@ export class SupabaseStorageAdapter extends MediaStoragePort {
     )
   }
 
-  async signedUrl(bucket: string, path: string, ttlSeconds: number): Promise<string> {
-    const { data, error } = await this.client.storage.from(bucket).createSignedUrl(path, ttlSeconds)
+  async signedUrl(
+    bucket: string,
+    path: string,
+    ttlSeconds: number,
+    transformacion?: TransformacionDeImagen,
+  ): Promise<string> {
+    // Con `transform`, Supabase firma contra su redimensionador: devuelve la
+    // imagen al ancho pedido y en WebP si el navegador lo acepta.
+    const { data, error } = await this.client.storage
+      .from(bucket)
+      .createSignedUrl(path, ttlSeconds, transformacion ? { transform: transformacion } : {})
     if (error || !data) {
       throw new InternalServerErrorException(
         `No se pudo firmar ${bucket}/${path}: ${error?.message ?? 'sin datos'}`,

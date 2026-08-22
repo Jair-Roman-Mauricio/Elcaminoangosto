@@ -25,6 +25,9 @@ export interface ConsejeroCard {
  * La lista es abierta y no pide cuenta: quien necesita este teléfono no está
  * para registrarse. Publicar y retirar es solo del ADMIN.
  */
+/** La foto manda en la tarjeta, pero la tarjeta no llega a 500 px de ancho. */
+const ANCHO_DE_FOTO = 900
+
 @Injectable()
 export class ConsejeriaService {
   constructor(
@@ -94,7 +97,7 @@ export class ConsejeriaService {
       presentacion: fila.presentacion,
       rol: fila.rol,
       fotoUrl: fila.fotoAssetId
-        ? await this.media.urlDeLectura(fila.fotoAssetId, true).catch(() => null)
+        ? await this.media.urlDeLectura(fila.fotoAssetId, true, ANCHO_DE_FOTO).catch(() => null)
         : null,
       contactos: fila.contactos,
       atiendeUrgencias: fila.atiendeUrgencias,

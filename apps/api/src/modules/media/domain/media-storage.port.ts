@@ -2,9 +2,25 @@
  * Puerto de almacenamiento de medios. El dominio no sabe si detrás está
  * Supabase Storage, Mux o Cloudflare Stream (Strategy, arquitectura.md §4).
  */
+/**
+ * Redimensionado al vuelo, para no mandar una foto de tres megas a una tarjeta
+ * de trescientos píxeles. Solo tiene sentido en imágenes.
+ */
+export interface TransformacionDeImagen {
+  /** Ancho en píxeles del archivo servido. */
+  width: number
+  /** 1-100. Por debajo de 70 empiezan a verse los bloques. */
+  quality: number
+}
+
 export abstract class MediaStoragePort {
   /** URL firmada de corta vida para leer un objeto privado. */
-  abstract signedUrl(bucket: string, path: string, ttlSeconds: number): Promise<string>
+  abstract signedUrl(
+    bucket: string,
+    path: string,
+    ttlSeconds: number,
+    transformacion?: TransformacionDeImagen,
+  ): Promise<string>
 
   /** Borra uno o varios objetos de un bucket (idempotente). */
   abstract remove(bucket: string, paths: string[]): Promise<void>

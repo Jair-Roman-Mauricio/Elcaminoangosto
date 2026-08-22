@@ -90,6 +90,13 @@ function palabrasDe(markdown: string): number {
  * Todo el contenido es abierto: se lee y se comenta sin cuenta, como el resto
  * de la plataforma. Publicar y retirar es solo del ADMIN.
  */
+/**
+ * Ancho de archivo de cada imagen, ya al doble del tamaño de pintado para las
+ * pantallas densas. La portada abre la tarjeta; la ilustración y el fondo van
+ * a sangre, así que piden más.
+ */
+const ANCHO = { portada: 1000, ilustracion: 1600, fondo: 1600, estampa: 1200 } as const
+
 @Injectable()
 export class LecturasService {
   /** Cuántos comentarios puede escribir una persona por hora. */
@@ -325,10 +332,12 @@ export class LecturasService {
       referencia: fila.referencia,
       redes: fila.redes,
       portadaUrl: fila.portadaAssetId
-        ? await this.media.urlDeLectura(fila.portadaAssetId, true).catch(() => null)
+        ? await this.media.urlDeLectura(fila.portadaAssetId, true, ANCHO.portada).catch(() => null)
         : null,
       ilustracionUrl: fila.ilustracionAssetId
-        ? await this.media.urlDeLectura(fila.ilustracionAssetId, true).catch(() => null)
+        ? await this.media
+            .urlDeLectura(fila.ilustracionAssetId, true, ANCHO.ilustracion)
+            .catch(() => null)
         : null,
       fondo: fila.fondo,
       // Nunca cero: «menos de un minuto» se dice con un 1, no con un 0.
@@ -356,7 +365,8 @@ export class LecturasService {
       ? await this.media
           .estado(fila.fondoAssetId)
           .then(async (asset) => ({
-            url: await this.media.urlDeLectura(fila.fondoAssetId!, true),
+            // El fondo puede ser video: entonces el ancho se ignora solo.
+            url: await this.media.urlDeLectura(fila.fondoAssetId!, true, ANCHO.fondo),
             esVideo: asset.kind === 'VIDEO',
           }))
           .catch(() => null)
@@ -370,7 +380,7 @@ export class LecturasService {
       marcas: fila.marcas,
       audioUrl: await this.media.urlDeLectura(fila.audioAssetId, true),
       imagenUrl: fila.imagenAssetId
-        ? await this.media.urlDeLectura(fila.imagenAssetId, true).catch(() => null)
+        ? await this.media.urlDeLectura(fila.imagenAssetId, true, ANCHO.estampa).catch(() => null)
         : null,
       fondoUrl: fondo?.url ?? null,
       fondoEsVideo: fondo?.esVideo ?? false,

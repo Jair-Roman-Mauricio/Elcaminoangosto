@@ -5,6 +5,7 @@ import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
 import { usePlayerStore } from '../../stores/player.store'
 import { buscarAlbum, rutaDeReproduccion, useCatalogoDeAlabanza } from './alabanza-catalog'
 import { useRegistrarVista } from '../../lib/analitica'
+import { imagenOptimizada } from '../../lib/imagen'
 
 /**
  * Barra inferior de Alabanza. Se monta una sola vez, fuera del <Outlet />,
@@ -172,7 +173,11 @@ export function PlayerBar() {
         <div className="praise-global-player__track flex min-w-0 flex-1 items-center gap-aire-s">
           <div className="size-12 shrink-0 overflow-hidden rounded bg-superficie-2">
             {pista.coverUrl && (
-              <img src={pista.coverUrl} alt="" className="size-full object-cover" />
+              <img
+                src={imagenOptimizada(pista.coverUrl, 48)}
+                alt=""
+                className="size-full object-cover"
+              />
             )}
           </div>
           <div className="min-w-0">
