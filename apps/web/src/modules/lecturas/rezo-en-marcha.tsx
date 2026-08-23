@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { OracionGuiada } from './lecturas-api'
 import { neonDeCategoria } from './neon-de-categoria'
 
@@ -20,6 +21,14 @@ function repartirPorLongitud(lineas: string[], duracion: number): number[] {
   })
 }
 
+/** `m:ss`, que es como se lee el tiempo en un reproductor. */
+function reloj(segundos: number): string {
+  if (!Number.isFinite(segundos) || segundos < 0) return '0:00'
+  const m = Math.floor(segundos / 60)
+  const s = Math.floor(segundos % 60)
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 /**
  * La oración en marcha: el fondo a pantalla completa y la letra encima.
  *
@@ -37,6 +46,10 @@ export function RezoEnMarcha({
 }) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const marcoRef = useRef<HTMLDivElement>(null)
+  const listaRef = useRef<HTMLOListElement>(null)
+  /** Cuánto hay que subir la letra para que la línea que suena quede al centro. */
+  const [desplazamiento, setDesplazamiento] = useState(0)
   const [duracion, setDuracion] = useState(0)
   const [tiempo, setTiempo] = useState(0)
   const [sonando, setSonando] = useState(false)
@@ -88,6 +101,47 @@ export function RezoEnMarcha({
     else video.pause()
   }, [sonando])
 
+  /**
+   * Sube la letra para que la línea que suena quede siempre en el centro.
+   *
+   * Las demás siguen en el documento —invisibles, pero ocupando su sitio— para
+   * que quien use lector de pantalla tenga la oración entera. El precio es que
+   * la lista mide lo que miden sus 59 líneas, mucho más que la pantalla: sin
+   * mover nada, lo que se veía era un trozo cualquiera del medio y la línea
+   * activa quedaba fuera, a veces cortada contra el borde de abajo.
+   */
+  useLayoutEffect(() => {
+    const marco = marcoRef.current
+    const lista = listaRef.current
+    if (!marco || !lista) return
+
+    const encuadrar = () => {
+      // Antes de la primera marca aún no suena ninguna: se encuadra la primera.
+      const item = lista.children[Math.max(0, activa)] as HTMLElement | undefined
+      if (!item) return
+      setDesplazamiento(marco.clientHeight / 2 - (item.offsetTop + item.offsetHeight / 2))
+    }
+    encuadrar()
+
+    // Y otra vez cada vez que cambie el tamaño de algo. La cuenta se hace en
+    // píxeles, así que deja de valer en cuanto la pantalla gira, la ventana
+    // cambia o la tipografía termina de cargar y las líneas se reparten de otro
+    // modo: sin esto, al pasar a móvil la letra se iba a cuatro mil píxeles de
+    // donde debía y no se veía ninguna.
+    const observador = new ResizeObserver(encuadrar)
+    observador.observe(marco)
+    observador.observe(lista)
+    return () => observador.disconnect()
+  }, [activa, oracion.lineas])
+
+  /** Ir a un punto de la oración: volver a oír un verso es media oración. */
+  const irA = (segundos: number) => {
+    const audio = audioRef.current
+    if (!audio || !Number.isFinite(segundos)) return
+    audio.currentTime = Math.min(Math.max(0, segundos), duracion || 0)
+    setTiempo(audio.currentTime)
+  }
+
   const alternar = () => {
     const audio = audioRef.current
     if (!audio) return
@@ -104,9 +158,19 @@ export function RezoEnMarcha({
 
   const avance = duracion ? Math.min(100, (tiempo / duracion) * 100) : 0
 
-  return (
+  // Al `body`, y no donde cae en el árbol, por una razón muy concreta: la
+  // pantalla entrante vive dentro de `.page-transition`, que anima con
+  // `transform` y `fill-mode: both`, así que conserva un `translate3d(0,0,0)`
+  // para siempre. Un elemento con `transform` pasa a ser el bloque contenedor
+  // de los `fixed` que lleva dentro, y ese envoltorio no mide nada porque su
+  // único hijo estaba fuera de flujo. Resultado: este `fixed inset-0` medía
+  // CERO píxeles de alto. De ahí salían los tres fallos a la vez —el fondo
+  // invisible (`h-full` de cero), la letra descolocada y los mandos fuera de
+  // la pantalla—, porque no había altura que repartir. El feed ya esquivaba
+  // esto con un portal por lo mismo.
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex flex-col bg-negro"
+      className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-negro"
       style={{ ['--neon' as string]: neon }}
     >
       {oracion.fondoUrl &&
@@ -127,10 +191,25 @@ export function RezoEnMarcha({
           />
         ))}
 
-      {/* Dos velos: uno plano que apaga la escena y otro de color que la tiñe
-          del neón de su categoría. Sin ellos la letra se pierde en cuanto el
-          fondo tiene una zona clara. */}
-      <span aria-hidden className="absolute inset-0 bg-negro/70" />
+      {/* Dos velos: uno que apaga la escena y otro de color que la tiñe del neón
+          de su categoría. Sin ellos la letra se pierde en cuanto el fondo tiene
+          una zona clara.
+
+          El primero era plano al 70 % y se comía la imagen entera: en una foto
+          nocturna —y casi todas lo son aquí— sus zonas más claras caían a
+          17/255, indistinguibles del negro de detrás. Ahora aprieta arriba y
+          abajo, que es donde van la cabecera y los mandos, y afloja en la
+          franja central, donde el fondo es lo único que hay que mirar. La letra
+          se defiende con su propia sombra. */}
+      <span
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.42) 24%, ' +
+            'rgba(0,0,0,0.42) 68%, rgba(0,0,0,0.88) 100%)',
+        }}
+      />
       <span
         aria-hidden
         className="absolute inset-0"
@@ -154,16 +233,22 @@ export function RezoEnMarcha({
         </button>
       </header>
 
-      {/* La letra, centrada en la pantalla. */}
-      <div className="relative flex flex-1 items-center justify-center px-gutter">
-        <ol className="m-0 flex max-w-[38ch] list-none flex-col gap-aire-s p-0 text-center">
+      {/* La letra. `min-h-0` es lo que permite que este hueco encoja en vez de
+          crecer con sus 59 líneas: sin él empujaba los mandos fuera de la
+          pantalla y no había manera de parar la oración. */}
+      <div ref={marcoRef} className="relative min-h-0 flex-1 overflow-hidden">
+        <ol
+          ref={listaRef}
+          className="absolute inset-x-0 top-0 m-0 mx-auto flex max-w-[38ch] list-none flex-col gap-aire-s p-0 px-gutter text-center transition-transform duration-[700ms] ease-camino motion-reduce:transition-none"
+          style={{ transform: `translateY(${desplazamiento}px)` }}
+        >
           {oracion.lineas.map((linea, i) => (
             <li
               key={`${oracion.id}-${i}`}
               aria-current={i === activa ? 'true' : undefined}
-              className={`font-serif text-[clamp(1.4rem,3.4vw,2.6rem)] leading-[1.25] text-hueso transition-all duration-[700ms] ease-camino motion-reduce:transition-none ${
+              className={`font-serif text-[clamp(1.4rem,3.4vw,2.6rem)] leading-[1.25] text-hueso [text-shadow:0_0.2rem_1.2rem_rgba(0,0,0,0.85)] transition-all duration-[700ms] ease-camino motion-reduce:transition-none ${
                 i === activa
-                  ? 'scale-[1.02] opacity-100 [text-shadow:0_0_2.4rem_rgba(var(--neon),0.85)]'
+                  ? 'scale-[1.02] opacity-100 [text-shadow:0_0.2rem_1.2rem_rgba(0,0,0,0.85),0_0_2.4rem_rgba(var(--neon),0.85)]'
                   : Math.abs(i - activa) === 1
                     ? 'opacity-30'
                     : 'opacity-0'
@@ -199,12 +284,37 @@ export function RezoEnMarcha({
           )}
         </button>
 
-        {/* Cuánto queda: en una oración importa saber si va por la mitad. */}
-        <div className="h-[2px] w-full max-w-md overflow-hidden bg-hueso/15">
-          <span
-            className="block h-full transition-[width] duration-300 ease-linear"
-            style={{ width: `${avance}%`, background: 'rgb(var(--neon))' }}
-          />
+        {/* Cuánto queda, y por dónde volver: en una oración importa saber si va
+            por la mitad, y volver a oír un verso es media oración. La barra era
+            solo un dibujo; ahora se puede llevar donde uno quiera, con el
+            teclado también, que para eso es un control de verdad. */}
+        <div className="flex w-full max-w-md items-center gap-aire-xs">
+          <span className="font-mono text-body-s tabular-nums text-hueso/50">
+            {reloj(tiempo)}
+          </span>
+          <div className="relative flex-1">
+            <div className="h-[2px] w-full overflow-hidden bg-hueso/15">
+              <span
+                className="block h-full transition-[width] duration-300 ease-linear"
+                style={{ width: `${avance}%`, background: 'rgb(var(--neon))' }}
+              />
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={duracion || 0}
+              step={0.1}
+              value={tiempo}
+              onChange={(e) => irA(Number(e.target.value))}
+              aria-label="Ir a un punto de la oración"
+              // Invisible y encima de la barra: se ve el trazo del diseño y se
+              // maneja como un control nativo, con foco y flechas incluidos.
+              className="absolute inset-x-0 top-1/2 h-6 w-full -translate-y-1/2 cursor-pointer appearance-none bg-transparent opacity-0"
+            />
+          </div>
+          <span className="font-mono text-body-s tabular-nums text-hueso/50">
+            {reloj(duracion)}
+          </span>
         </div>
       </div>
 
@@ -214,6 +324,7 @@ export function RezoEnMarcha({
         preload="auto"
         onEnded={() => setSonando(false)}
       />
-    </div>
+    </div>,
+    document.body,
   )
 }
