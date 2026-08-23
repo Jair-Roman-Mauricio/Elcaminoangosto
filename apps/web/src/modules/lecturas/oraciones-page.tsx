@@ -63,13 +63,20 @@ export function OracionesPage() {
       className="pantalla-de-oraciones relative mx-auto flex w-full max-w-5xl flex-col items-center justify-center gap-aire-s"
       style={{ ['--neon' as string]: neon }}
     >
-      {/* El brillo de la categoría, detrás de todo y fundido con el negro. */}
+      {/* El brillo de la categoría, detrás de todo y fundido con el negro.
+
+          Era un baño de color que ocupaba media pantalla y pasaba POR DETRÁS de
+          la estampa: la foto quedaba flotando sobre una mancha verde que competía
+          con ella y le teñía el aire alrededor. El color de una categoría es una
+          seña, no un decorado. Ahora es un rescoldo tenue y bajo, apenas para que
+          la página no sea un negro muerto; quien rodea la estampa es el halo que
+          lleva pegado al borde. */}
       <span
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[38rem] w-[min(90vw,52rem)] -translate-x-1/2 transition-[background] duration-[900ms] ease-camino"
         style={{
           background:
-            'radial-gradient(60% 55% at 50% 42%, rgba(var(--neon), 0.22) 0%, transparent 70%)',
+            'radial-gradient(46% 40% at 50% 52%, rgba(var(--neon), 0.09) 0%, transparent 72%)',
         }}
       />
 
@@ -195,8 +202,12 @@ function Carrusel({
               className="max-h-full max-w-full object-contain"
               // El brillo va en el borde del dibujo, no en una caja: por eso
               // es `drop-shadow` y no `box-shadow`, que haría un rectángulo.
+              // El primero va ceñido al contorno —es el que dibuja la seña de
+              // color— y el segundo, más abierto y flojo, solo lo despega del
+              // negro. Antes el ceñido era ancho y flojo, así que en vez de
+              // perfilar la estampa la envolvía en niebla.
               style={{
-                filter: `drop-shadow(0 0 1.6rem rgba(${neonDeCategoria(actual.tema)}, 0.55)) drop-shadow(0 0 4rem rgba(${neonDeCategoria(actual.tema)}, 0.3))`,
+                filter: `drop-shadow(0 0 0.5rem rgba(${neonDeCategoria(actual.tema)}, 0.85)) drop-shadow(0 0 2.2rem rgba(${neonDeCategoria(actual.tema)}, 0.35))`,
               }}
             />
           ) : (
