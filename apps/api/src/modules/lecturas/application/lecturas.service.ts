@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common'
 import {
@@ -99,6 +100,8 @@ const ANCHO = { portada: 1000, ilustracion: 1600, fondo: 1600, estampa: 1200 } a
 
 @Injectable()
 export class LecturasService {
+  private readonly logger = new Logger(LecturasService.name)
+
   /** Cuántos comentarios puede escribir una persona por hora. */
   private static readonly LIMITE_POR_HORA = 20
 
@@ -260,7 +263,21 @@ export class LecturasService {
    */
   async oraciones(actor: Actor | null): Promise<OracionCard[]> {
     const filas = await this.lecturas.oraciones(this.esAdmin(actor))
-    const cards = await Promise.all(filas.map((fila) => this.aOracion(fila).catch(() => null)))
+    const cards = await Promise.all(
+      filas.map((fila) =>
+        // Descartar la que no se pueda armar evita que un archivo perdido tumbe
+        // la página entera, pero callarlo la vuelve invisible: la oración se
+        // guardó y no aparece, y desde el panel eso se ve como «falló al
+        // subir». Se deja constancia de cuál y por qué.
+        this.aOracion(fila).catch((error: unknown) => {
+          this.logger.warn(
+            { oracionId: fila.id, motivo: (error as Error).message },
+            'Oración omitida de la lista: no se pudo armar su ficha',
+          )
+          return null
+        }),
+      ),
+    )
     return cards.filter((card): card is OracionCard => card !== null)
   }
 
@@ -358,6 +375,18 @@ export class LecturasService {
   }
 
   private async aOracion(fila: OracionEntity): Promise<OracionCard> {
+    // `urlDeOrigen` y no `urlDeLectura`: la voz de una oración se sube sin
+    // pasar por la transcodificación —un MP3 ya se puede oír— así que su asset
+    // se queda en UPLOADED y nunca llega a READY. `urlDeLectura` exige READY,
+    // fallaba siempre, y como quien llama descarta la oración que no se puede
+    // armar, TODAS desaparecían de la lista: se creaban en la base y no volvían
+    // a verse. Es lo mismo que hacen el feed con el relato hablado y Alabanza
+    // con la canción.
+    //
+    // Sin voz sí se descarta: una oración guiada muda no es nada.
+    const audioUrl = await this.media.urlDeOrigen(fila.audioAssetId, true)
+    if (!audioUrl) throw new NotFoundException('La oración no tiene voz que reproducir')
+
     // El fondo puede ser video o imagen y la pantalla necesita saber cuál para
     // elegir la etiqueta: un `<img>` con un mp4 dentro no falla, se queda en
     // blanco, que es la peor forma de fallar.
@@ -378,7 +407,7 @@ export class LecturasService {
       tema: fila.tema,
       lineas: fila.lineas,
       marcas: fila.marcas,
-      audioUrl: await this.media.urlDeLectura(fila.audioAssetId, true),
+      audioUrl,
       imagenUrl: fila.imagenAssetId
         ? await this.media.urlDeLectura(fila.imagenAssetId, true, ANCHO.estampa).catch(() => null)
         : null,

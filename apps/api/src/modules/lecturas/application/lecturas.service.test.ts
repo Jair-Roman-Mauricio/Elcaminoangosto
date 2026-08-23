@@ -125,13 +125,31 @@ class FakeLecturasRepo extends LecturasRepository {
   }
 }
 
-/** El medio firma cualquier cosa salvo los assets que se declaren rotos. */
+/**
+ * El medio firma cualquier cosa salvo los assets que se declaren rotos.
+ *
+ * La distinción entre `urlDeLectura` y `urlDeOrigen` no es un detalle: la
+ * primera exige que el asset esté transcodificado y la segunda no. Un audio
+ * que se sube sin pasar por la cola —la voz de una oración, el relato de una
+ * tarjeta— se queda en UPLOADED para siempre, y confundirlas hacía desaparecer
+ * la oración entera de la lista. El doble lo imita para que no vuelva a colarse.
+ */
 class FakeMedia {
   rotos = new Set<string>()
   videos = new Set<string>()
+  /** Assets subidos que nunca pasaron por la transcodificación. */
+  sinProcesar = new Set<string>()
+
   async urlDeLectura(assetId: string) {
     if (this.rotos.has(assetId)) throw new NotFoundException('El medio aún no está listo')
+    if (this.sinProcesar.has(assetId)) {
+      throw new NotFoundException('El medio aún no está listo')
+    }
     return `https://media.test/${assetId}`
+  }
+  async urlDeOrigen(assetId: string) {
+    if (this.rotos.has(assetId)) return null
+    return `https://media.test/${assetId}/original`
   }
   async estado(assetId: string) {
     if (this.rotos.has(assetId)) throw new NotFoundException('Ese medio no existe')
@@ -348,6 +366,19 @@ describe('LecturasService', () => {
 
       expect(oracion!.fondoEsVideo).toBe(true)
       expect(oracion!.fondoUrl).toContain('fondo-video')
+    })
+
+    it('la voz sin transcodificar no descarta la oración: se lee el original', async () => {
+      // Es como la sube el panel: un MP3 ya se puede oír, así que no pasa por
+      // la cola y su asset se queda en UPLOADED. Pedirle READY las borraba
+      // todas de la lista sin dejar rastro.
+      media.sinProcesar.add('audio-1')
+
+      await publicar(null)
+
+      const [oracion] = await servicio.oraciones(null)
+      expect(oracion?.titulo).toBe('Antes de dormir')
+      expect(oracion?.audioUrl).toContain('audio-1')
     })
 
     it('una oración sin su voz se queda fuera, pero no se lleva a las demás', async () => {
