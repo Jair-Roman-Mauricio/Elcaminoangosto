@@ -2,6 +2,7 @@ import { Eyebrow } from '@elcamino/ui'
 import { useConsejeros, type Consejero } from './consejeria-api'
 import { CANALES, comoSeLee } from './canales'
 import { useRegistrarVisita } from '../../lib/analitica'
+import { useSeo } from '../../lib/seo'
 
 /**
  * Consejería: a quién escribir cuando lo que pasa no puede esperar.
@@ -17,6 +18,12 @@ import { useRegistrarVisita } from '../../lib/analitica'
  */
 export function ConsejeriaPage() {
   useRegistrarVisita('consejeria')
+  useSeo({
+    titulo: 'Consejería cristiana',
+    descripcion:
+      'A quién escribir cuando lo que pasa no puede esperar: consejeros cristianos dispuestos a escuchar y acompañar.',
+    ruta: '/consejeria',
+  })
   const { data, isPending, isError } = useConsejeros()
 
   const consejeros = data ?? []

@@ -5,6 +5,7 @@ import { VinylDisc } from '../../components/vinyl-disc'
 import { RestaurarConCodigo } from './codigo-de-coleccion'
 import { useFavoriteSongsStore } from '../../stores/favorite-songs.store'
 import { useRegistrarVisita } from '../../lib/analitica'
+import { useSeo } from '../../lib/seo'
 import { imagenOptimizada } from '../../lib/imagen'
 import { usePlayerStore } from '../../stores/player.store'
 import {
@@ -91,6 +92,12 @@ export function AlabanzaPage() {
   const navigate = useNavigate()
   const { catalogo, cargando, error: fallóElCatalogo } = useCatalogoDeAlabanza()
   useRegistrarVisita('alabanza')
+  useSeo({
+    titulo: 'Alabanza',
+    descripcion:
+      'Música cristiana para escuchar en línea: álbumes de alabanza y adoración, con la letra sincronizada para cantar con ellos.',
+    ruta: '/alabanza',
+  })
   const ALBUMES_DE_ALABANZA = catalogo.albumes
   const CANCIONES_DE_ALABANZA = catalogo.canciones
   const { pista, reproduciendo, progreso, reproducir } = usePlayerStore()

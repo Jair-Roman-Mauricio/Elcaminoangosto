@@ -3,6 +3,7 @@ import { useOraciones, type OracionGuiada } from './lecturas-api'
 import { neonDeCategoria } from './neon-de-categoria'
 import { RezoEnMarcha } from './rezo-en-marcha'
 import { registrarVista, useRegistrarVisita } from '../../lib/analitica'
+import { useSeo } from '../../lib/seo'
 
 /** Lo que se muestra cuando no se ha filtrado nada. */
 const TODAS = 'Todas'
@@ -20,6 +21,12 @@ const TODAS = 'Todas'
  */
 export function OracionesPage() {
   useRegistrarVisita('oraciones')
+  useSeo({
+    titulo: 'Oraciones guiadas',
+    descripcion:
+      'Oraciones guiadas en audio para orar acompañado: antes de dormir, en la angustia, al empezar el día. Con la voz y la letra a la vez.',
+    ruta: '/oraciones',
+  })
   const { data, isPending, isError } = useOraciones()
   const [categoria, setCategoria] = useState(TODAS)
   const [indice, setIndice] = useState(0)

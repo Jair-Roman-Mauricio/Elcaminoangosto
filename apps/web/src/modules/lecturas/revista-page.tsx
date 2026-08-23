@@ -10,6 +10,7 @@ import {
 import { LectorEditorial } from './lector-editorial'
 import { TarjetaDeLectura } from './tarjeta-de-lectura'
 import { registrarVista, useRegistrarVisita } from '../../lib/analitica'
+import { useSeo } from '../../lib/seo'
 import type { Lectura } from './lecturas-api'
 
 const fechaCorta = new Intl.DateTimeFormat('es-PE', {
@@ -29,6 +30,12 @@ const fechaCorta = new Intl.DateTimeFormat('es-PE', {
  */
 export function RevistaPage() {
   useRegistrarVisita('revista')
+  useSeo({
+    titulo: 'Revista',
+    descripcion:
+      'Artículos cristianos para leer con calma: fe, familia, vida diaria y las preguntas que no se responden en un versículo.',
+    ruta: '/revista',
+  })
   const { articuloId } = useParams()
   const navegar = useNavigate()
   const { data, isPending, isError } = useRevista()

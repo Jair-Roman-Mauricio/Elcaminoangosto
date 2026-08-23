@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type UIEvent } from 'react'
 import { useComentarVideo, useComentariosDeVideo, useVideos, type VideoCatalogo } from './videos-api'
 import { useRegistrarVista, useRegistrarVisita } from '../../lib/analitica'
+import { useSeo } from '../../lib/seo'
 
 /**
  * Video tal como lo pinta esta pantalla. Se construye desde el catálogo del
@@ -51,6 +52,12 @@ const cuando = (iso: string) => fechaCorta.format(new Date(iso))
 export function VideosCristianosPage() {
   const { data: catalogo, isPending, isError } = useVideos()
   useRegistrarVisita('videos')
+  useSeo({
+    titulo: 'Videos cristianos',
+    descripcion:
+      'Videos cristianos cortos para ver y compartir: predicaciones breves, testimonios y palabra que cabe en un minuto.',
+    ruta: '/videos',
+  })
   const VIDEOS = useMemo(() => (catalogo ?? []).map(aVideoCristiano), [catalogo])
   const [videoActivoId, setVideoActivoId] = useState('')
   /**

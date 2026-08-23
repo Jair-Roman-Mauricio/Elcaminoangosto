@@ -10,3 +10,7 @@ Disallow: /entrar
 Disallow: /recuperar
 Disallow: /restablecer-contrasena
 Disallow: /verificar-correo
+
+# Dónde está el mapa del sitio. Sin esta línea hay que darlo de alta a mano en
+# cada buscador; con ella lo encuentran solos.
+Sitemap: https://www.elcaminoangosto.site/sitemap.xml

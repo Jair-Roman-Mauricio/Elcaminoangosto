@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Las secciones públicas del sitio. Las que piden cuenta —administración,
+  entrar, recuperar— quedan fuera a propósito: no son páginas que nadie busque
+  y `robots.txt` ya las excluye.
+
+  Los artículos de la revista van por dirección propia (`/revista/:id`) y no
+  están aquí: harían falta datos del API en el momento de compilar. Google
+  llegará a ellos siguiendo los enlaces de `/revista`.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.elcaminoangosto.site/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.elcaminoangosto.site/alabanza</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.elcaminoangosto.site/devocionales</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.elcaminoangosto.site/oraciones</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.elcaminoangosto.site/videos</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.elcaminoangosto.site/tarjetas</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.elcaminoangosto.site/revista</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.elcaminoangosto.site/comunidad</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.elcaminoangosto.site/consejeria</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+</urlset>

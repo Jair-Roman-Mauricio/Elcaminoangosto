@@ -4,6 +4,7 @@ import { useDevocionales, type Lectura } from './lecturas-api'
 import { TarjetaDeDevocional } from './tarjeta-de-devocional'
 import { LectorDeDevocional } from './lector-de-devocional'
 import { registrarVista, useRegistrarVisita } from '../../lib/analitica'
+import { useSeo } from '../../lib/seo'
 
 /**
  * Devocionales: una lectura breve con su portada.
@@ -13,6 +14,12 @@ import { registrarVista, useRegistrarVisita } from '../../lib/analitica'
  */
 export function DevocionalesPage() {
   useRegistrarVisita('devocionales')
+  useSeo({
+    titulo: 'Devocionales diarios',
+    descripcion:
+      'Devocionales cristianos diarios para leer en pocos minutos: un pasaje, una reflexión y algo que llevarse al día.',
+    ruta: '/devocionales',
+  })
   const { data, isPending, isError } = useDevocionales()
   const [abierto, setAbierto] = useState<Lectura | null>(null)
 

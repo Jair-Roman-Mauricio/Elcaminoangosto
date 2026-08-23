@@ -4,6 +4,7 @@ import { Verse } from '@elcamino/ui'
 import { BrandLogo } from '@elcamino/ui/static'
 import { useFeed, type FeedCard } from './feed-api'
 import { useRegistrarVista, useRegistrarVisita } from '../../lib/analitica'
+import { useSeo } from '../../lib/seo'
 
 type FichaTarjeta = {
   titulo: string
@@ -203,6 +204,12 @@ function atributosImagen(mediaUrl: string) {
 export function FeedPage() {
   const { data, isPending, isError } = useFeed()
   useRegistrarVisita('tarjetas')
+  useSeo({
+    titulo: 'Tarjetas de Fe',
+    descripcion:
+      'Tarjetas de fe para compartir: un versículo, una imagen y una palabra breve para quien la necesita hoy.',
+    ruta: '/tarjetas',
+  })
   const cardsPublicadas = data?.pages.flat() ?? []
   // La colección de muestra es un placeholder visual inmediato. Así el LCP no
   // queda encadenado a /api/feed cuando el archivo público todavía está vacío.

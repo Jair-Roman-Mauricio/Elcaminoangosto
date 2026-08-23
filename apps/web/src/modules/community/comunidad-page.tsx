@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Boton, cn, Eyebrow, Field, Input, Modal, Textarea } from '@elcamino/ui'
 import { usePerfil } from '../../auth/session'
 import { useRegistrarVisita } from '../../lib/analitica'
+import { useSeo } from '../../lib/seo'
 import {
   useAbrirHilo,
   useHilo,
@@ -33,6 +34,12 @@ const cuando = (iso: string) => fechaCorta.format(new Date(iso))
  */
 export function ComunidadPage() {
   useRegistrarVisita('comunidad')
+  useSeo({
+    titulo: 'Comunidad',
+    descripcion:
+      'Un lugar donde preguntar y responder sin dar la cara: peticiones de oración, dudas de fe y conversación entre hermanos.',
+    ruta: '/comunidad',
+  })
   const [busqueda, setBusqueda] = useState('')
   const [abriendo, setAbriendo] = useState(false)
   const { data: hilos, isPending, isError } = useHilos(busqueda)
