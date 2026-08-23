@@ -1,29 +1,17 @@
 /**
- * El neón de cada categoría de oración.
+ * El brillo de las oraciones: un único dorado, el de la marca.
  *
- * El color no se guarda ni se elige al publicar: se deduce del nombre de la
- * categoría. Así una categoría nueva ya llega con el suyo, siempre el mismo, y
- * quien publica no tiene que acordarse de escoger un color ni acertar con uno
- * que combine.
+ * Antes cada categoría deducía su propio color del nombre, pero la mezcla de
+ * neones fríos (cielo, violeta, menta, rosa…) sobre el negro reñía con el
+ * dorado de toda la casa. Ahora el halo, las píldoras y el botón usan el mismo
+ * `--acento` (#f2cb5e) que el resto del sitio, así que la categoría se distingue
+ * por su texto, no por un color distinto.
  *
- * Todos son fríos y bajos de saturación a propósito: el fondo sigue siendo
- * negro y el brillo solo lo insinúa. Un neón saturado sobre negro vibra y
- * cansa a los pocos segundos, que es justo lo contrario de lo que busca una
- * oración.
+ * Se mantiene la firma —recibe la categoría y devuelve un RGB— para no tocar a
+ * quien la llama; simplemente hoy la respuesta es siempre la misma.
  */
-const NEONES = [
-  '56, 189, 248', // cielo
-  '167, 139, 250', // violeta
-  '52, 211, 153', // menta
-  '244, 114, 182', // rosa
-  '251, 191, 36', // ámbar
-  '96, 165, 250', // azul
-] as const
+const ORO = '242, 203, 94' // #f2cb5e, el --acento de la marca
 
-/** Suma estable de los caracteres: el mismo nombre siempre da el mismo color. */
-export function neonDeCategoria(categoria: string | null): string {
-  if (!categoria) return NEONES[0]
-  let suma = 0
-  for (const letra of categoria.toLowerCase()) suma += letra.charCodeAt(0)
-  return NEONES[suma % NEONES.length]!
+export function neonDeCategoria(_categoria: string | null): string {
+  return ORO
 }

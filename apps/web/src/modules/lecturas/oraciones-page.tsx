@@ -209,12 +209,12 @@ function Carrusel({
               className="max-h-full max-w-full object-contain"
               // El brillo va en el borde del dibujo, no en una caja: por eso
               // es `drop-shadow` y no `box-shadow`, que haría un rectángulo.
-              // El primero va ceñido al contorno —es el que dibuja la seña de
-              // color— y el segundo, más abierto y flojo, solo lo despega del
-              // negro. Antes el ceñido era ancho y flojo, así que en vez de
-              // perfilar la estampa la envolvía en niebla.
+              // Se quiere una LÍNEA fina ceñida al borde, no una nube: el halo
+              // ancho de antes (2.2rem) se leía como un cuadrado difuso
+              // alrededor de la estampa. Ahora es un perfil corto y nítido, con
+              // un segundo pase muy leve solo para despegarlo del negro.
               style={{
-                filter: `drop-shadow(0 0 0.5rem rgba(${neonDeCategoria(actual.tema)}, 0.85)) drop-shadow(0 0 2.2rem rgba(${neonDeCategoria(actual.tema)}, 0.35))`,
+                filter: `drop-shadow(0 0 0.22rem rgba(${neonDeCategoria(actual.tema)}, 0.95)) drop-shadow(0 0 0.6rem rgba(${neonDeCategoria(actual.tema)}, 0.4))`,
               }}
             />
           ) : (
