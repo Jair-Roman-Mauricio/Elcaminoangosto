@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import type { Role } from '@elcamino/shared-types'
 import { Boton, Eyebrow } from '@elcamino/ui/static'
 import { useSession, usePerfil } from './session'
-import { supabase } from '../lib/supabase'
+import { authClient } from '../lib/auth-client'
 
 interface RequireRoleProps {
   /** Si se omite, basta con estar autenticado. */
@@ -51,7 +51,7 @@ function ErrorDeSesion({ onReintentar }: { onReintentar: () => void }) {
   const navigate = useNavigate()
 
   const cerrarSesion = async () => {
-    await supabase.auth.signOut()
+    await authClient.signOut()
     navigate('/entrar', { replace: true })
   }
 

@@ -12,34 +12,30 @@ Plataforma cristiana de formación y comunidad. Tres experiencias en un solo lug
 
 ## Arranque rápido
 
-Requisitos: **Node ≥ 20**, **pnpm 9**, **Docker** (para Supabase local).
+Requisitos: **Node ≥ 22**, **pnpm 9**, un **Postgres** y un **bucket S3-compatible** (en producción, los de Railway).
 
 ```bash
 pnpm install
 
-# Levanta Postgres, Auth, Storage y Realtime en local,
-# aplica las migraciones y carga el seed.
-supabase start
-supabase db reset
-
-# Copia las plantillas de entorno y rellena las claves que imprime `supabase start`.
+# Copia las plantillas de entorno y rellena DATABASE_URL, JWT_SECRET y las S3_*.
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
+
+# Aplica db/migrations/ sobre tu Postgres.
+pnpm db:migrate
 
 pnpm dev
 ```
 
 - Frontend → http://localhost:5173
 - API → http://localhost:3000/api · Swagger en `/api/docs`
-- Supabase Studio → http://localhost:54323
 - Kit de interfaz → http://localhost:5173/kit-ui
 
-### Usuarios del seed
+### Cuentas
 
-Contraseña de todos: `camino123`
+No hay registro público: las cuentas existentes se importaron de Supabase (sus hashes bcrypt valen tal cual) y el inicio de sesión, la verificación de correo y la recuperación de contraseña los atiende el propio API en `/api/auth/*`.
 
-| Correo | Rol | Nivel |
-|---|---|---|
+---|---|---|
 | `admin@elcaminoangosto.test` | ADMIN | — |
 | `maestro@elcaminoangosto.test` | MAESTRO | — |
 | `ester@elcaminoangosto.test` | ESTUDIANTE | 2 (inscrita al curso de ejemplo) |
@@ -58,7 +54,7 @@ packages/
   ui/             design system
   shared-types/   contratos Zod compartidos front↔back
   config/         tailwind preset, eslint, tsconfig
-supabase/         migraciones SQL, políticas RLS, seed, tests
+db/               migraciones SQL (`db/migrations/`), las aplica el API al arrancar
 docs/             fuente de verdad + landing legacy
 ```
 
@@ -77,26 +73,18 @@ pnpm lint && pnpm typecheck  # calidad
 pnpm test                    # tests unitarios
 pnpm build                   # build de producción
 
-supabase db reset            # recrea la BD, migra y siembra
+pnpm db:migrate              # aplica db/migrations/ sobre DATABASE_URL
 pnpm exec codegraph init     # (re)indexa el grafo de código
 ```
-
-### Tests de seguridad de la base de datos
-
-```bash
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f supabase/tests/rls.test.sql
-```
-
-16 aserciones sobre RLS y privilegios. **Corren en CI.** Ningún fallo de RLS produce error de compilación: este es el único sitio donde se ven.
 
 ---
 
 ## Seguridad
 
-- El front usa `@supabase/supabase-js`; el API verifica el JWT contra el **JWKS asimétrico** (ES256/RS256) con `jose`. El secreto **HS256 legacy se rechaza** deliberadamente.
-- **El rol define capacidades; la propiedad y el nivel definen el acceso fino.** `RolesGuard` + `PolicyGuard` en Nest son la autorización primaria; **RLS es defensa en profundidad**.
-- RLS filtra *filas*, no *columnas*: los campos de gobernanza (`profiles.role`, `profiles.current_level_id`, `posts.status`, `courses.published_at`) están protegidos además con **privilegios de columna**. Ver `docs/decisiones.md` → ADR-004.
-- Los medios privados solo se sirven por **URL firmada** de corta vida, tras validar permiso/nivel/inscripción.
+- La sesión es un JWT de acceso (HS256, 15 min) que firma el API más un token de refresco opaco y rotativo, guardado solo como hash. Las contraseñas van con bcrypt.
+- **El rol define capacidades; la propiedad y el nivel definen el acceso fino.** `RolesGuard` + `PolicyGuard` en Nest son la autorización primaria; **la base ya no aplica RLS**: cada ruta debe llevar su guard.
+- Los campos de gobernanza (`profiles.role`, `posts.status`…) solo los cambia el API, nunca el cliente.
+- Los medios privados solo se sirven por **URL firmada** de corta vida, tras validar permiso. Lo público (avatares, miniaturas) lo sirve el API en `/api/files/public/...`.
 - Nunca se commitean secretos. Cada app trae su `.env.example`.
 
 **Regla inviolable:** un curso de maestro nunca se autopublica. Pasa por aprobación del admin, y hay tres cerrojos independientes que lo garantizan (máquina de estados, política RLS y privilegio de columna).

@@ -7,25 +7,25 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import type { Request } from 'express'
-import { JwksVerifier } from '../infrastructure/jwks-verifier'
+import { TokenService } from '../infrastructure/token-service'
 import { UsersService } from '../../users'
 import { IS_PUBLIC_KEY } from '../../shared/decorators/roles.decorator'
 import type { CurrentUserContext } from '../../shared/decorators/current-user.decorator'
 
 /**
- * Guard global de autenticación (HU-0.2).
+ * Guard global de autenticación.
  *
  * 1. Extrae el `Bearer` del header.
- * 2. Lo verifica contra el JWKS asimétrico de Supabase.
- * 3. Carga el perfil (rol + nivel) y lo adjunta a `request.user`.
+ * 2. Verifica el JWT firmado por este mismo API.
+ * 3. Carga el perfil (rol) y lo adjunta a `request.user`.
  *
  * Depende de `users` solo por su **servicio público**, nunca por su repositorio.
  */
 @Injectable()
-export class SupabaseAuthGuard implements CanActivate {
+export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly verifier: JwksVerifier,
+    private readonly tokens: TokenService,
     private readonly users: UsersService,
   ) {}
 
@@ -56,14 +56,10 @@ export class SupabaseAuthGuard implements CanActivate {
     request: Request & { user?: CurrentUserContext },
     token: string,
   ): Promise<void> {
-    const claims = await this.verifier.verify(token)
+    const claims = await this.tokens.verificar(token)
 
     const perfil = await this.users.buscarPerfil(claims.sub)
-    if (!perfil) {
-      // El JWT es válido pero no hay fila en `profiles`: el trigger de
-      // aprovisionamiento no corrió. No es un 401 (el token es bueno).
-      throw new ForbiddenException('Tu cuenta aún no tiene perfil asociado')
-    }
+    if (!perfil) throw new ForbiddenException('Tu cuenta aún no tiene perfil asociado')
 
     request.user = {
       id: perfil.id,

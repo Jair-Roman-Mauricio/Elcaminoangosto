@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { authClient } from './auth-client'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
 
@@ -17,21 +17,19 @@ interface RespuestaDeError {
 }
 
 /**
- * Cliente HTTP del API. Adjunta el JWT de Supabase como `Bearer` en cada
- * llamada; el API lo verifica contra el JWKS asimétrico.
+ * Cliente HTTP del API. Adjunta el JWT de sesión como `Bearer` en cada
+ * llamada; el API lo verifica con su propio secreto.
  *
  * Se lee la sesión en cada petición (no se cachea el token) porque el SDK
  * puede haberlo refrescado entre llamadas.
  */
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const session = await authClient.getSession()
 
   const headers = new Headers(init.headers)
-  headers.set('Content-Type', 'application/json')
-  if (session?.access_token) {
-    headers.set('Authorization', `Bearer ${session.access_token}`)
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  if (session?.accessToken) {
+    headers.set('Authorization', `Bearer ${session.accessToken}`)
   }
 
   // Timeout: una petición que nunca responde (API caído, BD colgada) debe
@@ -73,4 +71,12 @@ export const apiClient = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body ?? {}) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  /** Sube un archivo como cuerpo binario (imágenes pequeñas). */
+  putBinario: <T>(path: string, file: File) =>
+    request<T>(path, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      signal: AbortSignal.timeout(120_000),
+    }),
 }

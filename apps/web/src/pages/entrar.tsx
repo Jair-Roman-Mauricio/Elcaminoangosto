@@ -4,9 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
-import type { AuthError } from '@supabase/supabase-js'
 import { BrandLogo, Boton, Eyebrow, Field, Input, Verse } from '@elcamino/ui'
-import { supabase } from '../lib/supabase'
+import { authClient, type FalloDeAuth } from '../lib/auth-client'
 import { useSession, usePerfil } from '../auth/session'
 import { PageTransition } from '../components/page-transition'
 import { navegarConTransicion } from '../components/view-transition'
@@ -38,13 +37,9 @@ type Credenciales = z.infer<typeof CredencialesSchema>
 type Aviso = { tipo: 'exito' | 'confirmar'; texto: string } | null
 
 /** Mensaje legible para el visitante; nunca el texto crudo del proveedor. */
-function mensajeDeError(error: AuthError): string {
-  if (error.code === 'invalid_credentials' || /invalid login/i.test(error.message)) {
-    return 'Correo o contraseña incorrectos.'
-  }
-  if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
-    return 'Esta cuenta todavía no ha confirmado su correo.'
-  }
+function mensajeDeError(error: FalloDeAuth): string {
+  if (error.status === 401) return 'Correo o contraseña incorrectos.'
+  if (error.status === 403) return 'Esta cuenta todavía no ha confirmado su correo.'
   if (error.status === 429) return 'Demasiados intentos. Espera un momento y vuelve a probar.'
   return 'No se pudo entrar. Inténtalo de nuevo en un momento.'
 }
@@ -93,7 +88,7 @@ export function EntrarPage() {
     setAviso(null)
     const correo = email.trim().toLowerCase()
 
-    const { error } = await supabase.auth.signInWithPassword({ email: correo, password })
+    const { error } = await authClient.signIn(correo, password)
     if (error) setErrorServidor(mensajeDeError(error))
   }
 

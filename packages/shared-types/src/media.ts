@@ -6,7 +6,7 @@ export type MediaKind = z.infer<typeof MediaKindSchema>
 export const MediaStatusSchema = z.enum(['UPLOADED', 'PROCESSING', 'READY', 'FAILED'])
 export type MediaStatus = z.infer<typeof MediaStatusSchema>
 
-/** Buckets de Supabase Storage (arquitectura.md §3.4). */
+/** Buckets lógicos del almacenamiento. Viven como prefijos de un bucket S3 en Railway. */
 export const BucketSchema = z.enum([
   'avatars', // público
   'thumbnails', // público
