@@ -113,6 +113,6 @@ jobs:
       # segunda pasada no debe hacer nada (idempotente).
       - name: Aplicar migraciones dos veces
         run: |
-          pnpm --filter @elcamino/api build
+          pnpm --filter "@elcamino/api..." build
           pnpm --filter @elcamino/api db:migrate
           pnpm --filter @elcamino/api db:migrate
