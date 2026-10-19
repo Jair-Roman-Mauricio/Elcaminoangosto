@@ -1,60 +1,71 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Boton, Modal, clasesDeBoton } from '@elcamino/ui'
 import { medioDisponible } from './datos'
 import { metodoSugerido, useContextoDeDonacion } from './contexto'
 import { TEXTOS } from './textos'
 
-/** Tiempo de visita ACTIVA antes de mostrar el aviso. Una vez por visita, no en cada página. */
+/** Tiempo de visita ACTIVA en una sección antes de mostrar el aviso. */
 const ESPERA_SEGUNDOS = 30
-/**
- * Cuánto calla el aviso después de salir. Vuelve cada tanto, no una sola vez,
- * pero sin insistir: quien dice «ahora no» lo vuelve a ver a los 3 días, y quien
- * pasó a la página de donación tiene dos semanas de calma.
- */
-const SILENCIO_AHORA_NO_DIAS = 3
-const SILENCIO_DONAR_DIAS = 14
-const CLAVE = 'eca.donacion.aviso'
+/** Veces seguidas que sale antes de descansar. */
+const VECES_POR_CICLO = 3
+/** Descanso tras completar el ciclo. Pasado, empieza otro ciclo de tres. */
+const DESCANSO_MS = 60 * 60 * 1000
+/** `v2`: ignora las marcas del formato anterior, que callaban días enteros. */
+const CLAVE = 'eca.donacion.aviso.v2'
 
-interface Marca {
-  /** Cuándo se vio por última vez, en ms. */
-  en: number
-  /** Cuántos días calla desde entonces. */
-  dias: number
+interface Registro {
+  /** Veces que ha salido en el ciclo en curso. */
+  mostradas: number
+  /** Hasta cuándo descansa, en ms. 0 si no está descansando. */
+  descansaHasta: number
 }
 
-function leerMarca(): Marca | null {
+function leerRegistro(): Registro {
   try {
-    const crudo = localStorage.getItem(CLAVE)
-    if (!crudo) return null
-    const m = JSON.parse(crudo) as Marca
-    return Number.isFinite(m.en) && Number.isFinite(m.dias) ? m : null
+    const m = JSON.parse(localStorage.getItem(CLAVE) ?? 'null') as Registro | null
+    if (m && Number.isFinite(m.mostradas) && Number.isFinite(m.descansaHasta)) return m
   } catch {
-    return null
+    /* sin almacenamiento o dato corrupto: se empieza de cero */
+  }
+  return { mostradas: 0, descansaHasta: 0 }
+}
+
+function guardarRegistro(registro: Registro): void {
+  try {
+    localStorage.setItem(CLAVE, JSON.stringify(registro))
+  } catch {
+    /* sin almacenamiento: el límite vale solo mientras la pestaña siga abierta */
   }
 }
 
-function yaSeVio(): boolean {
-  const marca = leerMarca()
-  return marca !== null && Date.now() - marca.en < marca.dias * 86_400_000
+/** ¿Toca mostrarlo ahora? No si está descansando; un descanso vencido abre otro ciclo. */
+function puedeMostrarse(ahora: number): boolean {
+  const r = leerRegistro()
+  return ahora >= r.descansaHasta
 }
 
-function marcarComoVisto(dias: number): void {
-  try {
-    localStorage.setItem(CLAVE, JSON.stringify({ en: Date.now(), dias } satisfies Marca))
-  } catch {
-    /* sin almacenamiento: sale una vez por visita, no más */
-  }
+/** Anota una aparición. A la tercera empieza el descanso y el contador vuelve a cero. */
+function anotarAparicion(ahora: number): void {
+  const r = leerRegistro()
+  const mostradas = (ahora >= r.descansaHasta ? r.mostradas : 0) + 1
+  guardarRegistro(
+    mostradas >= VECES_POR_CICLO
+      ? { mostradas: 0, descansaHasta: ahora + DESCANSO_MS }
+      : { mostradas, descansaHasta: 0 },
+  )
 }
 
 /**
- * Aviso de donación. Aparece una sola vez, tras un rato de visita real, y
- * nunca interrumpe lo importante:
+ * Aviso de donación. Sale en cada sección que se visita, tras un rato de uso
+ * real en ella, hasta 3 veces seguidas; después descansa una hora y vuelve a
+ * empezar. Nunca interrumpe lo importante:
  *
- * - El tiempo solo corre con la pestaña visible; una pestaña olvidada en
- *   segundo plano no lo dispara.
+ * - El tiempo solo corre con la pestaña visible. Una pestaña olvidada en
+ *   segundo plano no lo dispara, y el tiempo ya acumulado pasa de una sección a
+ *   la siguiente (cambiar de sección no lo reinicia).
  * - No sale durante el recorrido guiado ni en la propia página de donación.
- * - Vuelve cada tanto: 3 días después de «Ahora no», 14 tras ir a donar.
+ * - Ir a donar da por cumplido el ciclo: descansa una hora.
  * - No pide nada a cambio de seguir: todo el contenido sigue abierto.
  */
 export function AvisoDeDonacion() {
@@ -66,28 +77,34 @@ export function AvisoDeDonacion() {
   const hayMedio = medioDisponible(metodoSugerido()) || medioDisponible('yape') || medioDisponible('cci')
   const enDonacion = pathname.startsWith('/donacion')
 
+  // Segundos de uso acumulados desde la última aparición. Vive fuera del efecto
+  // para que cambiar de sección no lo reinicie.
+  const acumulado = useRef(0)
+
   useEffect(() => {
-    if (!hayMedio || enDonacion || yaSeVio()) return
-    let segundos = 0
+    if (!hayMedio || enDonacion) return
+    // Una aparición por sección: al entrar en otra, vuelve a poder salir.
+    let yaSalioAqui = false
     const reloj = window.setInterval(() => {
+      if (yaSalioAqui) return
       if (document.visibilityState !== 'visible') return
       if (document.body.dataset.recorrido === 'activo') return
-      segundos += 1
-      if (segundos >= ESPERA_SEGUNDOS) {
-        window.clearInterval(reloj)
-        setAbierto(true)
-      }
+      acumulado.current += 1
+      if (acumulado.current < ESPERA_SEGUNDOS) return
+      const ahora = Date.now()
+      if (!puedeMostrarse(ahora)) return
+      anotarAparicion(ahora)
+      acumulado.current = 0
+      yaSalioAqui = true
+      setAbierto(true)
     }, 1000)
     return () => window.clearInterval(reloj)
-  }, [hayMedio, enDonacion])
+  }, [hayMedio, enDonacion, pathname])
 
-  const cerrar = () => {
-    marcarComoVisto(SILENCIO_AHORA_NO_DIAS)
-    setAbierto(false)
-  }
+  const cerrar = () => setAbierto(false)
 
   const alDonar = () => {
-    marcarComoVisto(SILENCIO_DONAR_DIAS)
+    guardarRegistro({ mostradas: 0, descansaHasta: Date.now() + DESCANSO_MS })
     setAbierto(false)
   }
 
