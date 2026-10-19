@@ -65,7 +65,9 @@ export function Modal({
     const enfocable = panel.current?.querySelector<HTMLElement>(
       ':is(input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"])):not([data-modal-cerrar])',
     )
-    ;(enfocable ?? panel.current)?.focus()
+    // Sin desplazar: si el control está al final de un diálogo largo (móvil), enfocarlo
+    // lo llevaría hasta abajo y dejaría cortado el título antes de leerlo.
+    ;(enfocable ?? panel.current)?.focus({ preventScroll: true })
 
     return () => {
       document.removeEventListener('keydown', alPulsar)
