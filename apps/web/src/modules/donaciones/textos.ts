@@ -52,7 +52,7 @@ export const TEXTOS: Record<Idioma, Textos> = {
       titulo: 'Donación',
       descripcion: 'Esta página se sostiene con aportes voluntarios.',
       parrafos: [
-        'Tener El Camino Angosto en internet cuesta dinero cada mes. Lo que se done se usa únicamente para eso: que la página siga activa para quien la necesite.',
+        'Mantener la página de El Camino Angosto tiene un costo económico cada mes. Lo que se done se usa únicamente para eso: que la página siga activa para quien la necesite.',
         'Donar es decisión tuya. Das lo que quieras, si quieres, y no pasa nada si no lo haces: no hace falta donar para escuchar, leer ni ver ningún contenido.',
         'Si esta página te ha acompañado y quieres ayudar a que siga ahí para otros, te lo agradecemos de corazón.',
       ],
@@ -129,7 +129,7 @@ export const TEXTOS: Record<Idioma, Textos> = {
       titulo: 'Donation',
       descripcion: 'This site is kept going by voluntary gifts.',
       parrafos: [
-        'Keeping El Camino Angosto online costs money every month. Whatever is given is used only for that: so the site stays up for anyone who needs it.',
+        'Maintaining the El Camino Angosto site comes with a financial cost every month. Whatever is given is used only for that: so the site stays up for anyone who needs it.',
         'Giving is entirely your choice. Give what you wish, if you wish, and nothing changes if you do not: you never need to donate to listen, read or watch anything here.',
         'If this site has kept you company and you would like to help it stay there for others, we are truly grateful.',
       ],
@@ -206,7 +206,7 @@ export const TEXTOS: Record<Idioma, Textos> = {
       titulo: 'Doação',
       descripcion: 'Este site se mantém com ofertas voluntárias.',
       parrafos: [
-        'Manter o El Camino Angosto na internet custa dinheiro todo mês. O que for doado é usado somente para isso: para que o site continue ativo para quem precisar.',
+        'Manter o site El Camino Angosto tem um custo econômico todo mês. O que for doado é usado somente para isso: para que o site continue ativo para quem precisar.',
         'Doar é uma decisão sua. Você dá o que quiser, se quiser, e nada muda se não o fizer: não é preciso doar para ouvir, ler ou assistir a nenhum conteúdo.',
         'Se este site lhe fez companhia e você quer ajudar para que continue aqui para outras pessoas, agradecemos de coração.',
       ],

@@ -6,7 +6,7 @@ import { metodoSugerido, useContextoDeDonacion } from './contexto'
 import { TEXTOS } from './textos'
 
 /** Tiempo de visita ACTIVA antes de mostrar el aviso. Una vez por visita, no en cada página. */
-const ESPERA_SEGUNDOS = 75
+const ESPERA_SEGUNDOS = 30
 /**
  * Cuánto calla el aviso después de salir. Vuelve cada tanto, no una sola vez,
  * pero sin insistir: quien dice «ahora no» lo vuelve a ver a los 3 días, y quien
