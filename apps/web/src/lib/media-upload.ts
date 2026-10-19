@@ -1,9 +1,8 @@
-import * as tus from 'tus-js-client'
 import type { Bucket, MediaKind } from '@elcamino/shared-types'
-import { supabase } from './supabase'
+import { authClient } from './auth-client'
 import { apiClient } from './api-client'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
 
 interface CrearSubidaResp {
   assetId: string
@@ -11,13 +10,48 @@ interface CrearSubidaResp {
   path: string
 }
 
+const REINTENTOS = [0, 1000, 3000]
+
+/** Un PUT con progreso. Falla con `ErrorDeRed` si se cortó la conexión (reintentable). */
+class ErrorDeRed extends Error {}
+
+function subirPorXhr(
+  url: string,
+  file: File,
+  contentType: string,
+  token: string,
+  onProgress: (pct: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', url)
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    xhr.setRequestHeader('Content-Type', contentType)
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) return resolve()
+      let mensaje = `Error ${xhr.status}`
+      try {
+        mensaje = (JSON.parse(xhr.responseText) as { message?: string }).message ?? mensaje
+      } catch {
+        /* cuerpo no JSON */
+      }
+      reject(new Error(mensaje))
+    }
+    xhr.onerror = () => reject(new ErrorDeRed('Se cortó la conexión durante la subida'))
+    xhr.send(file)
+  })
+}
+
 /**
- * Subida reanudable a Supabase Storage por TUS (HU-8.1). Tolerante a cortes de
- * red: `tus-js-client` reintenta y reanuda desde el último trozo confirmado.
- * Compartida entre el feed (`feed-media`) y el discipulado (`course-media`).
+ * Subida de un medio al almacenamiento, a través del API (HU-8.1). Reintenta si
+ * la red se corta. Compartida entre el feed (`feed-media`) y el discipulado.
  *
  * 1. El API reserva el asset y devuelve bucket+path (carpeta del usuario).
- * 2. Se sube el archivo por TUS al endpoint resumable, con el JWT del usuario.
+ * 2. Se manda el archivo a `PUT /media/uploads/:id/content`; el API lo valida
+ *    (tipo, tamaño, dueño) y lo guarda en el bucket.
  * 3. El API encola la transcodificación.
  *
  * Devuelve el `assetId` para que el llamador consulte el estado hasta READY.
@@ -30,44 +64,23 @@ export async function subirMedioReanudable(
   opciones: { procesar?: boolean } = {},
 ): Promise<string> {
   const { procesar = true } = opciones
-  const { assetId, bucket: bucketReal, path } = await apiClient.post<CrearSubidaResp>(
-    '/media/uploads',
-    { kind, bucket },
-  )
+  const { assetId } = await apiClient.post<CrearSubidaResp>('/media/uploads', { kind, bucket })
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (!session) throw new Error('Sesión no disponible')
+  const contentType =
+    file.type || (kind === 'AUDIO' ? 'audio/mpeg' : kind === 'VIDEO' ? 'video/mp4' : 'image/jpeg')
 
-  await new Promise<void>((resolve, reject) => {
-    const upload = new tus.Upload(file, {
-      endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
-      retryDelays: [0, 1000, 3000, 5000],
-      headers: {
-        authorization: `Bearer ${session.access_token}`,
-        'x-upsert': 'true',
-      },
-      uploadDataDuringCreation: true,
-      removeFingerprintOnSuccess: true,
-      metadata: {
-        bucketName: bucketReal,
-        objectName: path,
-        contentType: file.type || (kind === 'AUDIO' ? 'audio/mpeg' : kind === 'VIDEO' ? 'video/mp4' : 'image/jpeg'),
-        cacheControl: '3600',
-      },
-      chunkSize: 6 * 1024 * 1024, // 6 MB — requerido por el endpoint de Supabase
-      onError: reject,
-      onProgress: (subido, total) => onProgress(Math.round((subido / total) * 100)),
-      onSuccess: () => resolve(),
-    })
-
-    // Reanuda una subida previa del mismo archivo si la hubo.
-    void upload.findPreviousUploads().then((previas) => {
-      if (previas.length > 0 && previas[0]) upload.resumeFromPreviousUpload(previas[0])
-      upload.start()
-    })
-  })
+  for (let intento = 0; ; intento++) {
+    const session = await authClient.getSession()
+    if (!session) throw new Error('Sesión no disponible')
+    try {
+      await subirPorXhr(`${BASE_URL}/media/uploads/${assetId}/content`, file, contentType, session.accessToken, onProgress)
+      break
+    } catch (error) {
+      const espera = REINTENTOS[intento]
+      if (!(error instanceof ErrorDeRed) || espera === undefined) throw error
+      await new Promise((r) => setTimeout(r, espera))
+    }
+  }
 
   // Encolar la transcodificación. Opcional: quien crea una lección de curso
   // prefiere no perder el contenido si la cola (Redis) está temporalmente caída;

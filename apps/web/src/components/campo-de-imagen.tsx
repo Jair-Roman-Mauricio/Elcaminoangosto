@@ -19,7 +19,7 @@ export interface CampoDeImagenProps {
  * que las portadas de curso, en vez de pedir una URL escrita a mano.
  *
  * Vive en la app y no en `packages/ui` porque conoce Storage; el sistema de
- * diseño no sabe de Supabase.
+ * diseño no sabe de dónde viene el archivo.
  */
 export function CampoDeImagen({
   valor,

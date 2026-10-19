@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
+  PayloadTooLargeException,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common'
@@ -22,6 +24,28 @@ import type { Actor } from '../../shared'
 
 /** Extensiones aceptadas por tipo. La ruta la construye el API, no el cliente. */
 const EXT: Record<MediaKind, string> = { VIDEO: 'mp4', AUDIO: 'mp3', IMAGE: 'jpg' }
+
+/** Tope de tamaño por bucket lógico, en bytes. */
+const LIMITE_BYTES: Record<Bucket, number> = {
+  avatars: 5 * 1024 * 1024,
+  thumbnails: 5 * 1024 * 1024,
+  music: 100 * 1024 * 1024,
+  'feed-media': 500 * 1024 * 1024,
+  'course-media': 500 * 1024 * 1024,
+}
+
+/** Tipos aceptados por clase de medio. */
+const MIME_POR_TIPO: Record<MediaKind, RegExp> = {
+  AUDIO: /^audio\//,
+  VIDEO: /^video\//,
+  IMAGE: /^image\/(jpeg|png|webp)$/,
+}
+
+const EXT_IMAGEN: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+}
 
 /** Margen para encolar antes de dar la cola por caída. */
 const ENQUEUE_TIMEOUT_MS = 5_000
@@ -60,7 +84,7 @@ export class MediaService {
   /**
    * URLs firmadas ya emitidas, por asset.
    *
-   * Firmar es una llamada de red a Supabase y una consulta más a la BD, y el
+   * Firmar es una consulta más a la BD, y el
    * catálogo de Alabanza lo hacía 43 veces por visita. Pero lo caro de verdad
    * era otra cosa: cada firma nueva cambia el enlace, y un enlace que cambia
    * es un objeto nuevo para la CDN y para el navegador. Nadie reutilizaba
@@ -108,9 +132,9 @@ export class MediaService {
 
   /**
    * HU-8.1 — reserva un asset para una subida reanudable. Devuelve el destino
-   * (bucket + path); el cliente sube ahí por TUS con su propio JWT. La ruta
-   * incluye el `ownerId` como carpeta: así las políticas de Storage por
-   * carpeta (migración de buckets) impiden escribir en la ajena.
+   * (bucket + path); el cliente sube el contenido a `PUT /media/uploads/:id/content`.
+   * La ruta incluye el `ownerId` como carpeta; `subirContenido` solo deja
+   * escribir al dueño del asset.
    */
   async crearSubida(
     actor: Actor,
@@ -128,6 +152,55 @@ export class MediaService {
     const path = `${actor.id}/${assetId}/original.${EXT[kind]}`
     const asset = await this.assets.create({ ownerId: actor.id, bucket, path, kind })
     return { assetId: asset.id, bucket, path }
+  }
+
+  /**
+   * Recibe el contenido de un asset reservado y lo manda al bucket en flujo.
+   * La subida pasa por el API: el bucket de Railway no admite CORS desde el
+   * navegador, y así además el tipo y el tamaño se validan aquí.
+   */
+  async subirContenido(
+    actor: Actor,
+    assetId: string,
+    cuerpo: NodeJS.ReadableStream,
+    contentType: string,
+    contentLength: number | undefined,
+  ): Promise<void> {
+    const asset = await this.propioAsset(actor, assetId)
+    this.validarArchivo(asset.bucket as Bucket, MIME_POR_TIPO[asset.kind], contentType, contentLength)
+    await this.storage.put(asset.bucket, asset.path, cuerpo, contentType)
+    this.olvidarFirmas(asset.id)
+  }
+
+  /**
+   * Imagen para un bucket PÚBLICO (`thumbnails`): el contenido de un curso guarda
+   * su URL embebida, así que debe ser permanente. Solo quien publica contenido.
+   */
+  async subirImagenPublica(
+    actor: Actor,
+    cuerpo: NodeJS.ReadableStream,
+    contentType: string,
+    contentLength: number | undefined,
+  ): Promise<{ url: string }> {
+    if (actor.role === 'ESTUDIANTE') throw new ForbiddenException('No tienes permiso para subir imágenes')
+    this.validarArchivo('thumbnails', MIME_POR_TIPO.IMAGE, contentType, contentLength)
+    const path = `${actor.id}/${crypto.randomUUID()}.${EXT_IMAGEN[contentType] ?? 'png'}`
+    await this.storage.put('thumbnails', path, cuerpo, contentType)
+    return { url: this.storage.urlPublica('thumbnails', path) }
+  }
+
+  private validarArchivo(
+    bucket: Bucket,
+    permitido: RegExp,
+    contentType: string,
+    contentLength: number | undefined,
+  ): void {
+    if (!permitido.test(contentType)) {
+      throw new BadRequestException(`Tipo de archivo no aceptado: ${contentType || 'desconocido'}`)
+    }
+    if (contentLength !== undefined && contentLength > LIMITE_BYTES[bucket]) {
+      throw new PayloadTooLargeException('El archivo supera el tamaño permitido')
+    }
   }
 
   /**

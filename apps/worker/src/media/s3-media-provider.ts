@@ -1,8 +1,12 @@
 import { spawn } from 'node:child_process'
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { pipeline } from 'node:stream/promises'
+import { createWriteStream } from 'node:fs'
+import type { Readable } from 'node:stream'
 import {
   MediaProvider,
   type DerivadosDeMedio,
@@ -10,9 +14,9 @@ import {
 } from './media-provider'
 
 /**
- * Adaptador sobre Supabase Storage + ffmpeg local (arquitectura.md §6, ADR-006).
+ * Adaptador sobre un bucket S3 (Railway) + ffmpeg local (arquitectura.md §6, ADR-006).
  *
- * Supabase Storage NO transcodifica: descargamos el original, lo procesamos con
+ * El almacenamiento NO transcodifica: descargamos el original, lo procesamos con
  * ffmpeg y volvemos a subir los derivados.
  *
  * VIDEO → MP4 normalizado con `-movflags +faststart` (moov al principio → el
@@ -22,11 +26,28 @@ import {
  *
  * HLS se difiere (ADR-006): `hlsPath` queda null.
  */
-export class SupabaseMediaProvider extends MediaProvider {
-  readonly nombre = 'supabase'
+export interface ConfigS3 {
+  endpoint: string
+  region: string
+  /** Bucket físico: aloja los lógicos como prefijos (`<bucket>/<ruta>`). */
+  bucket: string
+  accessKeyId: string
+  secretAccessKey: string
+  forcePathStyle: boolean
+}
 
-  constructor(private readonly supabase: SupabaseClient) {
+export class S3MediaProvider extends MediaProvider {
+  readonly nombre = 's3'
+  private readonly s3: S3Client
+
+  constructor(private readonly cfg: ConfigS3) {
     super()
+    this.s3 = new S3Client({
+      endpoint: cfg.endpoint,
+      region: cfg.region,
+      forcePathStyle: cfg.forcePathStyle,
+      credentials: { accessKeyId: cfg.accessKeyId, secretAccessKey: cfg.secretAccessKey },
+    })
   }
 
   async transcodificar(entrada: EntradaDeTranscodificacion): Promise<DerivadosDeMedio> {
@@ -93,19 +114,21 @@ export class SupabaseMediaProvider extends MediaProvider {
   }
 
   async firmarUrl(bucket: string, path: string, ttlSeconds: number): Promise<string> {
-    const { data, error } = await this.supabase.storage.from(bucket).createSignedUrl(path, ttlSeconds)
-    if (error || !data) {
-      throw new Error(`No se pudo firmar ${bucket}/${path}: ${error?.message ?? 'sin datos'}`)
-    }
-    return data.signedUrl
+    return getSignedUrl(
+      this.s3,
+      new GetObjectCommand({ Bucket: this.cfg.bucket, Key: `${bucket}/${path}` }),
+      { expiresIn: ttlSeconds },
+    )
   }
 
   // ── helpers ────────────────────────────────────────────────────────────
 
   private async descargar(bucket: string, path: string, destino: string): Promise<void> {
-    const { data, error } = await this.supabase.storage.from(bucket).download(path)
-    if (error || !data) throw new Error(`No se pudo descargar ${bucket}/${path}: ${error?.message}`)
-    await writeFile(destino, Buffer.from(await data.arrayBuffer()))
+    const r = await this.s3.send(
+      new GetObjectCommand({ Bucket: this.cfg.bucket, Key: `${bucket}/${path}` }),
+    )
+    if (!r.Body) throw new Error(`No se pudo descargar ${bucket}/${path}: sin cuerpo`)
+    await pipeline(r.Body as Readable, createWriteStream(destino))
   }
 
   private async subir(
@@ -114,10 +137,14 @@ export class SupabaseMediaProvider extends MediaProvider {
     contenido: Buffer,
     contentType: string,
   ): Promise<void> {
-    const { error } = await this.supabase.storage
-      .from(bucket)
-      .upload(path, contenido, { contentType, upsert: true })
-    if (error) throw new Error(`No se pudo subir ${bucket}/${path}: ${error.message}`)
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.cfg.bucket,
+        Key: `${bucket}/${path}`,
+        Body: contenido,
+        ContentType: contentType,
+      }),
+    )
   }
 
   private ffmpeg(args: string[]): Promise<void> {

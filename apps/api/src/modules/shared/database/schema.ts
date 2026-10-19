@@ -1,6 +1,5 @@
 import {
   pgTable,
-  pgSchema,
   pgEnum,
   uuid,
   text,
@@ -16,15 +15,15 @@ import {
 } from 'drizzle-orm/pg-core'
 
 /**
- * Espejo tipado del esquema SQL de `supabase/migrations/`.
+ * Espejo tipado del esquema SQL de `db/schema.sql`.
  * Fuente de verdad del modelo: arquitectura.md §7.
  *
  * Las migraciones SQL mandan. Si tocas este archivo, escribe la migración.
  */
 
-// `auth.users` lo gestiona Supabase; solo lo referenciamos.
-const authSchema = pgSchema('auth')
-export const authUsers = authSchema.table('users', {
+// Cuentas de acceso (correo + hash). Las gestiona el módulo `auth` con SQL directo;
+// aquí solo se referencian para las claves foráneas.
+export const authUsers = pgTable('users', {
   id: uuid('id').primaryKey(),
 })
 

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import type { Role } from '@elcamino/shared-types'
 import { BrandLogo, Boton, cn } from '@elcamino/ui/static'
-import { supabase } from '../lib/supabase'
+import { authClient } from '../lib/auth-client'
 import { useVistaComo } from './vista-como'
 import { usePerfil } from '../auth/session'
 import { navegarConTransicion } from './view-transition'
@@ -80,7 +80,7 @@ export function Sidebar({ abierto, onCerrar, oculto = false, invitado = false }:
   if (oculto) return null
 
   const salir = async () => {
-    await supabase.auth.signOut()
+    await authClient.signOut()
     navegarConTransicion(() => navigate('/entrar'))
   }
 

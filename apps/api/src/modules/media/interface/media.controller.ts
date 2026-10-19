@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Headers, Param, Post, Put, Req, UseGuards } from '@nestjs/common'
+import type { Request } from 'express'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 import { BucketSchema, MediaKindSchema } from '@elcamino/shared-types'
@@ -30,6 +31,30 @@ export class MediaController {
     return this.media.crearSubida(actorDe(u), body)
   }
 
+  @Put('uploads/:id/content')
+  @ApiOperation({ summary: 'Subir el contenido (cuerpo binario) de un asset reservado' })
+  async subir(
+    @CurrentUser() u: CurrentUserContext,
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Headers('content-type') contentType: string | undefined,
+    @Headers('content-length') longitud: string | undefined,
+  ) {
+    await this.media.subirContenido(actorDe(u), id, req, contentType ?? '', numeroOIndefinido(longitud))
+    return { ok: true }
+  }
+
+  @Put('images')
+  @ApiOperation({ summary: 'Subir una imagen a un bucket público; devuelve su URL permanente' })
+  async subirImagen(
+    @CurrentUser() u: CurrentUserContext,
+    @Req() req: Request,
+    @Headers('content-type') contentType: string | undefined,
+    @Headers('content-length') longitud: string | undefined,
+  ) {
+    return this.media.subirImagenPublica(actorDe(u), req, contentType ?? '', numeroOIndefinido(longitud))
+  }
+
   @Post('uploads/:id/process')
   @ApiOperation({ summary: 'Avisar de subida completa y encolar transcodificación (HU-8.2)' })
   async procesar(@CurrentUser() u: CurrentUserContext, @Param('id') id: string) {
@@ -43,4 +68,9 @@ export class MediaController {
     const a = await this.media.estado(id)
     return { id: a.id, status: a.status, posterPath: a.posterPath }
   }
+}
+
+function numeroOIndefinido(v: string | undefined): number | undefined {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : undefined
 }

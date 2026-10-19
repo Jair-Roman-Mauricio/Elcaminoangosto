@@ -14,9 +14,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\" --ignore-path .gitignore",
-    "db:new": "supabase migration new",
-    "db:push": "supabase db push",
-    "db:reset": "supabase db reset"
+    "db:migrate": "pnpm --filter @elcamino/api build && pnpm --filter @elcamino/api db:migrate"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.3.1",

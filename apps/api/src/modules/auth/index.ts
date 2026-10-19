@@ -1,3 +1,3 @@
 export { AuthModule } from './auth.module'
-export { SupabaseAuthGuard } from './interface/supabase-auth.guard'
-export { JwksVerifier, type TokenClaims } from './infrastructure/jwks-verifier'
+export { JwtAuthGuard } from './interface/jwt-auth.guard'
+export { TokenService, type TokenClaims } from './infrastructure/token-service'

@@ -1,9 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import type { AuthError } from '@supabase/supabase-js'
+import { useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Boton, Eyebrow, Field, Input } from '@elcamino/ui'
 import { PasswordField } from '../components/password-field'
-import { supabase } from '../lib/supabase'
+import { authClient, type FalloDeAuth } from '../lib/auth-client'
 import { AuthUtilityShell } from './auth-utility-shell'
 
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -24,12 +23,11 @@ export function RecuperarContrasenaPage() {
 
     setEnviando(true)
     setError(null)
-    const redirectTo = new URL('/restablecer-contrasena', window.location.origin).toString()
-    const { error: errorSupabase } = await supabase.auth.resetPasswordForEmail(correo, { redirectTo })
+    const { error: errorServidor } = await authClient.requestPasswordReset(correo)
     setEnviando(false)
 
-    if (errorSupabase) {
-      setError(mensajeRecuperacion(errorSupabase))
+    if (errorServidor) {
+      setError(mensajeRecuperacion(errorServidor))
       return
     }
     setEnviado(true)
@@ -74,42 +72,14 @@ export function RecuperarContrasenaPage() {
 
 export function RestablecerContrasenaPage() {
   const navigate = useNavigate()
-  const [estadoEnlace, setEstadoEnlace] = useState<'verificando' | 'listo' | 'invalido'>('verificando')
+  const [params] = useSearchParams()
+  const token = params.get('token')
+  // El enlace del correo trae el token; sin él no hay nada que restablecer.
+  const [estadoEnlace, setEstadoEnlace] = useState<'listo' | 'invalido'>(token ? 'listo' : 'invalido')
   const [password, setPassword] = useState('')
   const [confirmacion, setConfirmacion] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let activo = true
-    let sesionEncontrada = false
-
-    const habilitar = () => {
-      if (!activo) return
-      sesionEncontrada = true
-      setEstadoEnlace('listo')
-    }
-
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) habilitar()
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((evento, session) => {
-      if (evento === 'PASSWORD_RECOVERY' || session) habilitar()
-    })
-
-    const temporizador = window.setTimeout(() => {
-      if (activo && !sesionEncontrada) setEstadoEnlace('invalido')
-    }, 2500)
-
-    return () => {
-      activo = false
-      window.clearTimeout(temporizador)
-      subscription.unsubscribe()
-    }
-  }, [])
 
   const actualizar = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -125,14 +95,16 @@ export function RestablecerContrasenaPage() {
     }
 
     setGuardando(true)
-    const { error: errorSupabase } = await supabase.auth.updateUser({ password })
-    if (errorSupabase) {
+    const { error: errorServidor } = await authClient.resetPassword(token ?? '', password)
+    if (errorServidor) {
       setGuardando(false)
-      setError(mensajeRecuperacion(errorSupabase))
+      // 400: el enlace venció o ya se usó.
+      if (errorServidor.status === 400) setEstadoEnlace('invalido')
+      else setError(mensajeRecuperacion(errorServidor))
       return
     }
 
-    await supabase.auth.signOut({ scope: 'local' })
+    await authClient.signOut()
     navigate('/entrar?clave=actualizada', { replace: true })
   }
 
@@ -144,10 +116,6 @@ export function RestablecerContrasenaPage() {
           Protege tu cuenta
         </h1>
       </header>
-
-      {estadoEnlace === 'verificando' && (
-        <p role="status" className="m-0 font-ui text-body-s text-texto-tenue">Verificando el enlace…</p>
-      )}
 
       {estadoEnlace === 'invalido' && (
         <div className="flex flex-col gap-aire-s">
@@ -219,12 +187,12 @@ function CampoCorreo({
   )
 }
 
-function mensajeRecuperacion(error: AuthError): string {
-  if (error.status === 429 || /rate limit/i.test(error.message)) {
+function mensajeRecuperacion(error: FalloDeAuth): string {
+  if (error.status === 429) {
     return 'Has solicitado demasiados enlaces. Espera unos minutos e inténtalo de nuevo.'
   }
-  if (error.code === 'weak_password' || /password should be/i.test(error.message)) {
-    return 'La contraseña es demasiado débil. Usa al menos 8 caracteres.'
+  if (error.status === 422 || error.status === 400) {
+    return 'La contraseña no es válida. Usa al menos 8 caracteres.'
   }
   return 'No pudimos completar la solicitud. Inténtalo nuevamente.'
 }

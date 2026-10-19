@@ -8,7 +8,7 @@ import { LoggerModule } from 'nestjs-pino'
 import { validateEnv } from './modules/shared/config/env'
 import { SharedModule } from './modules/shared/shared.module'
 import { HealthController } from './modules/shared/interface/health.controller'
-import { AuthModule, SupabaseAuthGuard } from './modules/auth'
+import { AuthModule, JwtAuthGuard } from './modules/auth'
 import { UsersModule } from './modules/users'
 import { MusicModule } from './modules/music'
 import { FeedModule } from './modules/feed'
@@ -63,7 +63,7 @@ import { AdminModule } from './modules/admin'
   controllers: [HealthController],
   providers: [
     // Autenticación por defecto en TODA ruta. Se exceptúa con @Public().
-    { provide: APP_GUARD, useClass: SupabaseAuthGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

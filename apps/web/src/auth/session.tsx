@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
 import { useQuery } from '@tanstack/react-query'
 import type { Profile } from '@elcamino/shared-types'
-import { supabase } from '../lib/supabase'
+import { authClient, type Session } from '../lib/auth-client'
 import { apiClient } from '../lib/api-client'
 
 interface ContextoDeSesion {
@@ -13,29 +12,17 @@ interface ContextoDeSesion {
 
 const SesionContext = createContext<ContextoDeSesion>({ session: null, cargando: true })
 
-/** Una cuenta por correo no entra a la app hasta demostrar acceso a él. */
-function sesionConCorreoVerificado(session: Session | null): Session | null {
-  if (!session) return null
-  return session.user.email_confirmed_at ? session : null
-}
-
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(sesionConCorreoVerificado(data.session))
+    void authClient.getSession().then((inicial) => {
+      setSession(inicial)
       setCargando(false)
     })
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_evento, nuevaSesion) => {
-      setSession(sesionConCorreoVerificado(nuevaSesion))
-    })
-
-    return () => subscription.unsubscribe()
+    return authClient.onChange(setSession)
   }, [])
 
   return <SesionContext.Provider value={{ session, cargando }}>{children}</SesionContext.Provider>

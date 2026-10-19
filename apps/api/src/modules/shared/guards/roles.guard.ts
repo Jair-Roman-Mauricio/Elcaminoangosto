@@ -8,7 +8,7 @@ import type { CurrentUserContext } from '../decorators/current-user.decorator'
  * Autorización por rol (RBAC). Primera mitad de la regla de oro:
  * *el rol define capacidades*.
  *
- * Corre DESPUÉS de `SupabaseAuthGuard`, que ya puso `request.user`.
+ * Corre DESPUÉS de `JwtAuthGuard`, que ya puso `request.user`.
  */
 @Injectable()
 export class RolesGuard implements CanActivate {

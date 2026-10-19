@@ -1,15 +1,19 @@
 import { Module } from '@nestjs/common'
-import { JwksVerifier } from './infrastructure/jwks-verifier'
-import { SupabaseAuthGuard } from './interface/supabase-auth.guard'
+import { TokenService } from './infrastructure/token-service'
+import { Mailer } from './infrastructure/mailer'
+import { AuthService } from './application/auth.service'
+import { AuthController } from './interface/auth.controller'
+import { JwtAuthGuard } from './interface/jwt-auth.guard'
 import { UsersModule } from '../users'
 
 /**
- * Bounded context `auth`: verificación del JWT de Supabase (JWKS asimétrico)
- * y construcción del contexto de usuario. No persiste nada.
+ * Bounded context `auth`: cuentas, contraseñas, sesiones (JWT de acceso +
+ * token de refresco rotativo) y correos de verificación y recuperación.
  */
 @Module({
   imports: [UsersModule],
-  providers: [JwksVerifier, SupabaseAuthGuard],
-  exports: [SupabaseAuthGuard, JwksVerifier],
+  controllers: [AuthController],
+  providers: [TokenService, Mailer, AuthService, JwtAuthGuard],
+  exports: [JwtAuthGuard, TokenService],
 })
 export class AuthModule {}

@@ -3,8 +3,8 @@ import type { MediaKind } from '@elcamino/shared-types'
 /**
  * Strategy (arquitectura.md §4, §6).
  *
- * El dominio NUNCA sabe qué proveedor está detrás. Hoy `SupabaseMediaProvider`
- * (Storage + ffmpeg local). Mañana `MuxMediaProvider` o `CloudflareStreamProvider`
+ * El dominio NUNCA sabe qué proveedor está detrás. Hoy `S3MediaProvider`
+ * (bucket S3 + ffmpeg local). Mañana `MuxMediaProvider` o `CloudflareStreamProvider`
  * sin tocar una línea de negocio: basta registrar otra implementación.
  */
 export interface DerivadosDeMedio {

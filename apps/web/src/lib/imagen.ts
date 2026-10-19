@@ -1,7 +1,7 @@
-const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? ''
+const API_URL: string = import.meta.env.VITE_API_URL ?? ''
 
-const ORIGEN_PUBLICO = '/storage/v1/object/public/'
-const TRANSFORMADOR = '/storage/v1/render/image/public/'
+/** Ruta del API que sirve lo público (avatares, miniaturas) y sabe redimensionar. */
+const ORIGEN_PUBLICO = '/files/public/'
 
 /**
  * Calidad por defecto. 75 es el punto donde una foto deja de encoger sin que
@@ -10,20 +10,19 @@ const TRANSFORMADOR = '/storage/v1/render/image/public/'
 const CALIDAD = 75
 
 /**
- * Pide a Supabase la imagen al tamaño en que se va a ver.
+ * Pide al API la imagen al tamaño en que se va a ver.
  *
  * Las portadas se guardan tal como salieron del equipo de quien las sube: PNG
  * de dos y tres megas. Pintadas en una tarjeta de 300 px eso es tirar el 98 %
- * de los bytes, y en el catálogo de Alabanza sumaba 89 MB por visita. El
- * transformador de Supabase (incluido en el plan Pro) las devuelve del ancho
- * pedido y en WebP: la misma portada baja de 2.437 KB a 52 KB, y se sirve
- * desde la CDN con un año de caché.
+ * de los bytes, y en el catálogo de Alabanza sumaba 89 MB por visita. El API
+ * las devuelve del ancho pedido y en WebP, con un año de caché.
  *
  * `ancho` es el ancho real de pintado, no el del archivo. Se pide el doble
- * para que en pantallas de densidad alta no se vea borrosa.
+ * para que en pantallas de densidad alta no se vea borrosa. La proporción se
+ * respeta: manda el ancho, el alto sale solo.
  *
- * Lo que no vive en nuestro Storage público —una URL de fuera, una firmada, un
- * `data:`— se devuelve intacto: el transformador solo sabe de lo nuestro.
+ * Lo que no vive en nuestro almacenamiento público —una URL de fuera, una
+ * firmada, un `data:`— se devuelve intacto.
  */
 export function imagenOptimizada(
   url: string | null | undefined,
@@ -31,17 +30,8 @@ export function imagenOptimizada(
   calidad: number = CALIDAD,
 ): string {
   if (!url) return ''
-  if (!SUPABASE_URL || !url.startsWith(SUPABASE_URL) || !url.includes(ORIGEN_PUBLICO)) return url
+  if (!API_URL || !url.startsWith(API_URL) || !url.includes(ORIGEN_PUBLICO)) return url
 
   const [ruta] = url.split('?')
-  const w = Math.round(ancho * 2)
-  // `height` y `resize=contain` no sobran: con solo `width`, Supabase entrega
-  // el ancho pedido y CONSERVA el alto original, o sea que deforma. En una
-  // carátula cuadrada eso se ve como una imagen estirada y recortada por el
-  // `object-fit` de la maqueta: caras a medias y títulos cortados.
-  //
-  // Con `contain` y un alto holgado —el doble del ancho, más de lo que mide
-  // cualquier portada— manda el ancho y la proporción se respeta. No rellena
-  // los bordes: una imagen apaisada sale más baja, no con franjas.
-  return `${ruta!.replace(ORIGEN_PUBLICO, TRANSFORMADOR)}?width=${w}&height=${w * 2}&resize=contain&quality=${calidad}`
+  return `${ruta}?w=${Math.round(ancho * 2)}&q=${calidad}`
 }

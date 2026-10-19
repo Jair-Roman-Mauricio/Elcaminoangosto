@@ -2,7 +2,7 @@
 *                       @Jair-Roman-Mauricio
 
 # Superficies sensibles: cambiarlas sin revisión es cómo se cuelan los agujeros.
-/supabase/              @Jair-Roman-Mauricio
+/db/                    @Jair-Roman-Mauricio
 /.github/workflows/     @Jair-Roman-Mauricio
 /apps/api/src/modules/auth/    @Jair-Roman-Mauricio
 /apps/api/src/modules/shared/guards/  @Jair-Roman-Mauricio

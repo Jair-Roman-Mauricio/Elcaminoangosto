@@ -16,20 +16,38 @@ export const EnvSchema = z.object({
     .default('http://localhost:5173')
     .transform((s) => s.split(',').map((o) => o.trim())),
 
-  /** URL del proyecto Supabase, p. ej. https://xxxx.supabase.co */
-  SUPABASE_URL: z.string().url(),
+  /** Secreto con el que el API firma los JWT de sesión (HS256). Mínimo 32 caracteres. */
+  JWT_SECRET: z.string().min(32),
 
-  /**
-   * JWKS del proyecto: claves ASIMÉTRICAS (ES256/RS256).
-   * Nunca el secreto HS256 legacy — ver arquitectura.md §5.
-   */
-  SUPABASE_JWKS_URL: z.string().url(),
+  /** Vida del token de acceso, en segundos. */
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(15 * 60),
 
-  /** Emisor esperado del JWT: `${SUPABASE_URL}/auth/v1` */
-  SUPABASE_JWT_ISSUER: z.string().url(),
+  /** Vida del token de refresco, en días. */
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
 
-  /** Solo para operaciones administrativas controladas. Jamás llega al front. */
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  /** URL pública del web: va en los enlaces de los correos. */
+  APP_URL: z.string().url().default('http://localhost:5173'),
+
+  /** URL pública del propio API (con /api): va en las URLs de archivos públicos. */
+  API_PUBLIC_URL: z.string().url().default('http://localhost:3000/api'),
+
+  /** Almacenamiento S3-compatible (Railway Bucket). */
+  S3_ENDPOINT: z.string().url(),
+  S3_REGION: z.string().default('auto'),
+  S3_BUCKET: z.string().min(1),
+  S3_ACCESS_KEY_ID: z.string().min(1),
+  S3_SECRET_ACCESS_KEY: z.string().min(1),
+  S3_FORCE_PATH_STYLE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+
+  /** Correo saliente (Brevo u otro SMTP). Sin esto, los enlaces solo se registran en el log. */
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  MAIL_FROM: z.string().default('El Camino Angosto <no-reply@elcaminoangosto.app>'),
 
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url().optional(),

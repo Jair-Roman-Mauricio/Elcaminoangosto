@@ -4,31 +4,27 @@ Estado real de la infraestructura provisionada, y por qué está configurada as�
 
 ---
 
-## Supabase
+## Base de datos y archivos (Railway)
 
 | | |
 |---|---|
-| Organización | `Elcaminoangosto` |
-| Proyecto (ref) | `gcxewueeidygglprxigx` |
-| Región | `us-east-2` |
-| Postgres | 17 |
-| Pooler (transacción) | `aws-1-us-east-2.pooler.supabase.com:6543` |
+| Postgres | servicio `Postgres` de Railway (por entorno) |
+| Archivos | Railway Bucket `elcamino-media` (S3-compatible), región `iad` |
+| Cuentas | propias, en `users` / `refresh_tokens` / `auth_tokens` |
 
-- Las 4 migraciones están aplicadas. Verificado en remoto: **26/26 tablas con RLS**, **64 políticas**, **5 buckets**, y `profiles.role` **no** es actualizable por el rol `authenticated`.
-- El proyecto emite **JWT ES256** (asimétrico) en `/auth/v1/.well-known/jwks.json`. El API los verifica contra ese JWKS y **rechaza HS256**.
-- `DATABASE_URL` usa el **pooler en puerto 6543** (modo transacción). Por eso `postgres-js` se configura con `prepare: false`: pgbouncer en modo transacción no soporta *prepared statements* con nombre.
+Se migró desde Supabase en octubre de 2026. El esquema base es `db/migrations/0001_base.sql` (el esquema `public` de Supabase sin RLS ni roles de Supabase) y lo que venga después se añade como `db/migrations/NNNN_*.sql`.
 
-> ⚠️ **Staging y producción comparten el mismo proyecto Supabase.** Es aceptable mientras no haya usuarios reales. Antes de abrir la plataforma, crea un segundo proyecto para staging y separa `SUPABASE_PROJECT_REF` por entorno de GitHub.
+- **Migraciones**: las aplica el API al arrancar (`pnpm --filter @elcamino/api start` ejecuta `dist/migrar.js` y luego `dist/main.js`), con un candado de Postgres para que dos réplicas no choquen. Quedan anotadas en `schema_migrations`.
+- **Archivos**: un solo bucket físico aloja los cinco lógicos como prefijos (`music/…`, `feed-media/…`, `thumbnails/…`). Los privados se leen con URL prefirmada (60 min). Los públicos (`avatars`, `thumbnails`) los sirve el API en `/api/files/public/<bucket>/<ruta>`, con `?w=` y `?q=` para redimensionar a WebP. Railway Buckets no admiten CORS desde el navegador, por eso **las subidas pasan por el API** (`PUT /api/media/uploads/:id/content` y `PUT /api/media/images`).
+- **Sesión**: JWT de acceso HS256 de 15 min firmado con `JWT_SECRET` + token de refresco opaco rotativo (30 días), guardado solo como SHA-256. Contraseñas con bcrypt (los hashes importados de Supabase valen tal cual y se renuevan al primer login).
+- **Correo** (verificación y recuperación): SMTP por variables `SMTP_*` (Brevo). Sin SMTP el enlace sale en el log del API.
+- **Conectarse desde la Mac**: el Postgres de Railway solo es accesible por su red privada. Para trabajar desde fuera hay que crear un proxy TCP temporal (`railway tcp-proxy create --port 5432 -s Postgres -e <entorno>`) y **borrarlo al terminar**.
 
-### Autenticación (ADR-009)
+> ⚠️ Al migrar, las URLs públicas guardadas en la base (`albums.cover_image_url`, `songs.background_url`, y las que haya dentro de Markdown) apuntaban a `…supabase.co/storage/v1/object/public/…` y se reescribieron a `<API_PUBLIC_URL>/files/public/…`. Un entorno nuevo debe repetir esa reescritura con su propio `API_PUBLIC_URL`.
 
-La confirmación de correo es **obligatoria** (`mailer_autoconfirm: false`). El registro envía a `/verificar-correo`, la sesión no se considera válida antes de que Supabase complete la confirmación y el despliegue vuelve a aplicar esta invariante mediante la Management API. En local, `[auth.email] enable_confirmations = true` y los correos se inspeccionan en Mailpit: <http://127.0.0.1:54324>. El entorno local no entrega estos mensajes a Gmail, Outlook ni a otro buzón externo.
+### Autenticación
 
-La recuperación de contraseña está implementada en `/recuperar` y redirige a `/restablecer-contrasena`. Las rutas de confirmación y recuperación de localhost, producción y staging forman parte de la lista de redirecciones permitidas que aplica el despliegue. Para usuarios reales se usa **Brevo SMTP** mediante los secretos de entorno descritos abajo. Sin ellos, el proveedor de demostración de Supabase solo entrega a miembros de la organización y permite 2 correos por hora.
-
-### Seed
-
-`supabase/seed.sql` **solo** se aplica en local (`supabase db reset`). Nunca en remoto.
+No hay registro público. La verificación de correo y la recuperación de contraseña las atiende `/api/auth/*`; los enlaces apuntan a `APP_URL` (`/verificar-correo?token=…`, `/restablecer-contrasena?token=…`).
 
 ---
 
@@ -76,11 +72,9 @@ Dos trampas que costaron un build cada una:
 1. **`--prod=false` en el install es obligatorio.** Con `NODE_ENV=production`, pnpm poda las `devDependencies` y el build se queda sin `nest`, `vite` ni `tsup`.
 2. **`railway environment new staging` cambia el entorno enlazado.** Cualquier `railway variables --set` posterior escribe en el entorno equivocado. **Pasa siempre `--environment` explícito.**
 
-### Node 22 es obligatorio
+### Node 22
 
-`@supabase/supabase-js` 2.110 requiere **Node 22+**: al construir el cliente inicializa un `RealtimeClient` que exige `WebSocket` nativo, ausente en Node 20. Railpack usaba Node 20 por defecto y el worker moría en el arranque con *«Node.js detected but native WebSocket not found»*.
-
-Fijado en tres sitios para que no dependa de un panel: `engines.node` en el `package.json` raíz, `.nvmrc`, y `RAILPACK_NODE_VERSION=22` en cada servicio.
+El proyecto corre en Node 22. Fijado en tres sitios para que no dependa de un panel: `engines.node` en el `package.json` raíz, `.nvmrc`, y `RAILPACK_NODE_VERSION=22` en cada servicio.
 
 ### El worker es ESM
 
@@ -92,11 +86,11 @@ Fijado en tres sitios para que no dependa de un panel: `engines.node` en el `pac
 
 Ninguna se commitea. Se definen en Railway y en los secretos de GitHub.
 
-**`api`** — `NODE_ENV`, `LOG_LEVEL`, `CORS_ORIGINS`, `SUPABASE_URL`, `SUPABASE_JWKS_URL`, `SUPABASE_JWT_ISSUER`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `REDIS_URL`
-**`worker`** — `NODE_ENV`, `LOG_LEVEL`, `MEDIA_CONCURRENCY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `REDIS_URL`
-**`web`** — `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL`
+**`api`** — `NODE_ENV`, `LOG_LEVEL`, `CORS_ORIGINS`, `APP_URL`, `API_PUBLIC_URL`, `JWT_SECRET`, `DATABASE_URL` (`${{Postgres.DATABASE_URL}}`), `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `REDIS_URL`, y opcionalmente `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`
+**`worker`** — `NODE_ENV`, `LOG_LEVEL`, `MEDIA_CONCURRENCY`, `DATABASE_URL`, `S3_*`, `REDIS_URL`
+**`web`** — `VITE_API_URL`
 
-Solo las `VITE_*` llegan al navegador. La `service_role` **nunca** sale del servidor.
+Solo las `VITE_*` llegan al navegador.
 
 ---
 
@@ -106,24 +100,16 @@ Solo las `VITE_*` llegan al navegador. La `service_role` **nunca** sale del serv
 
 1. `Conventional Commits` — valida el asunto de cada commit del PR.
 2. `Lint · Typecheck · Test · Build`.
-3. `Migraciones y RLS` — levanta Supabase local, aplica las migraciones y ejecuta las **16 aserciones** de `supabase/tests/rls.test.sql`.
-
-El job 3 no es opcional: **ningún fallo de RLS produce error de compilación**. Sin él, un agujero de autorización pasa el pipeline sin dejar rastro. Ver ADR-004.
+3. `Migraciones` — levanta un Postgres vacío, aplica `db/migrations/` dos veces y comprueba que la segunda no hace nada.
 
 **`.github/workflows/deploy.yml`** (push a `main` → producción, a `develop` → staging)
 
-Aplica las migraciones de Supabase **antes** de desplegar (el código nuevo asume el esquema nuevo) y luego lanza los tres servicios.
+Lanza los tres servicios en Railway. Las migraciones las aplica el API al arrancar, antes de aceptar tráfico.
 
 ### Secretos y variables de GitHub
 
 | Nombre | Tipo | Estado |
 |---|---|---|
-| `SUPABASE_ACCESS_TOKEN` | secret | ✅ |
-| `SUPABASE_DB_PASSWORD` | secret | ✅ |
-| `SUPABASE_PROJECT_REF` | variable | ✅ |
-| `BREVO_SENDER_EMAIL` | secret | ⬜ **pendiente** |
-| `BREVO_SMTP_USER` | secret | ⬜ **pendiente** |
-| `BREVO_SMTP_KEY` | secret | ⬜ **pendiente** |
 | `RAILWAY_TOKEN` (entorno `production`) | secret | ✅ |
 | `RAILWAY_TOKEN` (entorno `staging`) | secret | ⬜ **pendiente** |
 
@@ -136,27 +122,21 @@ gh secret set RAILWAY_TOKEN --repo Jair-Roman-Mauricio/Elcaminoangosto --env sta
 ```
 
 Mientras falte el de `staging`, el job de despliegue **avisa y se salta el paso**
-en vez de fallar: las migraciones ya se aplicaron y eso sí es un éxito.
+en vez de fallar.
 
 ### Correo transaccional con Brevo
 
-1. En Brevo, verifica el remitente de `BREVO_SENDER_EMAIL` y autentica su dominio
-   con los registros DNS de DKIM y DMARC.
-2. En **Transactional → Settings → SMTP & API**, copia el *SMTP login* y crea una
-   **SMTP key**. La clave SMTP no es la contraseña de la cuenta ni una API key.
-3. Guarda los tres secretos tanto en `production` como en `staging`:
+1. En Brevo, verifica el remitente y autentica su dominio con los registros DNS de DKIM y DMARC.
+2. En **Transactional → Settings → SMTP & API**, copia el *SMTP login* y crea una **SMTP key** (no es la contraseña de la cuenta ni una API key).
+3. Ponlas como variables del servicio `api` en Railway, una vez por entorno:
 
 ```bash
-gh secret set BREVO_SENDER_EMAIL --env production --body 'no-reply@tu-dominio.com'
-gh secret set BREVO_SMTP_USER --env production --body '<smtp-login-de-brevo>'
-gh secret set BREVO_SMTP_KEY --env production --body '<smtp-key-de-brevo>'
+railway variable set SMTP_HOST=smtp-relay.brevo.com SMTP_PORT=587 \
+  SMTP_USER='<smtp-login-de-brevo>' SMTP_PASS='<smtp-key-de-brevo>' \
+  MAIL_FROM='El Camino Angosto <no-reply@tu-dominio.com>' -s api -e staging
 ```
 
-Repite los comandos con `--env staging`. El despliegue configura automáticamente
-`smtp-relay.brevo.com:587` y el remitente **El Camino Angosto** en Supabase Auth.
-Si aparece solo una parte de los secretos, el job se detiene para evitar una
-configuración ambigua. Nunca se escriben estas credenciales en un `.env`
-versionado.
+Sin `SMTP_HOST` el API no envía nada: escribe el correo (con su enlace) en el log. Nunca se escriben estas credenciales en un `.env` versionado.
 
 ---
 

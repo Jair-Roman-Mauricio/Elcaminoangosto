@@ -26,10 +26,7 @@
 
 ## Si tocaste el esquema o la autorización
 
-- [ ] Migración versionada en `supabase/migrations/`
-- [ ] Toda tabla nueva con **RLS activo** y su política
-- [ ] Campos de gobernanza protegidos con **privilegio de columna** (RLS filtra filas, no columnas — ADR-004)
-- [ ] Aserción añadida a `supabase/tests/rls.test.sql`
+- [ ] Migración versionada en `db/migrations/`
 - [ ] Guards de Nest (`RolesGuard` / `PolicyGuard`) aplicados en la ruta
 
 ## Notas de migración / despliegue

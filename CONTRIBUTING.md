@@ -77,7 +77,7 @@ Ver `docs/BACKLOG.md`. En resumen, una historia está hecha cuando:
 - Cumple **todos** sus criterios de aceptación.
 - Tiene tests (dominio y, si aplica, e2e) y CI en verde.
 - Respeta los RNF pertinentes (seguridad, accesibilidad, rendimiento).
-- **RLS y guards verificados** para el recurso tocado. Si tocaste el esquema, la migración trae su política y su aserción en `supabase/tests/rls.test.sql`.
+- **Guards verificados** para el recurso tocado. Si tocaste el esquema, hay una migración nueva en `db/migrations/`.
 - Documentación actualizada; si cambió una decisión, hay un ADR en `docs/decisiones.md`.
 - `docs/PROGRESO.md` actualizado con la evidencia.
 - CodeGraph reindexado (`pnpm exec codegraph init .`).
@@ -86,12 +86,10 @@ Ver `docs/BACKLOG.md`. En resumen, una historia está hecha cuando:
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f supabase/tests/rls.test.sql
 ```
 
 ## Seguridad
 
 - **Jamás** commitees un `.env`, una clave o un token. Solo `.env.example` con valores vacíos.
-- La `service_role` key no sale del servidor. En el navegador solo vive la `anon`.
-- Toda tabla nueva llega con RLS activo y su política.
-- Recuerda que **RLS filtra filas, no columnas**: si añades un campo de gobernanza, protégelo también con un `GRANT` por columna. Ver ADR-004.
+- Los secretos (`JWT_SECRET`, `S3_SECRET_ACCESS_KEY`, la contraseña de la base) viven solo en Railway y en el `.env` local; el navegador solo recibe variables `VITE_*`.
+- No hay RLS: toda ruta nueva lleva su guard (`@Public()` explícito o `RolesGuard`) y valida propiedad en el servicio.
