@@ -92,20 +92,48 @@ export function AvisoDeDonacion() {
   }
 
   return (
-    <Modal abierto={abierto} onCerrar={cerrar} titulo={t.titulo} descripcion={t.descripcion} className="max-w-lg">
-      <div lang={idioma} className="flex flex-col gap-aire-s">
-        {t.parrafos.map((p) => (
-          <p key={p} className="m-0 font-ui text-body leading-relaxed text-texto-tenue">
-            {p}
-          </p>
-        ))}
-        <div className="mt-aire-xs flex flex-wrap items-center gap-aire-s">
-          <Link to="/donacion" onClick={alDonar} className={clasesDeBoton('formulario')}>
-            {t.donar}
-          </Link>
-          <Boton variante="sutil" onClick={cerrar}>
-            {t.ahoraNo}
-          </Boton>
+    <Modal
+      abierto={abierto}
+      onCerrar={cerrar}
+      titulo={t.titulo}
+      descripcion={t.descripcion}
+      className="max-w-3xl [scrollbar-color:rgba(247,246,242,0.3)_transparent] [scrollbar-width:thin]"
+    >
+      <div
+        lang={idioma}
+        className="grid items-stretch gap-aire-s min-[760px]:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] min-[760px]:gap-aire-m"
+      >
+        {/* Decorativa: el mensaje ya dice todo lo que importa. El fondo de la
+            imagen es negro puro, así que se funde con el del recuadro. */}
+        <div className="overflow-hidden rounded bg-negro">
+          <img
+            src="/donaciones/pan-y-biblia.jpg"
+            alt=""
+            width={846}
+            height={900}
+            decoding="async"
+            className="h-40 w-full object-cover object-[50%_30%] min-[760px]:h-full min-[760px]:object-contain"
+          />
+        </div>
+
+        <div className="flex flex-col gap-aire-s">
+          {t.parrafos.map((p) => (
+            <p
+              key={p}
+              className="m-0 font-ui text-[1.0625rem] font-semibold leading-snug text-contenido min-[760px]:text-[1.1875rem]"
+            >
+              {p}
+            </p>
+          ))}
+          <p className="m-0 font-ui text-h-s font-semibold text-acento">{t.bendicion}</p>
+          <div className="mt-aire-xs flex flex-wrap items-center gap-aire-s">
+            <Link to="/donacion" onClick={alDonar} className={clasesDeBoton('formulario')}>
+              {t.donar}
+            </Link>
+            <Boton variante="sutil" onClick={cerrar}>
+              {t.ahoraNo}
+            </Boton>
+          </div>
         </div>
       </div>
     </Modal>

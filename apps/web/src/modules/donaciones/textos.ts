@@ -10,6 +10,8 @@ export interface Textos {
     titulo: string
     descripcion: string
     parrafos: string[]
+    /** Cierre del mensaje, aparte y destacado. */
+    bendicion: string
     donar: string
     ahoraNo: string
   }
@@ -56,6 +58,7 @@ export const TEXTOS: Record<Idioma, Textos> = {
         'Donar es decisión tuya. Das lo que quieras, si quieres, y no pasa nada si no lo haces: no hace falta donar para escuchar, leer ni ver ningún contenido.',
         'Si esta página te ha acompañado y quieres ayudar a que siga ahí para otros, te lo agradecemos de corazón.',
       ],
+      bendicion: 'Dios te bendiga.',
       donar: 'Donar',
       ahoraNo: 'Ahora no',
     },
@@ -133,6 +136,7 @@ export const TEXTOS: Record<Idioma, Textos> = {
         'Giving is entirely your choice. Give what you wish, if you wish, and nothing changes if you do not: you never need to donate to listen, read or watch anything here.',
         'If this site has kept you company and you would like to help it stay there for others, we are truly grateful.',
       ],
+      bendicion: 'God bless you.',
       donar: 'Donate',
       ahoraNo: 'Not now',
     },
@@ -210,6 +214,7 @@ export const TEXTOS: Record<Idioma, Textos> = {
         'Doar é uma decisão sua. Você dá o que quiser, se quiser, e nada muda se não o fizer: não é preciso doar para ouvir, ler ou assistir a nenhum conteúdo.',
         'Se este site lhe fez companhia e você quer ajudar para que continue aqui para outras pessoas, agradecemos de coração.',
       ],
+      bendicion: 'Deus te abençoe.',
       donar: 'Doar',
       ahoraNo: 'Agora não',
     },
