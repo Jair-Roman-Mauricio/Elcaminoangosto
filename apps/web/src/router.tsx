@@ -57,6 +57,9 @@ const ComunidadPage = lazy(() =>
 const HiloPage = lazy(() =>
   import('./modules/community/comunidad-page').then((m) => ({ default: m.HiloPage })),
 )
+const DonacionPage = lazy(() =>
+  import('./modules/donaciones/donacion-page').then((m) => ({ default: m.DonacionPage })),
+)
 const AlabanzaPage = lazy(() =>
   import('./modules/music/alabanza-page').then((m) => ({ default: m.AlabanzaPage })),
 )
@@ -94,6 +97,7 @@ export const router = createBrowserRouter([
       { path: '/revista/:articuloId', element: conCarga(<RevistaPage />) },
       { path: '/oraciones', element: conCarga(<OracionesPage />) },
       { path: '/consejeria', element: conCarga(<ConsejeriaPage />) },
+      { path: '/donacion', element: conCarga(<DonacionPage />) },
       { path: '/comunidad', element: conCarga(<ComunidadPage />) },
       { path: '/comunidad/:id', element: conCarga(<HiloPage />) },
     ],

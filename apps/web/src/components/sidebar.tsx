@@ -30,6 +30,7 @@ const PLATAFORMA: EnlaceDeNav[] = [
   // Al final y aparte: no compite con lo demás, pero está donde se busca
   // cuando hace falta.
   { to: '/consejeria', label: 'Consejería' },
+  { to: '/donacion', label: 'Donación' },
 ]
 
 /**

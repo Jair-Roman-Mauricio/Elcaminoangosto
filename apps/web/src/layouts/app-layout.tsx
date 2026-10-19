@@ -22,6 +22,7 @@ const RUTAS_BASE = [
   { prefijo: '/videos', etiqueta: 'Videos cristianos' },
   { prefijo: '/alabanza', etiqueta: 'Alabanzas' },
   { prefijo: '/comunidad', etiqueta: 'Comunidad' },
+  { prefijo: '/donacion', etiqueta: 'Donación' },
   { prefijo: '/admin/contenido', etiqueta: 'Contenido' },
   { prefijo: '/admin/estadisticas', etiqueta: 'Estadísticas' },
 ] as const
