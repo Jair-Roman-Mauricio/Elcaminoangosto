@@ -5,13 +5,11 @@ import { cn, useReducedMotion } from '@elcamino/ui/static'
 import { useSeo } from '../../lib/seo'
 import { CopiarBoton } from './copiar-boton'
 import { cciConEspacios, DATOS_DE_DONACION, medioDisponible, type Metodo } from './datos'
-import { useContextoDeDonacion, type Idioma } from './contexto'
+import { useContextoDeDonacion } from './contexto'
 import { TEXTOS, type Paso, type Textos } from './textos'
 
 /** Curva del sistema (DESIGN.md §5): ease-out puro, sin rebote. */
 const EASE = [0.22, 0.61, 0.36, 1] as const
-
-const IDIOMAS: Idioma[] = ['es', 'en', 'pt']
 
 /**
  * Donación: una página, un propósito. Quien llega ya decidió mirar, así que no
@@ -23,7 +21,7 @@ const IDIOMAS: Idioma[] = ['es', 'en', 'pt']
  * extranjero sigue usando Yape.
  */
 export function DonacionPage() {
-  const { idioma, metodo, sugerido, elegirIdioma, elegirMetodo } = useContextoDeDonacion()
+  const { idioma, metodo, sugerido, elegirMetodo } = useContextoDeDonacion()
   const t = TEXTOS[idioma]
   const reducido = useReducedMotion()
 
@@ -38,10 +36,6 @@ export function DonacionPage() {
 
   return (
     <section lang={idioma} className="mx-auto flex w-full max-w-5xl flex-col gap-aire-l">
-      <div className="flex justify-end">
-        <SelectorDeIdioma actual={idioma} etiqueta={t.selector.idioma} onElegir={elegirIdioma} />
-      </div>
-
       <div className="grid items-start gap-aire-l min-[1180px]:grid-cols-[1.05fr_0.95fr]">
         <header className="flex flex-col gap-aire-m">
           <div className="flex flex-col gap-aire-s">
@@ -184,39 +178,6 @@ function SelectorDeMedio({
           </button>
         )
       })}
-    </div>
-  )
-}
-
-function SelectorDeIdioma({
-  actual,
-  etiqueta,
-  onElegir,
-}: {
-  actual: Idioma
-  etiqueta: string
-  onElegir: (i: Idioma) => void
-}) {
-  return (
-    <div role="group" aria-label={etiqueta} className="flex items-center gap-aire-xs">
-      {IDIOMAS.map((id) => (
-        <button
-          key={id}
-          type="button"
-          lang={id}
-          aria-pressed={id === actual}
-          onClick={() => onElegir(id)}
-          className={cn(
-            'font-ui text-body-s transition-colors duration-fade-corto ease-camino',
-            'underline-offset-[0.45em]',
-            id === actual
-              ? 'text-contenido underline decoration-acento'
-              : 'text-texto-tenue hover:text-contenido',
-          )}
-        >
-          {TEXTOS[id].nombre}
-        </button>
-      ))}
     </div>
   )
 }
