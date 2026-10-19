@@ -4,7 +4,6 @@ import type { Metodo } from './datos'
 export type Idioma = 'es' | 'en' | 'pt'
 
 const IDIOMAS: readonly Idioma[] = ['es', 'en', 'pt']
-const CLAVE_IDIOMA = 'eca.donacion.idioma'
 const CLAVE_METODO = 'eca.donacion.metodo'
 
 function leer(clave: string): string | null {
@@ -30,7 +29,10 @@ function preferidos(): string[] {
   return lista.filter(Boolean).map((l) => l.toLowerCase())
 }
 
-/** Primer idioma del navegador que sabemos atender; si ninguno, inglés. */
+/**
+ * Primer idioma del navegador que sabemos atender (es, en, pt); si ninguno,
+ * inglés, que es el más probable de entender donde no hay traducción.
+ */
 export function detectarIdioma(): Idioma {
   for (const completo of preferidos()) {
     const base = completo.split('-')[0] as Idioma
@@ -62,25 +64,20 @@ export interface ContextoDeDonacion {
   metodo: Metodo
   /** `true` mientras el medio mostrado es el que sugiere la región, no uno elegido. */
   sugerido: boolean
-  elegirIdioma: (idioma: Idioma) => void
   elegirMetodo: (metodo: Metodo) => void
 }
 
-/** Idioma y medio de la persona: lo elegido gana; si no hay nada, lo detectado. */
+/**
+ * Idioma y medio de la persona. El idioma NO se elige: sale siempre del
+ * navegador, así que cambiarlo allí cambia la página. El medio sí se puede
+ * cambiar, y lo elegido gana sobre lo sugerido.
+ */
 export function useContextoDeDonacion(): ContextoDeDonacion {
-  const [idioma, setIdioma] = useState<Idioma>(() => {
-    const guardado = leer(CLAVE_IDIOMA)
-    return IDIOMAS.includes(guardado as Idioma) ? (guardado as Idioma) : detectarIdioma()
-  })
+  const [idioma] = useState<Idioma>(detectarIdioma)
   const [elegido, setElegido] = useState<Metodo | null>(() => {
     const guardado = leer(CLAVE_METODO)
     return guardado === 'yape' || guardado === 'cci' ? guardado : null
   })
-
-  const elegirIdioma = useCallback((nuevo: Idioma) => {
-    setIdioma(nuevo)
-    guardar(CLAVE_IDIOMA, nuevo)
-  }, [])
 
   const elegirMetodo = useCallback((nuevo: Metodo) => {
     setElegido(nuevo)
@@ -91,7 +88,6 @@ export function useContextoDeDonacion(): ContextoDeDonacion {
     idioma,
     metodo: elegido ?? metodoSugerido(),
     sugerido: elegido === null,
-    elegirIdioma,
     elegirMetodo,
   }
 }

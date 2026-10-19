@@ -6,8 +6,6 @@ export interface Paso {
 }
 
 export interface Textos {
-  /** Nombre del idioma en el propio idioma, para el selector. */
-  nombre: string
   aviso: {
     titulo: string
     descripcion: string
@@ -29,7 +27,6 @@ export interface Textos {
     cci: string
     sugeridoYape: string
     sugeridoCci: string
-    idioma: string
   }
   panel: {
     yapeLeyenda: string
@@ -51,7 +48,6 @@ export interface Textos {
 
 export const TEXTOS: Record<Idioma, Textos> = {
   es: {
-    nombre: 'Español',
     aviso: {
       titulo: 'Donación',
       descripcion: 'Esta página se sostiene con aportes voluntarios.',
@@ -83,7 +79,6 @@ export const TEXTOS: Record<Idioma, Textos> = {
       cci: 'Transferencia',
       sugeridoYape: 'Te mostramos Yape porque parece que estás en Perú.',
       sugeridoCci: 'Te mostramos la transferencia bancaria porque parece que estás fuera de Perú.',
-      idioma: 'Idioma',
     },
     panel: {
       yapeLeyenda: 'Escanea con Yape y elige el monto',
@@ -130,7 +125,6 @@ export const TEXTOS: Record<Idioma, Textos> = {
   },
 
   en: {
-    nombre: 'English',
     aviso: {
       titulo: 'Donation',
       descripcion: 'This site is kept going by voluntary gifts.',
@@ -162,7 +156,6 @@ export const TEXTOS: Record<Idioma, Textos> = {
       cci: 'Bank transfer',
       sugeridoYape: 'We are showing Yape because you seem to be in Peru.',
       sugeridoCci: 'We are showing bank transfer because you seem to be outside Peru.',
-      idioma: 'Language',
     },
     panel: {
       yapeLeyenda: 'Scan with Yape and choose the amount',
@@ -209,7 +202,6 @@ export const TEXTOS: Record<Idioma, Textos> = {
   },
 
   pt: {
-    nombre: 'Português',
     aviso: {
       titulo: 'Doação',
       descripcion: 'Este site se mantém com ofertas voluntárias.',
@@ -241,7 +233,6 @@ export const TEXTOS: Record<Idioma, Textos> = {
       cci: 'Transferência',
       sugeridoYape: 'Mostramos o Yape porque parece que você está no Peru.',
       sugeridoCci: 'Mostramos a transferência bancária porque parece que você está fora do Peru.',
-      idioma: 'Idioma',
     },
     panel: {
       yapeLeyenda: 'Escaneie com o Yape e escolha o valor',
