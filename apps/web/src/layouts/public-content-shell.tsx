@@ -4,6 +4,7 @@ import { AppLayout } from './app-layout'
 import { VistaComoProvider } from '../components/vista-como'
 import { RecorridoGuiado } from '../components/recorrido-guiado'
 import { useSession } from '../auth/session'
+import { AvisoDeDonacion } from '../modules/donaciones/donacion-aviso'
 
 /**
  * Adaptador de autorización, no un layout paralelo: reutiliza exactamente el
@@ -43,6 +44,7 @@ export function PublicContentShell() {
       {/* Vive aquí y no en una pantalla: el recorrido cambia de sección y tiene
           que sobrevivir a esos cambios sin reiniciarse. */}
       <RecorridoGuiado />
+      <AvisoDeDonacion />
       {needsAccess && (
         <div className="public-access-modal" role="dialog" aria-modal="true" aria-labelledby="public-access-title">
           <button className="public-access-modal__backdrop" type="button" aria-label="Cerrar" onClick={closeModal} />
