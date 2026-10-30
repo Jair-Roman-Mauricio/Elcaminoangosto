@@ -20,7 +20,9 @@ async function bootstrap(): Promise<void> {
   const config = app.get(ConfigService)
 
   // RNF-4 (OWASP): cabeceras seguras y CORS restringido a orígenes conocidos.
-  app.use(helmet())
+  // El web vive en otro origen: sin esto helmet manda CORP same-origin y el navegador
+  // bloquea imágenes, audio y video (ERR_BLOCKED_BY_RESPONSE.NotSameOrigin).
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
   app.enableCors({
     origin: config.getOrThrow<string[]>('CORS_ORIGINS'),
     credentials: true,
